@@ -1,4 +1,8 @@
-#!/usr/bin/python
+"""
+Fileseq is a simple python library for parsing file sequence strings
+commonly used in VFX.
+"""
+
 import os
 import re
 
