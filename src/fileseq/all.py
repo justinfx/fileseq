@@ -2,11 +2,11 @@
 import os
 import re
 
-__all__ = [ "FrameSet", 
-		    "FileSequence",
-		    "framesToFrameRange",
-		    "findSequencesOnDisk",
-			"getPaddingChars" ]
+__all__ = [ "FrameSet",
+            "FileSequence",
+            "framesToFrameRange",
+            "findSequencesOnDisk",
+            "getPaddingChars" ]
 
 _PADDING = {"#": 4, "@": 1}
 
@@ -22,7 +22,7 @@ class FrameSet(object):
 	"""
 	A FrameSet represents an ordered and unique set of frames in a frame range.  A frame range
 	can be expressed in the following ways:
-	
+		
 		1-5
 		1-5,10-20
 		1-100x5 (every fifth frame)
@@ -49,13 +49,13 @@ class FrameSet(object):
 			if not matched:
 				return False
 		return True
-				
+	
 	def __init__(self, frange):
 		
 		self.__frange = frange
 		self.__set = set()
 		self.__list = list()
-
+		
 		for part in frange.split(","):
 			matched = False
 			for pat in _PATTERNS:
@@ -66,29 +66,29 @@ class FrameSet(object):
 					break
 			if not matched:
 				raise Exception("Failed to parse frame range: %s on part '%s'" % (frange, part))
-
+	
 	def index(self, idx):
 		"""
 		Return the frame number at the given index.
 		"""
 		return self.__list[idx]
-
+	
 	def hasFrame(self, frame):
 		"""
 		Return true if the FrameSet contains the supplied frame number.
 		"""
 		return frame in self.__set
-		
+	
 	def normalize(self):
 		"""
 		Normalizes the current FramSet and returns a new sorted and
 		compacted FrameSet
 		"""
 		return FrameSet(framesToFrameRange(self.__list))
-
+	
 	def __handleMatch(self, match):
 		"""
-		Handle the differen types of sequence pattern matches. 
+		Handle the differen types of sequence pattern matches.
 		"""
 		groups = match.groups()
 		length = len(groups)
@@ -100,11 +100,11 @@ class FrameSet(object):
 			chunk = int(groups[3])
 			if chunk == 0:
 				Exception("Failed to parse part of range: %s , invalid use of the number zero.")
-	
+			
 			start = int(groups[0])
 			end = int(groups[1])
 			modifier = groups[2]
-
+			
 			if modifier == "x":
 				self.__addFrames(xrange(start, end+1, chunk))
 			elif modifier == ":":
@@ -114,7 +114,7 @@ class FrameSet(object):
 				not_good = frozenset(xrange(start, end+1, chunk))
 				self.__addFrames([f for f in xrange(start, end+1)
 					if f not in not_good])
-
+	
 	def __addFrames(self, frames):
 		"""
 		Filters the given set of frames to a unique list and adds them to the
@@ -125,20 +125,20 @@ class FrameSet(object):
 			return
 		self.__set.update(_f)
 		self.__list.extend(_f)
-
+	
 	def __getitem__(self, index):
 		return self.__list[index]
-
+	
 	def __len__(self):
 		return len(self.__list)
-
+	
 	def __str__(self):
 		return self.__frange
 	
 	def __iter__(self):
 		for i in self.__list:
 			yield i
-			
+
 class FileSequence(object):
 	"""
 	FileSequence represents an ordered sequence of files.
@@ -158,7 +158,7 @@ class FileSequence(object):
 			self.__frameSet = None
 		self.__ext = m.group(5)
 		self.__zfill = sum([_PADDING[c] for c in self.__padding])
-
+	
 	def dirname(self):
 		"""
 		Return the directory name of the sequence.
@@ -176,34 +176,34 @@ class FileSequence(object):
 		Return the the padding characters in the sequence.
 		"""
 		return self.__padding
-
+	
 	def frameSet(self):
 		"""
 		Return the FrameSet of the sequence if one was specified, otherwise return None
 		"""
 		return self.__frameSet
-		
+	
 	def extension(self):
 		"""
 		Return the file extension in the sequence. This includes the leading period.
 		"""
 		return self.__ext
-
+	
 	def frame(self, frame):
 		"""
 		Return a path go the given frame in the sequence.
 		"""
-		return "%s%s.%s%s" % (self.__dir, 
+		return "%s%s.%s%s" % (self.__dir,
 						      self.__basename,
 						      str(frame).zfill(self.__zfill),
 						      self.__ext)
-
+	
 	def setDirname(self, dirname):
 		"""
 		Set a new dirname for the sequence.
 		"""
 		self.__dir = dirname
-		
+	
 	def setBasename(self, base):
 		"""
 		Set a new basename for the sequence.
@@ -216,7 +216,7 @@ class FileSequence(object):
 		"""
 		self.__padding = padding
 		self.__zfill = sum([_PADDING[c] for c in self.__padding])
-		
+	
 	def setExtention(self, ext):
 		"""
 		Set a new file extension for the sequence.
@@ -224,7 +224,7 @@ class FileSequence(object):
 		if ext[0] != ".":
 			ext = "." + ext
 		self.__ext = ext
-		
+	
 	def setFrameSet(self, frameSet):
 		"""
 		Set a new FrameSet for the sequence.
@@ -240,15 +240,15 @@ class FileSequence(object):
 	def __iter__(self):
 		for f in self.__frameSet:
 			yield self.frame(f)
-
+	
 	def __getitem__(self, index):
 		return self.getFrame(self.__frameSet[index])
-									
+	
 	def __len__(self):
 		return len(self.__frameSet)
-
+	
 	def __str__(self):
-		return "%s%s.%s%s%s" % (self.__dir, 
+		return "%s%s.%s%s%s" % (self.__dir,
 						        self.__basename,
 							    self.__padding,
 						        str(self.__frameSet or ""),
@@ -265,7 +265,7 @@ def framesToFrameRange(frames):
 	"""
 	if len(frames) == 1:
 		return str(frames[0])
-
+	
 	result = []
 	def append(start, end, chunk, count):
 		if count == 0:
@@ -274,12 +274,12 @@ def framesToFrameRange(frames):
 			result.append("%d-%d" % (start, end))
 		else:
 			result.append("%d-%dx%d" % (start, end, chunk))
-
+	
 	frames.sort()
 	start = frames[0]
 	chunk = frames[1] - frames[0]
 	count = 0
-
+	
 	for num, frame in enumerate(frames):
 		if num > 0:
 			diff = frames[num] - frames[num-1]
@@ -287,13 +287,13 @@ def framesToFrameRange(frames):
 				append(start, frames[num-1], chunk, count)
 				chunk = diff
 				count = 0
-				start = frames[num] 
+				start = frames[num]
 			else:
 				count+=1
-
+	
 	append(start, frame, chunk, count)
 	return ",".join(result)
-			
+
 def findSequencesOnDisk(path):
 	"""
 	Return a list of sequences found in the given directory.
@@ -305,19 +305,19 @@ def findSequencesOnDisk(path):
 		m = _SEQ_PATTERN.match(os.path.join(path, _file))
 		if not m:
 			continue
-
+		
 		key = (m.group(1), m.group(2), m.group(5))
 		frames = seqs.get(key)
 		if not frames:
 			frames = [[], len(m.group(4))]
 			seqs[key] = frames
 		frames[0].append(int(m.group(4)))
-
+	
 	for key, frames in seqs.iteritems():
 		frame_range = framesToFrameRange(frames[0])
-		result.append(FileSequence("%s%s.%s%s%s" % (key[0], key[1], 
+		result.append(FileSequence("%s%s.%s%s%s" % (key[0], key[1],
 			getPaddingChars(frames[1]), frame_range, key[2])))
-
+	
 	return result
 
 def getPaddingChars(num):
@@ -330,6 +330,6 @@ def getPaddingChars(num):
 		return "#" * (num / 4)
 	else:
 		return "@" * num
-
 		
+	
 	
