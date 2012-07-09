@@ -24,7 +24,7 @@ _PATTERNS = [
 _SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)\.([\#\@]*)([\:xy\-0-9,]*)(?:(\.[^.]*$)|$))")
 
 class ParseException(Exception):
-	"""Thrown after a frame range or file sequence parse error."""
+    """Thrown after a frame range or file sequence parse error."""
 
 class FrameSet(object):
     """
