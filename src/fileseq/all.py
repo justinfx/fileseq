@@ -262,7 +262,7 @@ class FileSequence(object):
                                 str(self.__frameSet or ""),
                                 self.__ext)
 
-def framesToFrameRange(frames):
+def framesToFrameRange(frames, sort=True):
     """
     Return a string frame range represenation of the
     given list of frame numbers.
@@ -283,9 +283,12 @@ def framesToFrameRange(frames):
         else:
             result.append("%d-%dx%d" % (start, end, chunk))
     
-    frames.sort()
+    if sort:
+        frames.sort()
     start = frames[0]
     chunk = frames[1] - frames[0]
+    if chunk <= 0:
+        chunk = 1
     count = 0
     
     for num, frame in enumerate(frames):
@@ -293,7 +296,13 @@ def framesToFrameRange(frames):
             diff = frames[num] - frames[num-1]
             if diff != chunk:
                 append(start, frames[num-1], chunk, count)
-                chunk = diff
+                if diff >= 0:
+                    chunk = diff
+                else:
+                    try:
+                        chunk = frames[num+1] - frames[num]
+                    except IndexError:
+                        chunk = 1
                 count = 0
                 start = frames[num]
             else:

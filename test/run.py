@@ -45,7 +45,21 @@ class TestFrameSet(unittest.TestCase):
 		
 	def testStaggered(self):
 		fs = fileseq.FrameSet("1-20:2")
-		print fs.normalize()
-				
+
+class TestFramesToFrameRange(unittest.TestCase):
+	
+	def testSimpleSequence(self):
+		self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
+	
+	def testBrokenSequence(self):
+		self.assertEquals("2-3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
+	
+	def testChunkedSequence(self):
+		self.assertEquals("5-25x5", fileseq.framesToFrameRange([5,10,15,20,25]))
+
+	def testBrokenChunkedSequence(self):
+		self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
+		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
+
 if __name__ == '__main__':
 	unittest.main(verbosity=2)
