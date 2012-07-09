@@ -279,7 +279,9 @@ def framesToFrameRange(frames, sort=True):
     
     result = []
     def append(start, end, chunk, count):
-        if count == 0:
+        if end - start == chunk:
+            result.append("%d,%d" % (start, end))
+        elif count == 0:
             result.append("%d" % start)
         elif chunk <= 1:
             result.append("%d-%d" % (start, end))
@@ -313,7 +315,7 @@ def framesToFrameRange(frames, sort=True):
                 start = frames[num]
             else:
                 count+=1
-    
+
     append(start, frame, chunk, count)
     return ",".join(result)
 

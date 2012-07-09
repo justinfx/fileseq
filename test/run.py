@@ -52,7 +52,7 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
 	
 	def testBrokenSequence(self):
-		self.assertEquals("2-3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
+		self.assertEquals("2,3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
 	
 	def testChunkedSequence(self):
 		self.assertEquals("5-25x5", fileseq.framesToFrameRange([5,10,15,20,25]))
@@ -62,14 +62,18 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
 	
 	def testDuplicatedSequence(self):
-		self.assertEquals("1-2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
+		self.assertEquals("1,2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
 		self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
 
 	def testNegativeSimpleSequence(self):
 		self.assertEquals("-5-0", fileseq.framesToFrameRange([-5,-4,-3,-2,-1,0]))
 
 	def testOutOfOrderSimpleSequence(self):
-		self.assertEquals("1-5", fileseq.framesToFrameRange([1,1,1,2,3,4,5]))
+		self.assertEquals("1-5", fileseq.framesToFrameRange([2,4,1,2,3,4,5]))
+
+	def testOutOfOrderSimpleSequence(self):
+		self.assertEquals("1,10", fileseq.framesToFrameRange([10,1]))
+		self.assertEquals("10,1", fileseq.framesToFrameRange([10,1], False))
 
 if __name__ == '__main__':	
 	unittest.main(verbosity=2)
