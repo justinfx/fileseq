@@ -60,6 +60,16 @@ class TestFramesToFrameRange(unittest.TestCase):
 	def testBrokenChunkedSequence(self):
 		self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
 		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
+	
+	def testDuplicatedSequence(self):
+		self.assertEquals("1-2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
+		self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
 
-if __name__ == '__main__':
+	def testNegativeSimpleSequence(self):
+		self.assertEquals("-5-0", fileseq.framesToFrameRange([-5,-4,-3,-2,-1,0]))
+
+	def testOutOfOrderSimpleSequence(self):
+		self.assertEquals("1-5", fileseq.framesToFrameRange([1,1,1,2,3,4,5]))
+
+if __name__ == '__main__':	
 	unittest.main(verbosity=2)

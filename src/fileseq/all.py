@@ -278,27 +278,33 @@ def framesToFrameRange(frames, sort=True):
     def append(start, end, chunk, count):
         if count == 0:
             result.append("%d" % start)
-        elif chunk == 1:
+        elif chunk <= 1:
             result.append("%d-%d" % (start, end))
         else:
             result.append("%d-%dx%d" % (start, end, chunk))
     
     if sort:
         frames.sort()
+
     start = frames[0]
     chunk = frames[1] - frames[0]
-    if chunk <= 0:
-        chunk = 1
     count = 0
-    
+
     for num, frame in enumerate(frames):
         if num > 0:
             diff = frames[num] - frames[num-1]
+            # We've encountered the same frame so just
+            # skip over it.
+            if diff == 0:
+                chunk = 1
+                continue
+
             if diff != chunk:
-                append(start, frames[num-1], chunk, count)
-                if diff >= 0:
+                append(start, frames[num-1], chunk, count)   
+                if diff > 0:
                     chunk = diff
                 else:
+                    # Look forward for our new chunk
                     try:
                         chunk = frames[num+1] - frames[num]
                     except IndexError:
