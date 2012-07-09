@@ -10,7 +10,8 @@ __all__ = [ "FrameSet",
             "FileSequence",
             "framesToFrameRange",
             "findSequencesOnDisk",
-            "getPaddingChars" ]
+            "getPaddingChars",
+            "ParseException" ]
 
 _PADDING = {"#": 4, "@": 1}
 
@@ -21,6 +22,9 @@ _PATTERNS = [
 ]
 
 _SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)\.([\#\@]*)([\:xy\-0-9,]*)(?:(\.[^.]*$)|$))")
+
+class ParseException(Exception):
+	"""Thrown after a frame range or file sequence parse error."""
 
 class FrameSet(object):
     """
@@ -69,7 +73,7 @@ class FrameSet(object):
                     self.__handleMatch(match)
                     break
             if not matched:
-                raise Exception("Failed to parse frame range: %s on part '%s'" % (frange, part))
+                raise ParseException("Failed to parse frame range: %s on part '%s'" % (frange, part))
     
     def index(self, idx):
         """
@@ -103,7 +107,7 @@ class FrameSet(object):
         elif length == 4:
             chunk = int(groups[3])
             if chunk == 0:
-                Exception("Failed to parse part of range: %s , invalid use of the number zero.")
+                ParseException("Failed to parse part of range: %s , invalid use of the number zero.")
             
             start = int(groups[0])
             end = int(groups[1])
@@ -150,7 +154,7 @@ class FileSequence(object):
     def __init__(self, sequence):
         m = _SEQ_PATTERN.match(sequence)
         if not m:
-            raise Exception("Failed to parse FileSequence: %s" % sequence)
+            raise ParseException("Failed to parse FileSequence: %s" % sequence)
         self.__dir = m.group(1)
         if not self.__dir:
             self.__dir = ""
