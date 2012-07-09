@@ -1,8 +1,8 @@
+#!/usr/bin/python
 
-import sys
 import unittest
-
-sys.path.append("../")
+import sys
+sys.path.append("../src")
 
 import fileseq
 
