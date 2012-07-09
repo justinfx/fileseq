@@ -92,7 +92,7 @@ class FrameSet(object):
     
     def __handleMatch(self, match):
         """
-        Handle the differen types of sequence pattern matches.
+        Handle the different types of sequence pattern matches.
         """
         groups = match.groups()
         length = len(groups)
