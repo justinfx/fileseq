@@ -349,9 +349,10 @@ def findSequencesOnDisk(path):
     
     for key, frames in seqs.iteritems():
         frame_range = framesToFrameRange(frames[0])
-        result.append(FileSequence("%s%s%s%s%s" % (key[0], key[1],
-            getPaddingChars(frames[1]), frame_range, key[2])))
-    
+        seq = "".join((
+            key[0], key[1], getPaddingChars(frames[1]), frame_range, key[2]))
+        result.append(FileSequence(seq))
+
     return result
 
 def getPaddingChars(num):
