@@ -78,5 +78,79 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1,10", fileseq.framesToFrameRange([10,1]))
 		self.assertEquals("10,1", fileseq.framesToFrameRange([10,1], False))
 
+class TestFileSequence(unittest.TestCase):
+
+	def testSeqGettersType1(self):
+		seq = fileseq.FileSequence("/foo/boo.#1-5.exr")
+		self.assertEquals(5, len(seq))
+		self.assertEquals("/foo/", seq.dirname())
+		self.assertEquals("boo.", seq.basename())
+		self.assertEquals("#", seq.padding())
+		self.assertEquals(".exr", seq.extension())
+
+		self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+		self.assertEquals("/foo/boo.0001.exr", seq[0])
+		self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+
+	def testSeqGettersType2(self):
+		seq = fileseq.FileSequence("/foo/boo#1-5.exr")
+		self.assertEquals(5, len(seq))
+		self.assertEquals("/foo/", seq.dirname())
+		self.assertEquals("boo", seq.basename())
+		self.assertEquals("#", seq.padding())
+		self.assertEquals(".exr", seq.extension())
+
+		self.assertEquals("/foo/boo9999.exr", seq.frame(9999))
+		self.assertEquals("/foo/boo0001.exr", seq[0])
+		self.assertEquals("/foo/boo0001.exr", seq.index(0))
+
+	def testSetDirname(self):
+		seq = fileseq.FileSequence("/foo/bong.@1-5.exr")
+		seq.setDirname("/bing/")
+		self.assertEquals("/bing/bong.1.exr", seq[0])
+
+	def testSetBasename(self):
+		seq = fileseq.FileSequence("/foo/bong.@1-5.exr")
+		seq.setBasename("bar.")
+		self.assertEquals("/foo/bar.1.exr", seq[0])
+
+	def testSetPadding(self):
+		seq = fileseq.FileSequence("/foo/bong.@1-5.exr")
+		seq.setPadding("#")
+		self.assertEquals("/foo/bong.0001.exr", seq[0])
+
+	def testSetFrameSet(self):
+		seq = fileseq.FileSequence("/cheech/chong.#1-5.exr")
+		seq.setFrameSet(fileseq.FrameSet("10-20"))
+		self.assertEquals("/cheech/chong.#10-20.exr", str(seq))
+
+	def testSetFrameRange(self):
+		seq = fileseq.FileSequence("/cheech/chong.#1-5.exr")
+		seq.setFrameRange("10-20")
+		self.assertEquals("/cheech/chong.#10-20.exr", str(seq))
+
+	def testIter(self):
+		known = set ([
+			"/cheech/chong.0001.exr",
+			"/cheech/chong.0003.exr",
+			"/cheech/chong.0005.exr"
+		])
+		seq = fileseq.FileSequence("/cheech/chong.#1,3,5.exr")
+		self.assertFalse(known.difference(seq))
+
+
+
+
+
+class TestFindSequencesOnDisk(unittest.TestCase):
+
+	def testFindSequencesOnDisk(self):
+		seqs = fileseq.findSequencesOnDisk("seq")
+		self.assertEquals(2, len(seqs))
+
+		known = set(["seq/bar#1000-1002,1004-1006.exr", "seq/foo.#1-5.exr"])
+		found = set([str(s) for s in seqs])
+		self.assertFalse(known.difference(found))
+
 if __name__ == '__main__':	
 	unittest.main(verbosity=2)
