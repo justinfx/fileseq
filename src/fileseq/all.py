@@ -274,7 +274,7 @@ class FileSequence(object):
             yield self.frame(f)
     
     def __getitem__(self, index):
-        return self.getFrame(self.__frameSet[index])
+        return self.frame(self.__frameSet[index])
     
     def __len__(self):
         return len(self.__frameSet)
