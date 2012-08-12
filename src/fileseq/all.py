@@ -246,7 +246,7 @@ class FileSequence(object):
         """
         Set a new basename for the sequence.
         """
-        self.__basenane = base
+        self.__basename = base
     
     def setPadding(self, padding):
         """
