@@ -230,6 +230,12 @@ class FileSequence(object):
                 str(frame).zfill(self.__zfill),
                 self.__ext))
 
+    def index(self, idx):
+        """
+        Return the path to the file at the given index.
+        """
+        return self.frame(self.__frameSet[idx])
+
     def setDirname(self, dirname):
         """
         Set a new dirname for the sequence.
@@ -273,8 +279,8 @@ class FileSequence(object):
         for f in self.__frameSet:
             yield self.frame(f)
     
-    def __getitem__(self, index):
-        return self.frame(self.__frameSet[index])
+    def __getitem__(self, idx):
+        return self.index(idx)
     
     def __len__(self):
         return len(self.__frameSet)
