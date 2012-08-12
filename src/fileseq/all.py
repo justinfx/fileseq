@@ -41,7 +41,10 @@ _PATTERNS = [
     re.compile("^(\-?[0-9]+)\-(\-?[0-9]+)([:xy]{1})([0-9]+)$")
 ]
 
-_SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)\.([\#\@]*)([\:xy\-0-9,]*)(?:(\.[^.]*$)|$))")
+_SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\#\@]*)([\:xy\-0-9,]*)(?:(\.[^.]*$)|$))")
+
+_ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([0-9]{1,})(?:(\.[^.]*$)|$))")
+
 
 class ParseException(Exception):
     """Thrown after a frame range or file sequence parse error."""
@@ -221,11 +224,12 @@ class FileSequence(object):
         """
         Return a path go the given frame in the sequence.
         """
-        return "%s%s.%s%s" % (self.__dir,
-                              self.__basename,
-                              str(frame).zfill(self.__zfill),
-                              self.__ext)
-    
+        return "".join((
+                self.__dir,
+                self.__basename,
+                str(frame).zfill(self.__zfill),
+                self.__ext))
+
     def setDirname(self, dirname):
         """
         Set a new dirname for the sequence.
@@ -276,11 +280,12 @@ class FileSequence(object):
         return len(self.__frameSet)
     
     def __str__(self):
-        return "%s%s.%s%s%s" % (self.__dir,
-                                self.__basename,
-                                self.__padding,
-                                str(self.__frameSet or ""),
-                                self.__ext)
+        return "".join((
+            self.__dir,
+            self.__basename,
+            self.__padding,
+            str(self.__frameSet or ""),
+            self.__ext))
 
 def framesToFrameRange(frames, sort=True):
     """
@@ -344,20 +349,21 @@ def findSequencesOnDisk(path):
     seqs = { }
     
     for _file in os.listdir(path):
-        m = _SEQ_PATTERN.match(os.path.join(path, _file))
+        m = _ON_DISK_PATTERN.match(os.path.join(path, _file))
         if not m:
             continue
         
-        key = (m.group(1), m.group(2), m.group(5))
+        # Key is made up of of dir, base, and ext
+        key = (m.group(1), m.group(2), m.group(4))
         frames = seqs.get(key)
         if not frames:
-            frames = [[], len(m.group(4))]
+            frames = [[], len(m.group(3))]
             seqs[key] = frames
-        frames[0].append(int(m.group(4)))
+        frames[0].append(int(m.group(3)))
     
     for key, frames in seqs.iteritems():
         frame_range = framesToFrameRange(frames[0])
-        result.append(FileSequence("%s%s.%s%s%s" % (key[0], key[1],
+        result.append(FileSequence("%s%s%s%s%s" % (key[0], key[1],
             getPaddingChars(frames[1]), frame_range, key[2])))
     
     return result
