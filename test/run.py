@@ -53,7 +53,10 @@ class TestFramesToFrameRange(unittest.TestCase):
 	
 	def testBrokenSequence(self):
 		self.assertEquals("2,3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
-	
+
+	def testBrokenSequence2(self):
+		self.assertEquals("1,2,4-8", fileseq.framesToFrameRange([1,2,4,5,6,7,8]))
+
 	def testChunkedSequence(self):
 		self.assertEquals("5-25x5", fileseq.framesToFrameRange([5,10,15,20,25]))
 

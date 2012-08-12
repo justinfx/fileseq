@@ -322,15 +322,12 @@ def framesToFrameRange(frames, sort=True):
                 continue
 
             if diff != chunk:
-                append(start, frames[num-1], chunk, count)   
-                if diff > 0:
-                    chunk = diff
-                else:
-                    # Look forward for our new chunk
-                    try:
-                        chunk = frames[num+1] - frames[num]
-                    except IndexError:
-                        chunk = 1
+                append(start, frames[num-1], chunk, count)
+                # Look forward for our new chunk
+                try:
+                    chunk = frames[num+1] - frames[num]
+                except IndexError:
+                    chunk = 1
                 count = 0
                 start = frames[num]
             else:
