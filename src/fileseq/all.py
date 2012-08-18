@@ -21,7 +21,7 @@ _PATTERNS = [
     re.compile("^(\-?[0-9]+)\-(\-?[0-9]+)([:xy]{1})([0-9]+)$")
 ]
 
-_SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\#\@]*)([\:xy\-0-9,]*)(?:(\.[^.]*$)|$))")
+_SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\:xy\-0-9,]*)([\#\@]*)(?:(\.[^.]*$)|$))")
 
 _ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([0-9]{1,})(?:(\.[^.]*$)|$))")
 
@@ -162,9 +162,9 @@ class FileSequence(object):
         if not self.__dir:
             self.__dir = ""
         self.__basename = m.group(2)
-        self.__padding = m.group(3)
-        if m.group(4):
-            self.__frameSet = FrameSet(m.group(4))
+        self.__padding = m.group(4)
+        if m.group(3):
+            self.__frameSet = FrameSet(m.group(3))
         else:
             self.__frameSet = None
         self.__ext = m.group(5)
@@ -269,8 +269,8 @@ class FileSequence(object):
         return "".join((
             self.__dir,
             self.__basename,
-            self.__padding,
             str(self.__frameSet or ""),
+            self.__padding,
             self.__ext))
 
 def framesToFrameRange(frames, sort=True):
@@ -350,7 +350,7 @@ def findSequencesOnDisk(path):
     for key, frames in seqs.iteritems():
         frame_range = framesToFrameRange(frames[0])
         seq = "".join((
-            key[0], key[1], getPaddingChars(frames[1]), frame_range, key[2]))
+            key[0], key[1], frame_range, getPaddingChars(frames[1]), key[2]))
         result.append(FileSequence(seq))
 
     return result
@@ -365,6 +365,3 @@ def getPaddingChars(num):
         return "#" * (num / 4)
     else:
         return "@" * num
-        
-    
-    
