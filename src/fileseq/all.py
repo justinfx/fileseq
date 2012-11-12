@@ -335,6 +335,10 @@ def findSequencesOnDisk(path):
     seqs = { }
     
     for _file in os.listdir(path):
+
+        if not os.path.isfile(os.path.join(path, file)):
+            continue
+
         m = _ON_DISK_PATTERN.match(os.path.join(path, _file))
         if not m:
             continue
