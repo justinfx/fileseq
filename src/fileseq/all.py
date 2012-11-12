@@ -10,6 +10,7 @@ __all__ = [ "FrameSet",
             "FileSequence",
             "framesToFrameRange",
             "findSequencesOnDisk",
+            "findSequenceOnDisk",
             "getPaddingChars",
             "ParseException" ]
 
@@ -358,6 +359,16 @@ def findSequencesOnDisk(path):
         result.append(FileSequence(seq))
 
     return result
+
+def findSequenceOnDisk(path):
+    """
+    Searches for a specific sequence on disk, for example,
+    findSequenceOnDisk("seq/bar#.exr") (or any other pattern supported by fileseq)
+    """
+    for seq in findSequencesOnDisk(os.path.dirname(path)):
+        if seq.basename() == FileSequence(path).basename():
+            return seq
+    raise ValueError("No sequence found on disk matching %s"%path)
 
 def getPaddingChars(num):
     """
