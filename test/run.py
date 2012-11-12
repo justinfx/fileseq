@@ -149,5 +149,12 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 		found = set([str(s) for s in seqs])
 		self.assertFalse(known.difference(found))
 
+class TestFindSequenceOnDisk(unittest.TestCase):
+	
+	def testFindSequenceOnDisk(self):
+		seq = fileseq.findSequenceOnDisk("seq/bar#.exr")
+		self.assertTrue(isinstance(seq, fileseq.FileSequence))
+		self.assertEqual(str(seq), "seq/bar1000-1002,1004-1006#.exr")
+
 if __name__ == '__main__':	
 	unittest.main(verbosity=2)
