@@ -187,6 +187,15 @@ class FileSequence(object):
         Return the the padding characters in the sequence.
         """
         return self.__padding
+
+    def start(self):
+        return self.__frameSet.__list[0]
+
+    def end(self):
+        return self.__frameSet.__list[-1]
+
+    def frameRange(self):
+        return self.__frameSet.__frange
     
     def frameSet(self):
         """
@@ -242,7 +251,7 @@ class FileSequence(object):
         if ext[0] != ".":
             ext = "." + ext
         self.__ext = ext
-    
+
     def setFrameSet(self, frameSet):
         """
         Set a new FrameSet for the sequence.
