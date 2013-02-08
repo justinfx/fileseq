@@ -90,6 +90,15 @@ class FrameSet(object):
         Return true if the FrameSet contains the supplied frame number.
         """
         return frame in self.__set
+
+    def start(self):
+        return self.__list[0]
+
+    def end(self):
+        return self.__list[-1]
+
+    def frameRange(self):
+        return self.__frange
     
     def normalize(self):
         """
@@ -188,6 +197,16 @@ class FileSequence(object):
         Return the the padding characters in the sequence.
         """
         return self.__padding
+
+    def start(self):
+        return self.__frameSet.start()
+
+
+    def end(self):
+        return self.__frameSet.end()
+
+    def frameRange(self):
+        return self.__frameSet.frameRange()
     
     def frameSet(self):
         """
@@ -243,7 +262,7 @@ class FileSequence(object):
         if ext[0] != ".":
             ext = "." + ext
         self.__ext = ext
-    
+
     def setFrameSet(self, frameSet):
         """
         Set a new FrameSet for the sequence.
