@@ -24,7 +24,7 @@ _PATTERNS = [
 
 _SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\:xy\-0-9,]*)([\#\@]*)(?:(\.[^.]*$)|$))")
 
-_ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([0-9]{1,})(?:(\.[^.]*$)|$))")
+_ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\-0-9]{1,})(?:(\.[^.]*$)|$))")
 
 
 class ParseException(Exception):
@@ -224,10 +224,15 @@ class FileSequence(object):
         """
         Return a path go the given frame in the sequence.
         """
+        fill = self.__zfill
+        if isinstance(frame, int):
+            if frame < 0:
+                fill = self.__zfill+1 
+
         return "".join((
                 self.__dir,
                 self.__basename,
-                str(frame).zfill(self.__zfill),
+                str(frame).zfill(fill),
                 self.__ext))
 
     def index(self, idx):
@@ -353,6 +358,12 @@ def findSequencesOnDisk(path):
     """
     result = []
     seqs = { }
+
+    def padding(fr):
+        padding = len(fr)
+        if fr.startswith("-"):
+            padding-=1
+        return padding
     
     for _file in os.listdir(path):
 
@@ -367,7 +378,7 @@ def findSequencesOnDisk(path):
         key = (m.group(1), m.group(2), m.group(4))
         frames = seqs.get(key)
         if not frames:
-            frames = [[], len(m.group(3))]
+            frames = [[], padding(m.group(3))]
             seqs[key] = frames
         frames[0].append(int(m.group(3)))
     
