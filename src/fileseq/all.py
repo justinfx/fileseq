@@ -225,9 +225,12 @@ class FileSequence(object):
         Return a path go the given frame in the sequence.
         """
         fill = self.__zfill
-        if isinstance(frame, int):
-            if frame < 0:
-                fill = self.__zfill+1 
+        try:
+            _fr = int(frame)
+            if _fr < 0:
+                fill+=1
+        except ValueError:
+            pass
 
         return "".join((
                 self.__dir,
