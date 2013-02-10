@@ -222,20 +222,26 @@ class FileSequence(object):
     
     def frame(self, frame):
         """
-        Return a path go the given frame in the sequence.
+        Return a path go the given frame in the sequence.  Integer or string digits
+        are treated as a frame number and padding is applied, all other values 
+        are passed though. Example:
+
+        seq.frame(1)
+        >> /foo/bar.0001.exr
+
+        seq.frame("#")
+        >> /foo/bar.#.exr 
         """
-        fill = self.__zfill
         try:
             _fr = int(frame)
-            if _fr < 0:
-                fill+=1
+            zframe = str(frame).zfill(self.__zfill + (_fr < 0))
         except ValueError:
-            pass
+            zframe = frame
 
         return "".join((
                 self.__dir,
                 self.__basename,
-                str(frame).zfill(fill),
+                zframe,
                 self.__ext))
 
     def index(self, idx):

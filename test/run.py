@@ -130,6 +130,11 @@ class TestFileSequence(unittest.TestCase):
 		seq.setFrameRange("10-20")
 		self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
 
+	def testFrame(self):
+		seq = fileseq.FileSequence("/foo/bar/bing.#.exr")
+		self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
+		self.assertEquals("/foo/bar/bing.#.exr", seq.frame("#"))
+
 	def testIter(self):
 		known = set ([
 			"/cheech/chong.0001.exr",
