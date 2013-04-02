@@ -2,7 +2,12 @@
 
 import unittest
 import sys
-sys.path.append("../src")
+import os
+
+TEST_DIR = os.path.abspath(os.path.dirname(__file__))
+SRC_DIR = os.path.join(TEST_DIR, "../src")
+sys.path.append(SRC_DIR)
+os.chdir(TEST_DIR)
 
 import fileseq
 
