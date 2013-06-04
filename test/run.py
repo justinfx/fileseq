@@ -6,7 +6,7 @@ import os
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 SRC_DIR = os.path.join(TEST_DIR, "../src")
-sys.path.append(SRC_DIR)
+sys.path.insert(0, SRC_DIR)
 os.chdir(TEST_DIR)
 
 import fileseq
@@ -20,7 +20,8 @@ class TestFrameSet(unittest.TestCase):
 		self.assertEquals(5, f[-1])
 		self.assertEquals(5, f[4])
 		
-		self.assertEquals(f.index(4), 5)
+		self.assertEquals(f.index(1), 0)
+		self.assertEquals(f.index(4), 3)
 		self.assertTrue(f.hasFrame(5))
 		self.assertFalse(f.hasFrame(6))
 		
@@ -51,6 +52,12 @@ class TestFrameSet(unittest.TestCase):
 	def testStaggered(self):
 		fs = fileseq.FrameSet("1-20:2")
 
+	def testStaggered(self):
+		fs = fileseq.FrameSet("1-20:2")
+	
+	def testFrame(self):
+		fs = fileseq.FrameSet("1-20")
+		self.assertEquals(1, fs.frame(0))		
 
 class TestFramesToFrameRange(unittest.TestCase):
 	
