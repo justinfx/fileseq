@@ -79,9 +79,15 @@ class FrameSet(object):
             if not matched:
                 raise ParseException("Failed to parse frame range: %s on part '%s'" % (frange, part))
     
-    def index(self, idx):
+    def index(self, frame):
         """
-        Return the frame number at the given index.
+        Return the index of the given frame number
+        """
+        return self.__list.index(frame)
+
+    def frame(self, idx):
+        """
+        Return the frame at the given index.
         """
         return self.__list[idx]
     
