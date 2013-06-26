@@ -148,6 +148,11 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 		known = set(["seq/bar1000-1002,1004-1006#.exr", "seq/foo.1-5#.exr"])
 		found = set([str(s) for s in seqs])
 		self.assertFalse(known.difference(found))
+		
+	def testNegSequencesOnDisk(self):
+	    seqs = fileseq.findSequencesOnDisk("seqneg")
+	    self.assertEquals(1, len(seqs))
+	    
 
 class TestFindSequenceOnDisk(unittest.TestCase):
 	
