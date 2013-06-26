@@ -24,7 +24,7 @@ _PATTERNS = [
 
 _SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\:xy\-0-9,]*)([\#\@]*)(?:(\.[^.]*$)|$))")
 
-_ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([0-9]{1,})(?:(\.[^.]*$)|$))")
+_ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\-0-9]{1,})(?:(\.[^.]*$)|$))")
 
 
 class ParseException(Exception):
@@ -79,9 +79,15 @@ class FrameSet(object):
             if not matched:
                 raise ParseException("Failed to parse frame range: %s on part '%s'" % (frange, part))
     
-    def index(self, idx):
+    def index(self, frame):
         """
-        Return the frame number at the given index.
+        Return the index of the given frame number
+        """
+        return self.__list.index(frame)
+
+    def frame(self, idx):
+        """
+        Return the frame at the given index.
         """
         return self.__list[idx]
     
@@ -222,12 +228,26 @@ class FileSequence(object):
     
     def frame(self, frame):
         """
-        Return a path go the given frame in the sequence.
+        Return a path go the given frame in the sequence.  Integer or string digits
+        are treated as a frame number and padding is applied, all other values 
+        are passed though. Example:
+
+        seq.frame(1)
+        >> /foo/bar.0001.exr
+
+        seq.frame("#")
+        >> /foo/bar.#.exr 
         """
+        try:
+            _fr = int(frame)
+            zframe = str(frame).zfill(self.__zfill + (_fr < 0))
+        except ValueError:
+            zframe = frame
+
         return "".join((
                 self.__dir,
                 self.__basename,
-                str(frame).zfill(self.__zfill),
+                zframe,
                 self.__ext))
 
     def index(self, idx):
@@ -353,6 +373,12 @@ def findSequencesOnDisk(path):
     """
     result = []
     seqs = { }
+
+    def padding(fr):
+        padding = len(fr)
+        if fr.startswith("-"):
+            padding-=1
+        return padding
     
     for _file in os.listdir(path):
 
@@ -367,7 +393,7 @@ def findSequencesOnDisk(path):
         key = (m.group(1), m.group(2), m.group(4))
         frames = seqs.get(key)
         if not frames:
-            frames = [[], len(m.group(3))]
+            frames = [[], padding(m.group(3))]
             seqs[key] = frames
         frames[0].append(int(m.group(3)))
     
