@@ -151,7 +151,7 @@ class FrameSet(object):
         if not _f:
             return
         self.__set.update(_f)
-        self.__list.extend(_f)
+        self.__list+=_f
     
     def __getitem__(self, index):
         return self.__list[index]
