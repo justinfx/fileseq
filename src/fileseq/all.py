@@ -399,8 +399,11 @@ def findSequencesOnDisk(path):
     
     for key, frames in seqs.iteritems():
         frame_range = framesToFrameRange(frames[0])
-        seq = "".join((
-            key[0], key[1], frame_range, getPaddingChars(frames[1]), key[2]))
+        try:
+            seq = "".join((
+                key[0], key[1], frame_range, getPaddingChars(frames[1]), key[2]))
+        except TypeError:
+            continue        
         result.append(FileSequence(seq))
 
     return result
