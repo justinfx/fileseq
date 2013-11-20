@@ -240,7 +240,7 @@ class FileSequence(object):
         """
         try:
             _fr = int(frame)
-            zframe = str(frame).zfill(self.__zfill + (_fr < 0))
+            zframe = str(frame).zfill(self.__zfill)
         except ValueError:
             zframe = frame
 
@@ -374,12 +374,6 @@ def findSequencesOnDisk(path):
     result = []
     seqs = { }
 
-    def padding(fr):
-        padding = len(fr)
-        if fr.startswith("-"):
-            padding-=1
-        return padding
-    
     for _file in os.listdir(path):
 
         if not os.path.isfile(os.path.join(path, _file)):
@@ -393,7 +387,7 @@ def findSequencesOnDisk(path):
         key = (m.group(1), m.group(2), m.group(4))
         frames = seqs.get(key)
         if not frames:
-            frames = [[], padding(m.group(3))]
+            frames = [[], len(m.group(3))]
             seqs[key] = frames
         frames[0].append(int(m.group(3)))
     

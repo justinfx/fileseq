@@ -174,7 +174,7 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 	def testFindSequenceOnDiskNegative(self):
 		seqs = fileseq.findSequencesOnDisk("seqneg")
 		self.assertEquals("seqneg/bar.-1-1#.exr", str(seqs[0]))
-		self.assertEquals("seqneg/bar.-0001.exr", seqs[0].frame(-1))
+		self.assertEquals("seqneg/bar.-001.exr", seqs[0].frame(-1))
 		self.assertEquals("seqneg/bar.-1001.exr", seqs[0].frame(-1001))
 		self.assertEquals("seqneg/bar.-10011.exr", seqs[0].frame(-10011))
 		self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
