@@ -12,6 +12,7 @@ __all__ = [ "FrameSet",
             "findSequencesOnDisk",
             "findSequenceOnDisk",
             "getPaddingChars",
+            "getPadding",
             "ParseException" ]
 
 _PADDING = {"#": 4, "@": 1}
@@ -41,7 +42,7 @@ class FrameSet(object):
         1-100y5 (opposite of above, fills in missing frames)
         1-100:4 (same as 1-100x4,1-100x3,1-100x2,1-100)
     """
-    
+  
     @staticmethod
     def isFrameRange(frange):
         """
@@ -61,11 +62,12 @@ class FrameSet(object):
             if not matched:
                 return False
         return True
-    
+
     def __init__(self, frange):
         
         self.__frange = frange
         self.__set = set()
+        self.__dict = dict()
         self.__list = list()
         
         for part in frange.split(","):
@@ -109,9 +111,21 @@ class FrameSet(object):
     def normalize(self):
         """
         Normalizes the current FramSet and returns a new sorted and
-        compacted FrameSet
+        compacted FrameSet, i.e. "1,2,3,4,5" it will compact it to "1-5".
         """
         return FrameSet(framesToFrameRange(self.__list))
+
+    def meta(self, index):
+        """ 
+        Returns the meta for the index.
+        """
+        return self.__dict[index]
+
+    def setMeta(self, index, meta):
+        """ 
+        Sets the meta for the index.
+        """
+        self.__dict[index] = meta
     
     def __handleMatch(self, match):
         """
@@ -151,7 +165,10 @@ class FrameSet(object):
         if not _f:
             return
         self.__set.update(_f)
-        self.__list+=_f
+        # self.__list+=_f
+        for f in _f:
+            self.__dict[f] = {}
+        self.__list = sorted(self.__dict.keys())        
     
     def __getitem__(self, index):
         return self.__list[index]
@@ -206,7 +223,6 @@ class FileSequence(object):
 
     def start(self):
         return self.__frameSet.start()
-
 
     def end(self):
         return self.__frameSet.end()
@@ -422,3 +438,12 @@ def getPaddingChars(num):
         return "#" * (num / 4)
     else:
         return "@" * num
+
+def getPadding(chars):
+    """
+    Given a supported group of padding characters, return the amount of padding.
+    """
+    if "@" in chars:
+        return chars.count("@")
+    elif "#" in chars:
+        return chars.count("#") *    4
