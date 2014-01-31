@@ -11,6 +11,7 @@ __all__ = [ "FrameSet",
             "framesToFrameRange",
             "findSequencesOnDisk",
             "findSequenceOnDisk",
+            "padFrameRange",
             "getPaddingChars",
             "ParseException" ]
 
@@ -103,10 +104,11 @@ class FrameSet(object):
     def end(self):
         return self.__list[-1]
 
-    def frameRange(self):
-        return self.__frange
+    def frameRange(self, zfill):
+        return padFrameRange(self.__frange, zfill)
 
-    def missingFrameRange(self):
+
+    def missingFrameRange(self, zfill):
         ranges = [fr for fr in self.__frange.split(',')]
         if len(ranges) is 1:
             return None
@@ -127,9 +129,8 @@ class FrameSet(object):
                 missing.append(str(current_last+1))
             if next_first - current_last > 2:
                 missing.append(str(current_last+1) + "-" + str(next_first-1))
-                
 
-        return ",".join(missing)
+        return padFrameRange(",".join(missing), zfill)
 
 
     
@@ -213,7 +214,7 @@ class FileSequence(object):
         self.__ext = m.group(5)
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
 
-    def format(self, template="{basename}%0{padding}d{extension}"):
+    def format(self, template="{basename}%0{padding}d{extension}", uniquePerFrameRange = False):
         """
         Heavily taken from: https://github.com/aldergren/pyfileseq
 
@@ -225,17 +226,31 @@ class FileSequence(object):
         dir, tail, start, end, length, padding, path.
         """
 
-        values = {"basename": self.basename(),
+        if not uniquePerFrameRange:
+            return template.format(**{"basename": self.basename(),
                   "extension": self.extension(),
                   "start": self.start(),
                   "end": self.end(),
                   "length": len(self),
                   "padding": self.padding(),
-                  "range": self.frameSet() or "",
-                  "missing": self.missingFrameRange() or "",
-                  "dirname": self.dirname()}
-
-        return template.format(**values)
+                  "range": self.frameRange(self.__zfill) or "",
+                  "missing": self.missingFrameRange(self.__zfill) or "",
+                  "dirname": self.dirname()})
+        else:
+            output = [] 
+            counter = 0
+            for fr in self.frameRange().split(","):
+                output.append(template.format(**{"basename": self.basename(),
+                      "extension": self.extension(),
+                      "start": self.start(),
+                      "end": self.end(),
+                      "length": len(self),
+                      "padding": self.padding(),
+                      "range": self.frameRange(self.__zfill).split(",")[counter] or "",
+                      "missing": self.missingFrameRange(self.__zfill) or "",
+                      "dirname": self.dirname()}))
+                counter = counter + 1
+            return "\n".join(output)
     
     def dirname(self):
         """
@@ -258,15 +273,17 @@ class FileSequence(object):
     def start(self):
         return self.__frameSet.start()
 
+    def zfill(self):
+        return self.__zfill
 
     def end(self):
         return self.__frameSet.end()
 
-    def frameRange(self):
-        return self.__frameSet.frameRange()
+    def frameRange(self, zfill = 0):
+        return self.__frameSet.frameRange(zfill)
 
-    def missingFrameRange(self):
-        return self.__frameSet.missingFrameRange()
+    def missingFrameRange(self, zfill = 0):
+        return self.__frameSet.missingFrameRange(zfill)
     
     def frameSet(self):
         """
@@ -466,6 +483,17 @@ def findSequenceOnDisk(path):
             return seq
     raise ValueError("No sequence found on disk matching %s"%path)
 
+def padFrameRange(frs, zfill):
+    ranges = [fr for fr in frs.split(',')]
+    padded_ranges = []
+
+    for x in xrange(len(ranges)):
+        current_range = ranges[x]
+        if("-" not in current_range):
+            padded_ranges.append(str.zfill(current_range, zfill))
+        else:
+            padded_ranges.append(str.zfill(current_range.split('-')[0], zfill) + "-" + str.zfill(current_range.split('-')[1], zfill))
+    return ",".join(padded_ranges)
 
 def getPaddingChars(num):
     """
