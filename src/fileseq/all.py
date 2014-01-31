@@ -233,8 +233,8 @@ class FileSequence(object):
                   "end": self.end(),
                   "length": len(self),
                   "padding": self.padding(),
-                  "range": self.frameRange(self.__zfill) or "",
-                  "missing": self.missingFrameRange(self.__zfill) or "",
+                  "range": self.frameRange() or "",
+                  "missing": (self.missingFrameRange() or "None"),
                   "dirname": self.dirname()})
         else:
             output = [] 
@@ -246,8 +246,8 @@ class FileSequence(object):
                       "end": self.end(),
                       "length": len(self),
                       "padding": self.padding(),
-                      "range": self.frameRange(self.__zfill).split(",")[counter] or "",
-                      "missing": self.missingFrameRange(self.__zfill) or "",
+                      "range": self.frameRange().split(",")[counter] or "",
+                      "missing": self.missingFrameRange() or "None",
                       "dirname": self.dirname()}))
                 counter = counter + 1
             return "\n".join(output)
@@ -279,11 +279,11 @@ class FileSequence(object):
     def end(self):
         return self.__frameSet.end()
 
-    def frameRange(self, zfill = 0):
-        return self.__frameSet.frameRange(zfill)
+    def frameRange(self):
+        return self.__frameSet.frameRange(self.__zfill)
 
-    def missingFrameRange(self, zfill = 0):
-        return self.__frameSet.missingFrameRange(zfill)
+    def missingFrameRange(self):
+        return self.__frameSet.missingFrameRange(self.__zfill)
     
     def frameSet(self):
         """
