@@ -105,6 +105,27 @@ class FrameSet(object):
 
     def frameRange(self):
         return self.__frange
+
+    def missingFrameRange(self):
+        ranges = [fr for fr in self.__frange.split(',')]
+        if len(ranges) is 1:
+            return None
+        missing = []
+        for x in xrange(len(ranges)-1):
+            current_range = ranges[x]
+            next_range = ranges[x+1]
+
+            current_last = int(current_range.split('-')[1])
+            next_first = int(next_range.split('-')[0])
+
+            if next_first - current_last > 2:
+                missing.append(str(current_last+1) + "-" + str(next_first-1))
+            else:
+                missing.append(str(current_last+1))
+
+        return ",".join(missing)
+
+
     
     def normalize(self):
         """
@@ -189,7 +210,7 @@ class FileSequence(object):
     def format(self, template="{basename}%0{padding}d{extension}"):
         """
         Heavily taken from: https://github.com/aldergren/pyfileseq
-        
+
         Return the file sequence as a formatted string according to
         the given template. Due to the use of format(), this method requires
         Python 2.6 or later.
@@ -205,6 +226,7 @@ class FileSequence(object):
                   "length": len(self),
                   "padding": self.padding(),
                   "range": self.frameSet() or "",
+                  "missing": self.missingFrameRange() or "",
                   "dirname": self.dirname()}
 
         return template.format(**values)
@@ -236,6 +258,9 @@ class FileSequence(object):
 
     def frameRange(self):
         return self.__frameSet.frameRange()
+
+    def missingFrameRange(self):
+        return self.__frameSet.missingFrameRange()
     
     def frameSet(self):
         """
@@ -386,7 +411,7 @@ def framesToFrameRange(frames, sort=True):
                 start = frames[num]
             else:
                 count+=1
-
+    
     append(start, frame, chunk, count)
     return ",".join(result)
 
