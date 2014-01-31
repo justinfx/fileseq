@@ -185,6 +185,29 @@ class FileSequence(object):
             self.__frameSet = None
         self.__ext = m.group(5)
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
+
+    def format(self, template="{basename}%0{padding}d{extension}"):
+        """
+        Heavily taken from: https://github.com/aldergren/pyfileseq
+        
+        Return the file sequence as a formatted string according to
+        the given template. Due to the use of format(), this method requires
+        Python 2.6 or later.
+
+        The template supports all the basic sequence attributes, i.e.
+        dir, tail, start, end, length, padding, path.
+        """
+
+        values = {"basename": self.basename(),
+                  "extension": self.extension(),
+                  "start": self.start(),
+                  "end": self.end(),
+                  "length": len(self),
+                  "padding": self.padding(),
+                  "range": self.frameSet() or "",
+                  "dirname": self.dirname()}
+
+        return template.format(**values)
     
     def dirname(self):
         """
