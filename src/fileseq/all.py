@@ -114,14 +114,20 @@ class FrameSet(object):
         for x in xrange(len(ranges)-1):
             current_range = ranges[x]
             next_range = ranges[x+1]
+            if("-" not in current_range):
+                current_last = int(current_range)
+            else:
+                current_last = int(current_range.split('-')[1])
+            if("-" not in next_range):
+                next_first = int(next_range)
+            else:
+                next_first = int(next_range.split('-')[0])
 
-            current_last = int(current_range.split('-')[1])
-            next_first = int(next_range.split('-')[0])
-
+            if(next_first - current_last == 2):
+                missing.append(str(current_last+1))
             if next_first - current_last > 2:
                 missing.append(str(current_last+1) + "-" + str(next_first-1))
-            else:
-                missing.append(str(current_last+1))
+                
 
         return ",".join(missing)
 
@@ -459,6 +465,7 @@ def findSequenceOnDisk(path):
         if seq.basename() == FileSequence(path).basename():
             return seq
     raise ValueError("No sequence found on disk matching %s"%path)
+
 
 def getPaddingChars(num):
     """
