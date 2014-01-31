@@ -224,6 +224,13 @@ class FileSequence(object):
 
         The template supports all the basic sequence attributes, i.e.
         dir, tail, start, end, length, padding, path.
+
+        uniquePerFrameRange = True will do this:
+            test.[000-005].dpx
+            test.[011-099].dpx
+        instead of this:
+            test.[000-005,011-099].dpx
+
         """
 
         if not uniquePerFrameRange:
