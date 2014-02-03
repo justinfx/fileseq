@@ -104,11 +104,11 @@ class FrameSet(object):
     def end(self):
         return self.__list[-1]
 
-    def frameRange(self, zfill):
+    def frameRange(self, zfill = 0):
         return padFrameRange(self.__frange, zfill)
 
 
-    def missingFrameRange(self, zfill):
+    def missingFrameRange(self, zfill = 0):
         ranges = [fr for fr in self.__frange.split(',')]
         if len(ranges) is 1:
             return None
