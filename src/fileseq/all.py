@@ -11,6 +11,7 @@ __all__ = [ "FrameSet",
             "framesToFrameRange",
             "findSequencesOnDisk",
             "findSequenceOnDisk",
+            "padFrameRange",
             "getPaddingChars",
             "ParseException" ]
 
@@ -103,8 +104,35 @@ class FrameSet(object):
     def end(self):
         return self.__list[-1]
 
-    def frameRange(self):
-        return self.__frange
+    def frameRange(self, zfill = 0):
+        return padFrameRange(self.__frange, zfill)
+
+
+    def missingFrameRange(self, zfill = 0):
+        ranges = [fr for fr in self.__frange.split(',')]
+        if len(ranges) is 1:
+            return None
+        missing = []
+        for x in xrange(len(ranges)-1):
+            current_range = ranges[x]
+            next_range = ranges[x+1]
+            if("-" not in current_range):
+                current_last = int(current_range)
+            else:
+                current_last = int(current_range.split('-')[1])
+            if("-" not in next_range):
+                next_first = int(next_range)
+            else:
+                next_first = int(next_range.split('-')[0])
+
+            if(next_first - current_last == 2):
+                missing.append(str(current_last+1))
+            if next_first - current_last > 2:
+                missing.append(str(current_last+1) + "-" + str(next_first-1))
+
+        return padFrameRange(",".join(missing), zfill)
+
+
     
     def normalize(self):
         """
@@ -185,6 +213,51 @@ class FileSequence(object):
             self.__frameSet = None
         self.__ext = m.group(5)
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
+
+    def format(self, template="{basename}%0{padding}d{extension}", uniquePerFrameRange = False):
+        """
+        Heavily taken from: https://github.com/aldergren/pyfileseq
+
+        Return the file sequence as a formatted string according to
+        the given template. Due to the use of format(), this method requires
+        Python 2.6 or later.
+
+        The template supports all the basic sequence attributes, i.e.
+        dir, tail, start, end, length, padding, path.
+
+        uniquePerFrameRange = True will do this:
+            test.[000-005].dpx
+            test.[011-099].dpx
+        instead of this:
+            test.[000-005,011-099].dpx
+
+        """
+
+        if not uniquePerFrameRange:
+            return template.format(**{"basename": self.basename(),
+                  "extension": self.extension(),
+                  "start": self.start(),
+                  "end": self.end(),
+                  "length": len(self),
+                  "padding": self.padding(),
+                  "range": self.frameRange() or "",
+                  "missing": (self.missingFrameRange() or "None"),
+                  "dirname": self.dirname()})
+        else:
+            output = [] 
+            counter = 0
+            for fr in self.frameRange().split(","):
+                output.append(template.format(**{"basename": self.basename(),
+                      "extension": self.extension(),
+                      "start": self.start(),
+                      "end": self.end(),
+                      "length": len(self),
+                      "padding": self.padding(),
+                      "range": self.frameRange().split(",")[counter] or "",
+                      "missing": self.missingFrameRange() or "None",
+                      "dirname": self.dirname()}))
+                counter = counter + 1
+            return "\n".join(output)
     
     def dirname(self):
         """
@@ -207,12 +280,17 @@ class FileSequence(object):
     def start(self):
         return self.__frameSet.start()
 
+    def zfill(self):
+        return self.__zfill
 
     def end(self):
         return self.__frameSet.end()
 
     def frameRange(self):
-        return self.__frameSet.frameRange()
+        return self.__frameSet.frameRange(self.__zfill)
+
+    def missingFrameRange(self):
+        return self.__frameSet.missingFrameRange(self.__zfill)
     
     def frameSet(self):
         """
@@ -363,7 +441,7 @@ def framesToFrameRange(frames, sort=True):
                 start = frames[num]
             else:
                 count+=1
-
+    
     append(start, frame, chunk, count)
     return ",".join(result)
 
@@ -411,6 +489,18 @@ def findSequenceOnDisk(path):
         if seq.basename() == FileSequence(path).basename():
             return seq
     raise ValueError("No sequence found on disk matching %s"%path)
+
+def padFrameRange(frs, zfill):
+    ranges = frs.split(',')
+    padded_ranges = []
+
+    for x in xrange(len(ranges)):
+        current_range = ranges[x]
+        if("-" not in current_range):
+            padded_ranges.append(str.zfill(current_range, zfill))
+        else:
+            padded_ranges.append(str.zfill(current_range.split('-')[0], zfill) + "-" + str.zfill(current_range.split('-')[1], zfill))
+    return ",".join(padded_ranges)
 
 def getPaddingChars(num):
     """
