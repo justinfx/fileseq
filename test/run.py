@@ -156,6 +156,17 @@ class TestFileSequence(unittest.TestCase):
 		seq = fileseq.FileSequence("/cheech/chong.1,3,5#.exr")
 		self.assertFalse(known.difference(seq))
 
+	def testFormat(self):
+		seq = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr")
+		self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
+		self.assertEquals("0011-0029,0031-0039", seq.format("{missing}"))
+
+	def testSplit(self):
+		seqs = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr").split()
+		self.assertEquals("/cheech/chong.0001-0010#.exr", str(seqs[0]))
+		self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
+		self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
+
 class TestFindSequencesOnDisk(unittest.TestCase):
 
 	def testFindSequencesOnDisk(self):
