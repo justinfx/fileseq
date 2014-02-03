@@ -107,7 +107,6 @@ class FrameSet(object):
     def frameRange(self, zfill=0):
         return padFrameRange(self.__frange, zfill)
 
-
     def missingFrameRange(self, zfill=0):
         ranges = [fr for fr in self.__frange.split(',')]
         if len(ranges) is 1:
@@ -132,8 +131,6 @@ class FrameSet(object):
 
         return padFrameRange(",".join(missing), zfill)
 
-
-    
     def normalize(self):
         """
         Normalizes the current FramSet and returns a new sorted and
