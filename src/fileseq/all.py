@@ -491,7 +491,7 @@ def findSequenceOnDisk(path):
     raise ValueError("No sequence found on disk matching %s"%path)
 
 def padFrameRange(frs, zfill):
-    ranges = [fr for fr in frs.split(',')]
+    ranges = frs.split(',')
     padded_ranges = []
 
     for x in xrange(len(ranges)):
