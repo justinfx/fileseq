@@ -224,7 +224,7 @@ class FileSequence(object):
                 "length": len(self),
                 "padding": self.padding(),
                 "range": self.frameRange() or "",
-                "inverted": self.invertedFrameRange() or "None",
+                "inverted": self.invertedFrameRange() or "",
                 "dirname": self.dirname()})
 
     def split(self):
