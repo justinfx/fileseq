@@ -214,50 +214,38 @@ class FileSequence(object):
         self.__ext = m.group(5)
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
 
-    def format(self, template="{basename}%0{padding}d{extension}", uniquePerFrameRange = False):
+    def format(self, template="{basename}{range}{padding}{extension}"):
         """
-        Heavily taken from: https://github.com/aldergren/pyfileseq
-
         Return the file sequence as a formatted string according to
-        the given template. Due to the use of format(), this method requires
-        Python 2.6 or later.
-
-        The template supports all the basic sequence attributes, i.e.
-        dir, tail, start, end, length, padding, path.
-
-        uniquePerFrameRange = True will do this:
-            test.[000-005].dpx
-            test.[011-099].dpx
-        instead of this:
-            test.[000-005,011-099].dpx
-
+        the given template.
         """
+        return template.format(**{
+                "basename": self.basename(),
+                "extension": self.extension(),
+                "start": self.start(),
+                "end": self.end(),
+                "length": len(self),
+                "padding": self.padding(),
+                "range": self.frameRange() or "",
+                "missing": self.missingFrameRange() or "None",
+                "dirname": self.dirname()})
 
-        if not uniquePerFrameRange:
-            return template.format(**{"basename": self.basename(),
-                  "extension": self.extension(),
-                  "start": self.start(),
-                  "end": self.end(),
-                  "length": len(self),
-                  "padding": self.padding(),
-                  "range": self.frameRange() or "",
-                  "missing": (self.missingFrameRange() or "None"),
-                  "dirname": self.dirname()})
-        else:
-            output = [] 
-            counter = 0
-            for fr in self.frameRange().split(","):
-                output.append(template.format(**{"basename": self.basename(),
-                      "extension": self.extension(),
-                      "start": self.start(),
-                      "end": self.end(),
-                      "length": len(self),
-                      "padding": self.padding(),
-                      "range": self.frameRange().split(",")[counter] or "",
-                      "missing": self.missingFrameRange() or "None",
-                      "dirname": self.dirname()}))
-                counter = counter + 1
-            return "\n".join(output)
+    def split(self):
+        """
+        Split the FileSequence into contiguous pieces and return them as
+        array of FileSequence instances.
+        """
+        range_list = self.frameRange().split(",")
+        result = []
+        for frange in range_list:
+            seq = "".join((
+                self.__dir,
+                self.__basename,
+                frange,
+                self.__padding,
+                self.__ext))
+            result.append(FileSequence(seq))
+        return result
     
     def dirname(self):
         """
