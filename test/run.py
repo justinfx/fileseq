@@ -57,7 +57,17 @@ class TestFrameSet(unittest.TestCase):
 	
 	def testFrame(self):
 		fs = fileseq.FrameSet("1-20")
-		self.assertEquals(1, fs.frame(0))		
+		self.assertEquals(1, fs.frame(0))
+
+	def testInvertedFrameRange(self):
+		fs = fileseq.FrameSet("1-20")
+		self.assertEquals("", fs.invertedFrameRange())
+		fs = fileseq.FrameSet("1-5,10-15")
+		self.assertEquals("6-9", fs.invertedFrameRange())
+		fs = fileseq.FrameSet("1,3,4,2")
+		self.assertFalse(fs.invertedFrameRange())
+		fs = fileseq.FrameSet("1-20x5")
+		self.assertEquals("2-5,7-10,12-15", fs.invertedFrameRange())
 
 class TestFramesToFrameRange(unittest.TestCase):
 	
@@ -155,6 +165,17 @@ class TestFileSequence(unittest.TestCase):
 		])
 		seq = fileseq.FileSequence("/cheech/chong.1,3,5#.exr")
 		self.assertFalse(known.difference(seq))
+
+	def testFormat(self):
+		seq = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr")
+		self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
+		self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
+
+	def testSplit(self):
+		seqs = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr").split()
+		self.assertEquals("/cheech/chong.0001-0010#.exr", str(seqs[0]))
+		self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
+		self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
 
 class TestFindSequencesOnDisk(unittest.TestCase):
 

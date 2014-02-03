@@ -104,36 +104,33 @@ class FrameSet(object):
     def end(self):
         return self.__list[-1]
 
-    def frameRange(self, zfill = 0):
+    def frameRange(self, zfill=0):
         return padFrameRange(self.__frange, zfill)
 
+    def invertedFrameRange(self, zfill=0):
+        """
+        Return the inverse of the given frame set as a frame range string.
+        """
+        result = []
 
-    def missingFrameRange(self, zfill = 0):
-        ranges = [fr for fr in self.__frange.split(',')]
-        if len(ranges) is 1:
-            return None
-        missing = []
-        for x in xrange(len(ranges)-1):
-            current_range = ranges[x]
-            next_range = ranges[x+1]
-            if("-" not in current_range):
-                current_last = int(current_range)
-            else:
-                current_last = int(current_range.split('-')[1])
-            if("-" not in next_range):
-                next_first = int(next_range)
-            else:
-                next_first = int(next_range.split('-')[0])
+        frames = list(self.__set)
+        frames.sort()
 
-            if(next_first - current_last == 2):
-                missing.append(str(current_last+1))
-            if next_first - current_last > 2:
-                missing.append(str(current_last+1) + "-" + str(next_first-1))
+        try:
+            for i, frame in enumerate(frames):
+                next_frame = frames[i+1]
+                if next_frame - frame == 1:
+                    continue
+                else:
+                    result+=xrange(frame+1, next_frame)
+        except IndexError:
+            # when i+1 throws
+            pass
 
-        return padFrameRange(",".join(missing), zfill)
+        if not result:
+            return ''
+        return framesToFrameRange(result, zfill=zfill)
 
-
-    
     def normalize(self):
         """
         Normalizes the current FramSet and returns a new sorted and
@@ -214,50 +211,48 @@ class FileSequence(object):
         self.__ext = m.group(5)
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
 
-    def format(self, template="{basename}%0{padding}d{extension}", uniquePerFrameRange = False):
+    def format(self, template="{basename}{range}{padding}{extension}"):
         """
-        Heavily taken from: https://github.com/aldergren/pyfileseq
-
         Return the file sequence as a formatted string according to
-        the given template. Due to the use of format(), this method requires
-        Python 2.6 or later.
+        the given template.
 
-        The template supports all the basic sequence attributes, i.e.
-        dir, tail, start, end, length, padding, path.
-
-        uniquePerFrameRange = True will do this:
-            test.[000-005].dpx
-            test.[011-099].dpx
-        instead of this:
-            test.[000-005,011-099].dpx
-
+        Utilizes the python string format syntax.  Available keys include:
+            * basename - the basename of the sequence.
+            * extension - the file extension of the sequence.
+            * start - the start frame.
+            * end - the end frame.
+            * length - the length of the frame range.
+            * padding - the detecting amount of padding.
+            * inverted - the inverted frame range. (returns empty string if none)
+            * dirname - the directory name.
         """
+        return template.format(**{
+                "basename": self.basename(),
+                "extension": self.extension(),
+                "start": self.start(),
+                "end": self.end(),
+                "length": len(self),
+                "padding": self.padding(),
+                "range": self.frameRange() or "",
+                "inverted": self.invertedFrameRange() or "",
+                "dirname": self.dirname()})
 
-        if not uniquePerFrameRange:
-            return template.format(**{"basename": self.basename(),
-                  "extension": self.extension(),
-                  "start": self.start(),
-                  "end": self.end(),
-                  "length": len(self),
-                  "padding": self.padding(),
-                  "range": self.frameRange() or "",
-                  "missing": (self.missingFrameRange() or "None"),
-                  "dirname": self.dirname()})
-        else:
-            output = [] 
-            counter = 0
-            for fr in self.frameRange().split(","):
-                output.append(template.format(**{"basename": self.basename(),
-                      "extension": self.extension(),
-                      "start": self.start(),
-                      "end": self.end(),
-                      "length": len(self),
-                      "padding": self.padding(),
-                      "range": self.frameRange().split(",")[counter] or "",
-                      "missing": self.missingFrameRange() or "None",
-                      "dirname": self.dirname()}))
-                counter = counter + 1
-            return "\n".join(output)
+    def split(self):
+        """
+        Split the FileSequence into contiguous pieces and return them as
+        array of FileSequence instances.
+        """
+        range_list = self.frameRange().split(",")
+        result = []
+        for frange in range_list:
+            seq = "".join((
+                self.__dir,
+                self.__basename,
+                frange,
+                self.__padding,
+                self.__ext))
+            result.append(FileSequence(seq))
+        return result
     
     def dirname(self):
         """
@@ -289,8 +284,8 @@ class FileSequence(object):
     def frameRange(self):
         return self.__frameSet.frameRange(self.__zfill)
 
-    def missingFrameRange(self):
-        return self.__frameSet.missingFrameRange(self.__zfill)
+    def invertedFrameRange(self):
+        return self.__frameSet.invertedFrameRange(self.__zfill)
     
     def frameSet(self):
         """
@@ -391,7 +386,7 @@ class FileSequence(object):
             self.__padding,
             self.__ext))
 
-def framesToFrameRange(frames, sort=True):
+def framesToFrameRange(frames, sort=True, zfill=0):
     """
     Return a string frame range represenation of the
     given list of frame numbers.
@@ -406,16 +401,17 @@ def framesToFrameRange(frames, sort=True):
     if sort:
         frames.sort()
     
+    zfm = "0%dd" % zfill
     result = []
     def append(start, end, chunk, count):
         if end - start == chunk:
-            result.append("%d,%d" % (start, end))
+            result.append(",".join((format(start, zfm), format(end, zfm))))
         elif count == 0:
-            result.append("%d" % start)
+            result.append(format(start, zfm))
         elif chunk <= 1:
-            result.append("%d-%d" % (start, end))
+            result.append("-".join((format(start, zfm), format(end, zfm))))
         else:
-            result.append("%d-%dx%d" % (start, end, chunk))
+            result.append("%s-%sx%d" % (format(start, zfm), format(end, zfm), chunk))
 
     start = frames[0]
     chunk = frames[1] - frames[0]
