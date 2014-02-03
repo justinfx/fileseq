@@ -215,6 +215,16 @@ class FileSequence(object):
         """
         Return the file sequence as a formatted string according to
         the given template.
+
+        Utilizes the python string format syntax.  Available keys include:
+            * basename - the basename of the sequence.
+            * extension - the file extension of the sequence.
+            * start - the start frame.
+            * end - the end frame.
+            * length - the length of the frame range.
+            * padding - the detecting amount of padding.
+            * inverted - the inverted frame range. (returns empty string if none)
+            * dirname - the directory name.
         """
         return template.format(**{
                 "basename": self.basename(),
