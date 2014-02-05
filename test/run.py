@@ -87,7 +87,7 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
 		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
 	
-	def testDuplicatedSequence(self):
+	def testAAADuplicatedSequence(self):
 		self.assertEquals("1,2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
 		self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
 
@@ -166,10 +166,16 @@ class TestFileSequence(unittest.TestCase):
 		seq = fileseq.FileSequence("/cheech/chong.1,3,5#.exr")
 		self.assertFalse(known.difference(seq))
 
-	def testFormat(self):
+	def testFormat(self):           
 		seq = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr")
 		self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
 		self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
+
+		seq = fileseq.findSequencesOnDisk("broken_seq")[0]
+		self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
+		self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
+		seq = fileseq.findSequencesOnDisk("step_seq")[0]
+		self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
 
 	def testSplit(self):
 		seqs = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr").split()
