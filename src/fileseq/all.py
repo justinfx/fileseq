@@ -401,44 +401,50 @@ def framesToFrameRange(frames, sort=True, zfill=0):
     if sort:
         frames.sort()
     
-    zfm = "0%dd" % zfill
     result = []
+    zfm = "0%dd" % zfill
+    start = frames[0]
+    count = 1
+
     def append(start, end, chunk, count):
-        if end - start == chunk:
-            result.append(",".join((format(start, zfm), format(end, zfm))))
-        elif count == 0:
+        if count == 1 or start == end:
             result.append(format(start, zfm))
-        elif chunk <= 1:
+        elif chunk > 1 and count > 2:
+            result.append("%s-%sx%d" % (format(start, zfm), format(end, zfm), chunk))
+        elif count > 2:
             result.append("-".join((format(start, zfm), format(end, zfm))))
         else:
-            result.append("%s-%sx%d" % (format(start, zfm), format(end, zfm), chunk))
-
-    start = frames[0]
-    chunk = frames[1] - frames[0]
-    count = 0
+            result.append(",".join((format(start, zfm), format(end, zfm))))
 
     for num, frame in enumerate(frames):
-        if num > 0:
-            diff = frames[num] - frames[num-1]
-            # We've encountered the same frame so just
-            # skip over it.
-            if diff == 0:
-                chunk = 1
-                continue
+        if frame == start:
+            continue
 
-            if diff != chunk:
-                append(start, frames[num-1], chunk, count)
-                # Look forward for our new chunk
-                try:
-                    chunk = frames[num+1] - frames[num]
-                except IndexError:
-                    chunk = 1
-                count = 0
-                start = frames[num]
+        a_fr = frames[num-1]
+        b_fr = frames[num]
+        
+        a_chunk = b_fr - a_fr
+        if a_chunk == 0:
+            continue;
+
+        count+=1
+        try:
+            c_fr = frames[num+1]
+        except IndexError:
+            append(start, b_fr, a_chunk, count)
+            break
+
+        b_chunk = c_fr - b_fr
+        if a_chunk != b_chunk:
+            if count == 2 and b_chunk == 1:
+                append(start, start, 1, 1)
+                start = b_fr
+                count = 1
             else:
-                count+=1
-    
-    append(start, frame, chunk, count)
+                append(start, b_fr, a_chunk, count)
+                start = c_fr
+                count = 1
+
     return ",".join(result)
 
 def findSequencesOnDisk(path):
