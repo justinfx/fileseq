@@ -87,7 +87,7 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
 		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
 	
-	def testAAADuplicatedSequence(self):
+	def testDuplicatedSequence(self):
 		self.assertEquals("1,2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
 		self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
 
@@ -166,7 +166,7 @@ class TestFileSequence(unittest.TestCase):
 		seq = fileseq.FileSequence("/cheech/chong.1,3,5#.exr")
 		self.assertFalse(known.difference(seq))
 
-	def testFormat(self):           
+	def testFormat(self):
 		seq = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr")
 		self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
 		self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
