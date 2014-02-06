@@ -172,8 +172,8 @@ class TestFileSequence(unittest.TestCase):
 		self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
 
 		seq = fileseq.findSequencesOnDisk("broken_seq")[0]
-		self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
-		self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
+		self.assertEquals("0000-0001,0004,0006-0008", seq.format("{range}"))
+		self.assertEquals("broke.0000-0001,0004,0006-0008#.exr", seq.format())
 		seq = fileseq.findSequencesOnDisk("step_seq")[0]
 		self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
 
