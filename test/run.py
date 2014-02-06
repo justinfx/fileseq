@@ -75,10 +75,10 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
 	
 	def testBrokenSequence(self):
-		self.assertEquals("2,3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
+		self.assertEquals("2-3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
 
 	def testBrokenSequence2(self):
-		self.assertEquals("1,2,4-8", fileseq.framesToFrameRange([1,2,4,5,6,7,8]))
+		self.assertEquals("1-2,4-8", fileseq.framesToFrameRange([1,2,4,5,6,7,8]))
 
 	def testChunkedSequence(self):
 		self.assertEquals("5-25x5", fileseq.framesToFrameRange([5,10,15,20,25]))
@@ -88,7 +88,7 @@ class TestFramesToFrameRange(unittest.TestCase):
 		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
 	
 	def testDuplicatedSequence(self):
-		self.assertEquals("1,2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
+		self.assertEquals("1-2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
 		self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
 
 	def testNegativeSimpleSequence(self):

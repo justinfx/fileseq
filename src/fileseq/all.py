@@ -407,14 +407,14 @@ def framesToFrameRange(frames, sort=True, zfill=0):
     count = 1
 
     def append(start, end, chunk, count):
-        if count == 1 or start == end:
+        if start == end:
             result.append(format(start, zfm))
         elif chunk > 1 and count > 2:
             result.append("%s-%sx%d" % (format(start, zfm), format(end, zfm), chunk))
-        elif count > 2:
-            result.append("-".join((format(start, zfm), format(end, zfm))))
-        else:
+        elif count == 2 and abs(end-start) != 1:
             result.append(",".join((format(start, zfm), format(end, zfm))))
+        else:
+            result.append("-".join((format(start, zfm), format(end, zfm))))
 
     for num, frame in enumerate(frames):
         if frame == start:
