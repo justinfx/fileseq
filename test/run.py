@@ -213,5 +213,15 @@ class TestFindSequenceOnDisk(unittest.TestCase):
 		self.assertTrue(isinstance(seq, fileseq.FileSequence))
 		self.assertEqual(str(seq), "seq/bar1000-1002,1004-1006#.exr")
 
+
+class TestPaddingFunctions(unittest.TestCase):
+	
+	def testPadFrameRange(self):
+		self.assertEquals("0001-0100", fileseq.padFrameRange("1-100", 4))
+		self.assertEquals("001-100x2", fileseq.padFrameRange("1-100x2", 3))
+		self.assertEquals("00001-10000y10", fileseq.padFrameRange("1-10000y10", 5))
+		self.assertEquals("1-25:8", fileseq.padFrameRange("1-25:8", 1))
+		self.assertEquals("0001-0100:8", fileseq.padFrameRange("1-100:8", 4))
+
 if __name__ == '__main__':	
 	unittest.main(verbosity=2)

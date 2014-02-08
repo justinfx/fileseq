@@ -493,16 +493,23 @@ def findSequenceOnDisk(path):
     raise ValueError("No sequence found on disk matching %s"%path)
 
 def padFrameRange(frs, zfill):
-    ranges = frs.split(',')
-    padded_ranges = []
+    """
+    Pad the given frame range.
+    """
+    result = []
 
-    for x in xrange(len(ranges)):
-        current_range = ranges[x]
-        if("-" not in current_range):
-            padded_ranges.append(str.zfill(current_range, zfill))
+    for frange in frs.split(","):
+        if "-" in frange:
+            parts = frange.split("-")
+            if parts[1].isdigit():
+                result.append("-".join([str.zfill(p, zfill) for p in parts]))
+            else:
+                parts[1], suffix = re.split("([:xy]\d+)", parts[1])[0:2]
+                result.append("-".join([str.zfill(p, zfill) for p in parts]) + suffix)
         else:
-            padded_ranges.append(str.zfill(current_range.split('-')[0], zfill) + "-" + str.zfill(current_range.split('-')[1], zfill))
-    return ",".join(padded_ranges)
+             result.append(str.zfill(frange, zfill))
+
+    return ",".join(result)
 
 def getPaddingChars(num):
     """
