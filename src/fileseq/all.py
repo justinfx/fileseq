@@ -49,8 +49,7 @@ class FrameSet(object):
         Return true of the given string is a frame range.  Any padding
         characters, such as '#' and '@' are ignored.
         """
-        frange = str(frange)
-        frange = frange.replace("#", "").replace("@", "")
+        frange = reduce(lambda a, k: a.replace(k, ""), _PADDING.iterkeys(), str(frange))
         if not frange:
             return False
         for part in frange.split(","):
