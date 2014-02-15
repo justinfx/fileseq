@@ -17,14 +17,29 @@ __all__ = [ "FrameSet",
 
 _PADDING = {"#": 4, "@": 1}
 
+"""
+Regular expression patterns for matching frame set strings.
+Examples:
+    1-100
+    100
+    1-100x5
+"""
 _PATTERNS = [
     re.compile("^(\-?[0-9]+)\-(\-?[0-9]+)$"),
     re.compile("^(\-?[0-9]+)$"),
     re.compile("^(\-?[0-9]+)\-(\-?[0-9]+)([:xy]{1})([0-9]+)$")
 ]
 
+"""
+Regular expression for matching a file sequence string.
+Example:
+    /film/shot/renders/bilbo_bty.1-100#.exr
+"""
 _SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\:xy\-0-9,]*)([\#\@]*)(?:(\.[^.]*$)|$))")
 
+"""
+Regular expression pattern for matching file names on disk.
+"""
 _ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\-0-9]{1,})(?:(\.[^.]*$)|$))")
 
 
