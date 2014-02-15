@@ -69,6 +69,20 @@ class TestFrameSet(unittest.TestCase):
 		fs = fileseq.FrameSet("1-20x5")
 		self.assertEquals("2-5,7-10,12-15", fs.invertedFrameRange())
 
+	def testIsFrameRange(self):
+		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100#"))
+		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@"))
+		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@###@@"))			
+		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100:8,1000-2000x10"))	
+		self.assertTrue(fileseq.FrameSet.isFrameRange("-10"))
+		self.assertTrue(fileseq.FrameSet.isFrameRange(100))
+
+		self.assertFalse(fileseq.FrameSet.isFrameRange("1-"))	
+		self.assertFalse(fileseq.FrameSet.isFrameRange("bilbo"))	
+
+		fs = fileseq.FrameSet("1-100")
+		self.assertTrue(fileseq.FrameSet.isFrameRange(fs))
+
 class TestFramesToFrameRange(unittest.TestCase):
 	
 	def testSimpleSequence(self):
