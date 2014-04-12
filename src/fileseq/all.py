@@ -431,7 +431,7 @@ def framesToFrameRange(frames, sort=True, zfill=0):
             result.append("-".join((format(start, zfm), format(end, zfm))))
 
     for num, frame in enumerate(frames):
-        if frame == start:
+        if num == 0:
             continue
 
         a_fr = frames[num-1]
@@ -440,6 +440,11 @@ def framesToFrameRange(frames, sort=True, zfill=0):
         a_chunk = b_fr - a_fr
         if a_chunk == 0:
             continue;
+
+        if frame == start:
+            if num == len(frames) - 1:
+                append(start, start, 1, 1)
+            continue
 
         count+=1
         try:
