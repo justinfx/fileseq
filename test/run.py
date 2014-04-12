@@ -88,6 +88,13 @@ class TestFramesToFrameRange(unittest.TestCase):
 	def testSimpleSequence(self):
 		self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
 	
+	def testAdvancedSequence(self):
+		self.assertEquals("1-3,6-8,12", fileseq.framesToFrameRange([1,2,3,6,7,8,12]))
+
+	def testAdvancedSequence2(self):
+		self.assertEquals("5-15x5,1-5,22", fileseq.framesToFrameRange([5,10,15,1,2,3,4,5,22], sort=False))
+		self.assertEquals("1-5,5-15x5,22", fileseq.framesToFrameRange([5,10,15,1,2,3,4,5,22]))
+
 	def testBrokenSequence(self):
 		self.assertEquals("2-3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
 
