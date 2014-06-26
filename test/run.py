@@ -218,6 +218,10 @@ class TestFileSequence(unittest.TestCase):
 		self.assertEquals("/path/to/file.mov", seqs.index(0))
 		self.assertEquals("/path/to/file.mov", seqs.frame(0))
 
+	def testSplitXY(self):
+		seqs = fileseq.FileSequence("/cheech/0-9x1/chong.1-10#.exr")
+		self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
+
 class TestFindSequencesOnDisk(unittest.TestCase):
 
 	def testFindSequencesOnDisk(self):
