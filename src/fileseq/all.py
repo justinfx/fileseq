@@ -35,7 +35,7 @@ Regular expression for matching a file sequence string.
 Example:
     /film/shot/renders/bilbo_bty.1-100#.exr
 """
-_SPLITTER_PATTERN = re.compile("([\:xy\-0-9,]*)([\#\@]*)")
+_SPLITTER_PATTERN = re.compile("([\:xy\-0-9,]*)([\#\@]+)")
 
 """
 Regular expression pattern for matching file names on disk.
