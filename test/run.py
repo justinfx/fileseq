@@ -204,6 +204,24 @@ class TestFileSequence(unittest.TestCase):
 		self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
 		self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
 
+	def testMissingPeriods(self):
+		seqs = fileseq.FileSequence("/path/to/something_1-10#_exr")
+		self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
+
+	def testNumericFilename(self):
+		seqs = fileseq.FileSequence("/path/to/1-10#.exr")
+		self.assertEquals("/path/to/0001.exr", seqs.index(0))
+
+	def testNoPlaceholder(self):
+		seqs = fileseq.FileSequence("/path/to/file.mov")
+		seqs.setFrameRange("1-100")
+		self.assertEquals("/path/to/file.mov", seqs.index(0))
+		self.assertEquals("/path/to/file.mov", seqs.frame(0))
+
+	def testSplitXY(self):
+		seqs = fileseq.FileSequence("/cheech/0-9x1/chong.1-10#.exr")
+		self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
+
 class TestFindSequencesOnDisk(unittest.TestCase):
 
 	def testFindSequencesOnDisk(self):

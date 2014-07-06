@@ -35,7 +35,7 @@ Regular expression for matching a file sequence string.
 Example:
     /film/shot/renders/bilbo_bty.1-100#.exr
 """
-_SEQ_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\:xy\-0-9,]*)([\#\@]*)(?:(\.[^.]*$)|$))")
+_SPLITTER_PATTERN = re.compile("([\:xy\-0-9,]*)([\#\@]+)")
 
 """
 Regular expression pattern for matching file names on disk.
@@ -210,19 +210,35 @@ class FileSequence(object):
     FileSequence represents an ordered sequence of files.
     """
     def __init__(self, sequence):
-        m = _SEQ_PATTERN.match(sequence)
-        if not m:
-            raise ParseException("Failed to parse FileSequence: %s" % sequence)
-        self.__dir = m.group(1)
-        if not self.__dir:
+
+        try:
+            filename, frame_ids, padding, extension = _SPLITTER_PATTERN.split(sequence, 1)
+        except Exception, e:
+            for placeholder in _PADDING.keys():
+                if placeholder in sequence:
+                    raiseParseException("Failed to parse FileSequence: %s" % sequence)
+
+            """
+            The 'sequence' is really just a solitary file, containing no frame
+            id placeholder
+            """
+            filename, extension = os.path.splitext(sequence)
+            frame_ids = padding = ""
+
+        directory, self.__basename = os.path.split(filename)
+
+        if directory:
+            self.__dir = directory + os.sep
+        else:
             self.__dir = ""
-        self.__basename = m.group(2)
-        self.__padding = m.group(4)
-        if m.group(3):
-            self.__frameSet = FrameSet(m.group(3))
+
+        if frame_ids:
+            self.__frameSet = FrameSet(frame_ids)
         else:
             self.__frameSet = None
-        self.__ext = m.group(5)
+
+        self.__padding = padding
+        self.__ext = extension
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
 
     def format(self, template="{basename}{range}{padding}{extension}"):
@@ -330,6 +346,14 @@ class FileSequence(object):
             zframe = str(frame).zfill(self.__zfill)
         except ValueError:
             zframe = frame
+
+        """
+        There may have been no placeholder for frame IDs in
+        the sequence, in which case we don't want to insert
+        a frame ID
+        """
+        if self.__zfill == 0:
+            zframe = ""
 
         return "".join((
                 self.__dir,
