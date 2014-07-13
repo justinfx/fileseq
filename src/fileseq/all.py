@@ -35,7 +35,8 @@ Regular expression for matching a file sequence string.
 Example:
     /film/shot/renders/bilbo_bty.1-100#.exr
 """
-_SPLITTER_PATTERN = re.compile("([\:xy\-0-9,]*)([\#\@]+)")
+_SEQUENCE_SPLITTER_PATTERN = re.compile("([\:xy\-0-9,]*)([\#\@]+)")
+_FILE_SPLITTER_PATTERN     = re.compile("([\-0-9,]+)([^/^\d]*)$")
 
 """
 Regular expression pattern for matching file names on disk.
@@ -212,7 +213,7 @@ class FileSequence(object):
     def __init__(self, sequence):
 
         try:
-            filename, frame_ids, padding, extension = _SPLITTER_PATTERN.split(sequence, 1)
+            filename, frame_ids, padding, extension = _SEQUENCE_SPLITTER_PATTERN.split(sequence, 1)
         except Exception, e:
             for placeholder in _PADDING.keys():
                 if placeholder in sequence:
@@ -220,10 +221,17 @@ class FileSequence(object):
 
             """
             The 'sequence' is really just a solitary file, containing no frame
-            id placeholder
+            id placeholder, but it may nonetheless contain a frame ID.
             """
-            filename, extension = os.path.splitext(sequence)
-            frame_ids = padding = ""
+            try:
+                filename, frame_ids, extension, _ =_FILE_SPLITTER_PATTERN.split(sequence)
+                if len(frame_ids) == 4:
+                    padding = '#'
+                else:
+                    padding = len(frame_ids) * '@'
+            except Exception, e:
+                filename, extension = os.path.splitext(sequence)
+                frame_ids = padding = ""
 
         directory, self.__basename = os.path.split(filename)
 
