@@ -3,6 +3,7 @@
 import unittest
 import sys
 import os
+import glob
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 SRC_DIR = os.path.join(TEST_DIR, "../src")
@@ -221,6 +222,20 @@ class TestFileSequence(unittest.TestCase):
 	def testSplitXY(self):
 		seqs = fileseq.FileSequence("/cheech/0-9x1/chong.1-10#.exr")
 		self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
+
+	def testLiteralFrameID(self):
+		seq = fileseq.FileSequence("seq/bar1000.exr")
+		self.assertEquals("seq/bar0002.exr", seq.frame('2'))
+
+	def testGlobOnFrameID(self):
+		seq = fileseq.FileSequence("seq/bar1000.exr")
+		file_list = sorted(glob.glob(seq.frame('*')))
+		self.assertEquals(file_list, ["seq/bar1000.exr",
+									  "seq/bar1001.exr",
+									  "seq/bar1002.exr",
+									  "seq/bar1004.exr",
+									  "seq/bar1005.exr",
+									  "seq/bar1006.exr"])
 
 class TestFindSequencesOnDisk(unittest.TestCase):
 
