@@ -25,7 +25,7 @@ Iterate a FrameSet
 ------------------
 
 ```
-fs = fileseq.FrameSet("1-5")\n
+fs = fileseq.FrameSet("1-5")
 for f in fs:
   print f
 ```

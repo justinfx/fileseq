@@ -12,69 +12,94 @@ os.chdir(TEST_DIR)
 import fileseq
 
 class TestFrameSet(unittest.TestCase):
-    
+
     def testContigious(self):
         f = fileseq.FrameSet("1-5")
         self.assertEquals(5, len(f))
         self.assertEquals(1, f[0])
         self.assertEquals(5, f[-1])
         self.assertEquals(5, f[4])
-        
+
         self.assertEquals(f.index(1), 0)
         self.assertEquals(f.index(4), 3)
         self.assertTrue(f.hasFrame(5))
         self.assertFalse(f.hasFrame(6))
-        
+
         # Just try to iterate it to make sure
         # all frames are in the result
         result = frozenset([frame for frame in f])
         for i in range(1, 6):
             self.assertTrue(i in result)
-        
-    def testCommaSeparated(self):       
+
+    def testCommaSeparated(self):
         f = fileseq.FrameSet("1-4,8-12")
         self.assertEquals(9, len(f))
         self.assertEquals(1, f[0])
         self.assertEquals(12, f[-1])
         self.assertEquals(12, f[8])
-        
-    def testChunked(self):      
+
+    def testChunked(self):
         fs = fileseq.FrameSet("1-20x5")
         self.assertEquals(4, len(fs))
         expected = [1, 6, 11, 16]
         for e in expected:
             self.assertTrue(fs.hasFrame(e))
-    
+
     def testFilled(self):
         fs = fileseq.FrameSet("1-20y5")
         self.assertEquals(16, len(fs))
-        
+
     def testStaggered(self):
         fs = fileseq.FrameSet("1-20:2")
 
     def testStaggered(self):
         fs = fileseq.FrameSet("1-20:2")
-    
+
     def testFrame(self):
         fs = fileseq.FrameSet("1-20")
-        self.assertEquals(1, fs.frame(0)) 
+        self.assertEquals(1, fs.frame(0))
 
-    def testMeta(self):
-        f = fileseq.FrameSet("1-5")
-        meta = {'testKey':'testValue'}
-        f.setMeta(0,meta)
-        self.assertEquals({'testKey':'testValue'}, f.meta(0))
+    def testInvertedFrameRange(self):
+        fs = fileseq.FrameSet("1-20")
+        self.assertEquals("", fs.invertedFrameRange())
+        fs = fileseq.FrameSet("1-5,10-15")
+        self.assertEquals("6-9", fs.invertedFrameRange())
+        fs = fileseq.FrameSet("1,3,4,2")
+        self.assertFalse(fs.invertedFrameRange())
+        fs = fileseq.FrameSet("1-20x5")
+        self.assertEquals("2-5,7-10,12-15", fs.invertedFrameRange())
+
+    def testIsFrameRange(self):
+        self.assertTrue(fileseq.FrameSet.isFrameRange("1-100#"))
+        self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@"))
+        self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@###@@"))
+        self.assertTrue(fileseq.FrameSet.isFrameRange("1-100:8,1000-2000x10"))
+        self.assertTrue(fileseq.FrameSet.isFrameRange("-10"))
+        self.assertTrue(fileseq.FrameSet.isFrameRange(100))
+
+        self.assertFalse(fileseq.FrameSet.isFrameRange("1-"))
+        self.assertFalse(fileseq.FrameSet.isFrameRange("bilbo"))
+
+        fs = fileseq.FrameSet("1-100")
+        self.assertTrue(fileseq.FrameSet.isFrameRange(fs))
 
 class TestFramesToFrameRange(unittest.TestCase):
-    
+
     def testSimpleSequence(self):
         self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
-    
+
+    def testAdvancedSequence(self):
+        self.assertEquals("1-3,6-8,12", fileseq.framesToFrameRange([1,2,3,6,7,8,12]))
+
+    def testAdvancedSequence2(self):
+        self.assertEquals("5-15x5,1-5,22", fileseq.framesToFrameRange([5,10,15,1,2,3,4,5,22], sort=False))
+        self.assertEquals("1-5,5-15x5,22", fileseq.framesToFrameRange([5,10,15,1,2,3,4,5,22]))
+
     def testBrokenSequence(self):
-        self.assertEquals("2,3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
+        self.assertEquals("2-3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
 
     def testBrokenSequence2(self):
-        self.assertEquals("1,2,4-8", fileseq.framesToFrameRange([1,2,4,5,6,7,8]))
+        self.assertEquals("1-2,4-8", fileseq.framesToFrameRange([1,2,4,5,6,7,8]))
 
     def testChunkedSequence(self):
         self.assertEquals("5-25x5", fileseq.framesToFrameRange([5,10,15,20,25]))
@@ -82,9 +107,9 @@ class TestFramesToFrameRange(unittest.TestCase):
     def testBrokenChunkedSequence(self):
         self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
         self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
-    
+
     def testDuplicatedSequence(self):
-        self.assertEquals("1,2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
+        self.assertEquals("1-2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
         self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
 
     def testNegativeSimpleSequence(self):
@@ -162,6 +187,41 @@ class TestFileSequence(unittest.TestCase):
         seq = fileseq.FileSequence("/cheech/chong.1,3,5#.exr")
         self.assertFalse(known.difference(seq))
 
+    def testFormat(self):
+        seq = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr")
+        self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
+        self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
+
+        seq = fileseq.findSequencesOnDisk("broken_seq")[0]
+        self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
+        self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
+        seq = fileseq.findSequencesOnDisk("step_seq")[0]
+        self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
+
+    def testSplit(self):
+        seqs = fileseq.FileSequence("/cheech/chong.1-10,30,40#.exr").split()
+        self.assertEquals("/cheech/chong.0001-0010#.exr", str(seqs[0]))
+        self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
+        self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
+
+    def testMissingPeriods(self):
+        seqs = fileseq.FileSequence("/path/to/something_1-10#_exr")
+        self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
+
+    def testNumericFilename(self):
+        seqs = fileseq.FileSequence("/path/to/1-10#.exr")
+        self.assertEquals("/path/to/0001.exr", seqs.index(0))
+
+    def testNoPlaceholder(self):
+        seqs = fileseq.FileSequence("/path/to/file.mov")
+        seqs.setFrameRange("1-100")
+        self.assertEquals("/path/to/file.mov", seqs.index(0))
+        self.assertEquals("/path/to/file.mov", seqs.frame(0))
+
+    def testSplitXY(self):
+        seqs = fileseq.FileSequence("/cheech/0-9x1/chong.1-10#.exr")
+        self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
+
 class TestFindSequencesOnDisk(unittest.TestCase):
 
     def testFindSequencesOnDisk(self):
@@ -171,11 +231,11 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         known = set(["seq/bar1000-1002,1004-1006#.exr", "seq/foo.1-5#.exr"])
         found = set([str(s) for s in seqs])
         self.assertFalse(known.difference(found))
-        
+
     def testNegSequencesOnDisk(self):
         seqs = fileseq.findSequencesOnDisk("seqneg")
         self.assertEquals(1, len(seqs))
-        
+
 
     def testFindSequenceOnDiskNegative(self):
         seqs = fileseq.findSequencesOnDisk("seqneg")
@@ -186,27 +246,21 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
 
 class TestFindSequenceOnDisk(unittest.TestCase):
-    
+
     def testFindSequenceOnDisk(self):
         seq = fileseq.findSequenceOnDisk("seq/bar#.exr")
         self.assertTrue(isinstance(seq, fileseq.FileSequence))
         self.assertEqual(str(seq), "seq/bar1000-1002,1004-1006#.exr")
 
-class TestGetPaddingChars(unittest.TestCase):
 
-    def testGetPaddingChars(self):
-        self.assertEqual('#',fileseq.getPaddingChars(4))
-        self.assertEqual('##',fileseq.getPaddingChars(8))
-        self.assertEqual('@',fileseq.getPaddingChars(1))
-        self.assertEqual('@@@@@@',fileseq.getPaddingChars(6))
+class TestPaddingFunctions(unittest.TestCase):
 
-class TestGetPadding(unittest.TestCase):
+    def testPadFrameRange(self):
+        self.assertEquals("0001-0100", fileseq.padFrameRange("1-100", 4))
+        self.assertEquals("001-100x2", fileseq.padFrameRange("1-100x2", 3))
+        self.assertEquals("00001-10000y10", fileseq.padFrameRange("1-10000y10", 5))
+        self.assertEquals("1-25:8", fileseq.padFrameRange("1-25:8", 1))
+        self.assertEquals("0001-0100:8", fileseq.padFrameRange("1-100:8", 4))
 
-    def testGetPadding(self):
-        self.assertEqual(4,fileseq.getPadding('#'))
-        self.assertEqual(8,fileseq.getPadding('##'))
-        self.assertEqual(1,fileseq.getPadding('@'))
-        self.assertEqual(6,fileseq.getPadding('@@@@@@'))
-
-if __name__ == '__main__':  
+if __name__ == '__main__':
     unittest.main(verbosity=2)
