@@ -567,7 +567,14 @@ def getPaddingNumber(chars):
     """
     Given a supported group of padding characters, return the padding number.
     """
-    if "@" in chars:
+    for char in set(chars):
+        if char not in _PADDING.keys():
+            msg = "Unsupported character: {0}".format(char)
+            raise ValueError(msg)
+
+    if set(chars) == {"@"}:
         return chars.count("@")
-    elif "#" in chars:
+    elif set(chars) == {"#"}:
         return chars.count("#") * 4
+    else:
+        return chars.count("@") + chars.count("#") * 4

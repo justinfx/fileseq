@@ -269,10 +269,13 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual('@@@@@@', fileseq.getPaddingChars(6))
 
     def testGetPaddingNumber(self):
-        self.assertEqual(4, fileseq.getPaddingNumber('#'))
-        self.assertEqual(8, fileseq.getPaddingNumber('##'))
-        self.assertEqual(1, fileseq.getPaddingNumber('@'))
-        self.assertEqual(6, fileseq.getPaddingNumber('@@@@@@'))
+        self.assertEqual(4, fileseq.getPaddingNumber("#"))
+        self.assertEqual(8, fileseq.getPaddingNumber("##"))
+        self.assertEqual(1, fileseq.getPaddingNumber("@"))
+        self.assertEqual(6, fileseq.getPaddingNumber("@@@@@@"))
+        self.assertEqual(6, fileseq.getPaddingNumber("#@@"))
+        self.assertRaises(ValueError, fileseq.getPaddingNumber, "#@a")
+        self.assertRaises(TypeError, fileseq.getPaddingNumber, 1)
 
 
 if __name__ == '__main__':
