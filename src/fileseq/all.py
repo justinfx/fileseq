@@ -13,6 +13,7 @@ __all__ = [ "FrameSet",
             "findSequenceOnDisk",
             "padFrameRange",
             "getPaddingChars",
+            "getPaddingNumber",
             "ParseException" ]
 
 _PADDING = {"#": 4, "@": 1}

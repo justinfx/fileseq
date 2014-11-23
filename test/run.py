@@ -275,7 +275,5 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(6, fileseq.getPaddingNumber('@@@@@@'))
 
 
-
-
 if __name__ == '__main__':
     unittest.main(verbosity=2)
