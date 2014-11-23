@@ -262,5 +262,14 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEquals("1-25:8", fileseq.padFrameRange("1-25:8", 1))
         self.assertEquals("0001-0100:8", fileseq.padFrameRange("1-100:8", 4))
 
+
+class TestGetPaddingNumber(unittest.TestCase):
+
+    def testGetPaddingNumber(self):
+        self.assertEqual(4, fileseq.getPaddingNumber('#'))
+        self.assertEqual(8, fileseq.getPaddingNumber('##'))
+        self.assertEqual(1, fileseq.getPaddingNumber('@'))
+        self.assertEqual(6, fileseq.getPaddingNumber('@@@@@@'))
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

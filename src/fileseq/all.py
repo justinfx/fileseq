@@ -553,7 +553,7 @@ def padFrameRange(frs, zfill):
 
 def getPaddingChars(num):
     """
-    Given a particular amount of padding, return the propper padding characters.
+    Given a particular amount of padding, return the proper padding characters.
     """
     if num == 0:
         return "@"
@@ -561,3 +561,12 @@ def getPaddingChars(num):
         return "#" * (num / 4)
     else:
         return "@" * num
+
+def getPaddingNumber(chars):
+    """
+    Given a supported group of padding characters, return the padding number.
+    """
+    if "@" in chars:
+        return chars.count("@")
+    elif "#" in chars:
+        return chars.count("#") * 4
