@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import unittest
-import cPickle
 import sys
 import os
 
@@ -13,49 +12,49 @@ os.chdir(TEST_DIR)
 import fileseq
 
 class TestFrameSet(unittest.TestCase):
-
+	
 	def testContigious(self):
 		f = fileseq.FrameSet("1-5")
 		self.assertEquals(5, len(f))
 		self.assertEquals(1, f[0])
 		self.assertEquals(5, f[-1])
 		self.assertEquals(5, f[4])
-
+		
 		self.assertEquals(f.index(1), 0)
 		self.assertEquals(f.index(4), 3)
 		self.assertTrue(f.hasFrame(5))
 		self.assertFalse(f.hasFrame(6))
-
+		
 		# Just try to iterate it to make sure
 		# all frames are in the result
 		result = frozenset([frame for frame in f])
 		for i in range(1, 6):
 			self.assertTrue(i in result)
-
-	def testCommaSeparated(self):
+		
+	def testCommaSeparated(self):		
 		f = fileseq.FrameSet("1-4,8-12")
 		self.assertEquals(9, len(f))
 		self.assertEquals(1, f[0])
 		self.assertEquals(12, f[-1])
 		self.assertEquals(12, f[8])
-
-	def testChunked(self):
+		
+	def testChunked(self):		
 		fs = fileseq.FrameSet("1-20x5")
 		self.assertEquals(4, len(fs))
 		expected = [1, 6, 11, 16]
 		for e in expected:
 			self.assertTrue(fs.hasFrame(e))
-
+	
 	def testFilled(self):
 		fs = fileseq.FrameSet("1-20y5")
 		self.assertEquals(16, len(fs))
-
+		
 	def testStaggered(self):
 		fs = fileseq.FrameSet("1-20:2")
 
 	def testStaggered(self):
 		fs = fileseq.FrameSet("1-20:2")
-
+	
 	def testFrame(self):
 		fs = fileseq.FrameSet("1-20")
 		self.assertEquals(1, fs.frame(0))
@@ -73,13 +72,13 @@ class TestFrameSet(unittest.TestCase):
 	def testIsFrameRange(self):
 		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100#"))
 		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@"))
-		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@###@@"))
-		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100:8,1000-2000x10"))
+		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100@###@@"))			
+		self.assertTrue(fileseq.FrameSet.isFrameRange("1-100:8,1000-2000x10"))	
 		self.assertTrue(fileseq.FrameSet.isFrameRange("-10"))
 		self.assertTrue(fileseq.FrameSet.isFrameRange(100))
 
-		self.assertFalse(fileseq.FrameSet.isFrameRange("1-"))
-		self.assertFalse(fileseq.FrameSet.isFrameRange("bilbo"))
+		self.assertFalse(fileseq.FrameSet.isFrameRange("1-"))	
+		self.assertFalse(fileseq.FrameSet.isFrameRange("bilbo"))	
 
 		fs = fileseq.FrameSet("1-100")
 		self.assertTrue(fileseq.FrameSet.isFrameRange(fs))
@@ -99,10 +98,10 @@ class TestFrameSet(unittest.TestCase):
 		self.assertEquals(len(fs), len(fs2))
 
 class TestFramesToFrameRange(unittest.TestCase):
-
+	
 	def testSimpleSequence(self):
 		self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
-
+	
 	def testAdvancedSequence(self):
 		self.assertEquals("1-3,6-8,12", fileseq.framesToFrameRange([1,2,3,6,7,8,12]))
 
@@ -122,7 +121,7 @@ class TestFramesToFrameRange(unittest.TestCase):
 	def testBrokenChunkedSequence(self):
 		self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
 		self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
-
+	
 	def testDuplicatedSequence(self):
 		self.assertEquals("1-2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
 		self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
@@ -253,11 +252,11 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 		known = set(["seq/bar1000-1002,1004-1006#.exr", "seq/foo.1-5#.exr"])
 		found = set([str(s) for s in seqs])
 		self.assertFalse(known.difference(found))
-
+		
 	def testNegSequencesOnDisk(self):
 	    seqs = fileseq.findSequencesOnDisk("seqneg")
 	    self.assertEquals(1, len(seqs))
-
+	    
 
 	def testFindSequenceOnDiskNegative(self):
 		seqs = fileseq.findSequencesOnDisk("seqneg")
@@ -268,7 +267,7 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 		self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
 
 class TestFindSequenceOnDisk(unittest.TestCase):
-
+	
 	def testFindSequenceOnDisk(self):
 		seq = fileseq.findSequenceOnDisk("seq/bar#.exr")
 		self.assertTrue(isinstance(seq, fileseq.FileSequence))
@@ -276,7 +275,7 @@ class TestFindSequenceOnDisk(unittest.TestCase):
 
 
 class TestPaddingFunctions(unittest.TestCase):
-
+	
 	def testPadFrameRange(self):
 		self.assertEquals("0001-0100", fileseq.padFrameRange("1-100", 4))
 		self.assertEquals("001-100x2", fileseq.padFrameRange("1-100x2", 3))
@@ -284,5 +283,5 @@ class TestPaddingFunctions(unittest.TestCase):
 		self.assertEquals("1-25:8", fileseq.padFrameRange("1-25:8", 1))
 		self.assertEquals("0001-0100:8", fileseq.padFrameRange("1-100:8", 4))
 
-if __name__ == '__main__':
+if __name__ == '__main__':	
 	unittest.main(verbosity=2)
