@@ -50,14 +50,14 @@ class FrameSet(object):
     """
     A FrameSet represents an ordered and unique set of frames in a frame range.  A frame range
     can be expressed in the following ways:
-        
+
         1-5
         1-5,10-20
         1-100x5 (every fifth frame)
         1-100y5 (opposite of above, fills in missing frames)
         1-100:4 (same as 1-100x4,1-100x3,1-100x2,1-100)
     """
-    
+
     @staticmethod
     def isFrameRange(frange):
         """
@@ -76,13 +76,13 @@ class FrameSet(object):
             if not matched:
                 return False
         return True
-    
+
     def __init__(self, frange):
-        
+
         self.__frange = frange
         self.__set = set()
         self.__list = list()
-        
+
         for part in frange.split(","):
             matched = False
             for pat in _PATTERNS:
@@ -118,7 +118,7 @@ class FrameSet(object):
         Return the frame at the given index.
         """
         return self.__list[idx]
-    
+
     def hasFrame(self, frame):
         """
         Return true if the FrameSet contains the supplied frame number.
@@ -164,7 +164,7 @@ class FrameSet(object):
         compacted FrameSet
         """
         return FrameSet(framesToFrameRange(self.__list))
-    
+
     def __handleMatch(self, match):
         """
         Handle the different types of sequence pattern matches.
@@ -179,11 +179,11 @@ class FrameSet(object):
             chunk = int(groups[3])
             if chunk == 0:
                 ParseException("Failed to parse part of range: %s , invalid use of the number zero.")
-            
+
             start = int(groups[0])
             end = int(groups[1])
             modifier = groups[2]
-            
+
             if modifier == "x":
                 self.__addFrames(xrange(start, end+1, chunk))
             elif modifier == ":":
@@ -193,7 +193,7 @@ class FrameSet(object):
                 not_good = frozenset(xrange(start, end+1, chunk))
                 self.__addFrames([f for f in xrange(start, end+1)
                     if f not in not_good])
-    
+
     def __addFrames(self, frames):
         """
         Filters the given set of frames to a unique list and adds them to the
@@ -204,16 +204,16 @@ class FrameSet(object):
             return
         self.__set.update(_f)
         self.__list+=_f
-    
+
     def __getitem__(self, index):
         return self.__list[index]
-    
+
     def __len__(self):
         return len(self.__list)
-    
+
     def __str__(self):
         return self.__frange
-    
+
     def __iter__(self):
         for i in self.__list:
             yield i
@@ -296,19 +296,19 @@ class FileSequence(object):
                 self.__ext))
             result.append(FileSequence(seq))
         return result
-    
+
     def dirname(self):
         """
         Return the directory name of the sequence.
         """
         return self.__dir
-    
+
     def basename(self):
         """
         Return the basenae of the sequence.
         """
         return self.__basename
-    
+
     def padding(self):
         """
         Return the the padding characters in the sequence.
@@ -329,30 +329,30 @@ class FileSequence(object):
 
     def invertedFrameRange(self):
         return self.__frameSet.invertedFrameRange(self.__zfill)
-    
+
     def frameSet(self):
         """
         Return the FrameSet of the sequence if one was specified, otherwise return None
         """
         return self.__frameSet
-    
+
     def extension(self):
         """
         Return the file extension in the sequence. This includes the leading period.
         """
         return self.__ext
-    
+
     def frame(self, frame):
         """
         Return a path go the given frame in the sequence.  Integer or string digits
-        are treated as a frame number and padding is applied, all other values 
+        are treated as a frame number and padding is applied, all other values
         are passed though. Example:
 
         seq.frame(1)
         >> /foo/bar.0001.exr
 
         seq.frame("#")
-        >> /foo/bar.#.exr 
+        >> /foo/bar.#.exr
         """
         try:
             _fr = int(frame)
@@ -385,20 +385,20 @@ class FileSequence(object):
         Set a new dirname for the sequence.
         """
         self.__dir = dirname
-    
+
     def setBasename(self, base):
         """
         Set a new basename for the sequence.
         """
         self.__basename = base
-    
+
     def setPadding(self, padding):
         """
         Set new padding for the sequence.
         """
         self.__padding = padding
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
-    
+
     def setExtention(self, ext):
         """
         Set a new file extension for the sequence.
@@ -412,23 +412,23 @@ class FileSequence(object):
         Set a new FrameSet for the sequence.
         """
         self.__frameSet = frameSet
-    
+
     def setFrameRange(self, frange):
         """
         Set a new frame range for the sequence.
         """
         self.__frameSet = FrameSet(frange)
-    
+
     def __iter__(self):
         for f in self.__frameSet:
             yield self.frame(f)
-    
+
     def __getitem__(self, idx):
         return self.index(idx)
-    
+
     def __len__(self):
         return len(self.__frameSet)
-    
+
     def __str__(self):
         return "".join((
             self.__dir,
@@ -441,17 +441,17 @@ def framesToFrameRange(frames, sort=True, zfill=0):
     """
     Return a string frame range represenation of the
     given list of frame numbers.
-    
+
     Example:
         framesToFrameRange([1,2,3,4,5])
         >> "1-5"
     """
     if len(frames) == 1:
         return str(frames[0])
-    
+
     if sort:
         frames.sort()
-    
+
     result = []
     zfm = "0%dd" % zfill
     start = frames[0]
@@ -473,7 +473,7 @@ def framesToFrameRange(frames, sort=True, zfill=0):
 
         a_fr = frames[num-1]
         b_fr = frames[num]
-        
+
         a_chunk = b_fr - a_fr
         if a_chunk == 0:
             continue;
@@ -518,7 +518,7 @@ def findSequencesOnDisk(path):
         m = _ON_DISK_PATTERN.match(os.path.join(path, _file))
         if not m:
             continue
-        
+
         # Key is made up of of dir, base, and ext
         key = (m.group(1), m.group(2), m.group(4))
         frames = seqs.get(key)
@@ -526,14 +526,14 @@ def findSequencesOnDisk(path):
             frames = [[], len(m.group(3))]
             seqs[key] = frames
         frames[0].append(int(m.group(3)))
-    
+
     for key, frames in seqs.iteritems():
         frame_range = framesToFrameRange(frames[0])
         try:
             seq = "".join((
                 key[0], key[1], frame_range, getPaddingChars(frames[1]), key[2]))
         except TypeError:
-            continue        
+            continue
         result.append(FileSequence(seq))
 
     return result
@@ -543,8 +543,11 @@ def findSequenceOnDisk(path):
     Searches for a specific sequence on disk, for example,
     findSequenceOnDisk("seq/bar#.exr") (or any other pattern supported by fileseq)
     """
+    fs = FileSequence(path)
+    base = fs.basename()
+    ext = fs.extension()
     for seq in findSequencesOnDisk(os.path.dirname(path)):
-        if seq.basename() == FileSequence(path).basename():
+        if seq.basename() == base and seq.extension() == ext:
             return seq
     raise ValueError("No sequence found on disk matching %s"%path)
 
