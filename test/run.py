@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import unittest
+import cPickle
 import sys
 import os
 
@@ -82,6 +83,20 @@ class TestFrameSet(unittest.TestCase):
 
 		fs = fileseq.FrameSet("1-100")
 		self.assertTrue(fileseq.FrameSet.isFrameRange(fs))
+
+	def testSerialization(self):
+		fs = fileseq.FrameSet("1-100x2")
+		s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
+		fs2 = cPickle.loads(s)
+		self.assertEquals(str(fs), str(fs2))
+		self.assertEquals(len(fs), len(fs2))
+
+		# test old objects being unpickled through new lib
+		state = fs.__dict__
+		fs2 = fileseq.FrameSet.__new__(fileseq.FrameSet)
+		fs2.__setstate__(state)
+		self.assertEquals(str(fs), str(fs2))
+		self.assertEquals(len(fs), len(fs2))
 
 class TestFramesToFrameRange(unittest.TestCase):
 	
@@ -221,6 +236,13 @@ class TestFileSequence(unittest.TestCase):
 	def testSplitXY(self):
 		seqs = fileseq.FileSequence("/cheech/0-9x1/chong.1-10#.exr")
 		self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
+
+	def testSerialization(self):
+		fs = fileseq.FileSequence("/path/to/file.1-100x2#.exr")
+		s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
+		fs2 = cPickle.loads(s)
+		self.assertEquals(str(fs), str(fs2))
+		self.assertEquals(len(fs), len(fs2))
 
 class TestFindSequencesOnDisk(unittest.TestCase):
 
