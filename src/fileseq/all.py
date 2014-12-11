@@ -94,6 +94,19 @@ class FrameSet(object):
             if not matched:
                 raise ParseException("Failed to parse frame range: %s on part '%s'" % (frange, part))
 
+    def __getstate__(self):
+        return self.__frange
+
+    def __setstate__(self, state):
+        if isinstance(state, basestring):
+            self.__init__(state)
+
+        elif isinstance(state, dict):
+            self.__dict__.update(state)
+
+        else:
+            raise ValueError("Unrecognized state data from which to deserialize FrameSet")
+
     def index(self, frame):
         """
         Return the index of the given frame number
