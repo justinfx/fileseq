@@ -7,7 +7,7 @@ descript = 'A Python library for parsing frame ranges and file ' \
                   'sequences based on a similar library found in Katana.'
 
 setup(name='Fileseq',
-      version='0.5.0',
+      version='0.5.1',
 
       package_dir = {'': 'src'},
       packages=find_packages('src'),
