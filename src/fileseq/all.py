@@ -316,19 +316,43 @@ class FileSequence(object):
         return self.__padding
 
     def start(self):
+        """
+        Returns the start frame of the sequences FrameSet. 
+        Will return 0 if the sequence has no frame pattern. 
+        """
+        if self.__frameSet is None:
+            return 0
         return self.__frameSet.start()
 
     def zfill(self):
         return self.__zfill
 
     def end(self):
+        """
+        Returns the end frame of the sequences FrameSet. 
+        Will return 0 if the sequence has no frame pattern.
+        """
+        if self.__frameSet is None:
+            return 0
         return self.__frameSet.end()
 
     def frameRange(self):
-        return self.__frameSet.frameRange(self.__zfill)
+        """
+        Returns the string formatted frame range of the sequence. 
+        Will return an empty string if the sequence has no frame pattern.
+        """
+        if self.__frameSet is not None:
+            return self.__frameSet.frameRange(self.__zfill)
+        return ""
 
     def invertedFrameRange(self):
-        return self.__frameSet.invertedFrameRange(self.__zfill)
+        """
+        Returns the inverse string formatted frame range of the sequence. 
+        Will return an empty string if the sequence has no frame pattern.
+        """
+        if self.__frameSet is not None:
+            return self.__frameSet.invertedFrameRange(self.__zfill)
+        return ""
 
     def frameSet(self):
         """
@@ -378,6 +402,8 @@ class FileSequence(object):
         """
         Return the path to the file at the given index.
         """
+        if self.__frameSet is None:
+            return str(self)
         return self.frame(self.__frameSet[idx])
 
     def setDirname(self, dirname):
@@ -394,7 +420,8 @@ class FileSequence(object):
 
     def setPadding(self, padding):
         """
-        Set new padding for the sequence.
+        Set new padding characters for the sequence.
+        i.e. "#" or "@@@", or an empty string to disable range formatting.
         """
         self.__padding = padding
         self.__zfill = sum([_PADDING[c] for c in self.__padding])
@@ -420,6 +447,12 @@ class FileSequence(object):
         self.__frameSet = FrameSet(frange)
 
     def __iter__(self):
+        # If there is no frame range, or there is no padding 
+        # characters, then we only want to represent a single path
+        if self.__frameSet is None or not self.__zfill:
+            yield str(self)
+            return
+
         for f in self.__frameSet:
             yield self.frame(f)
 
@@ -427,6 +460,8 @@ class FileSequence(object):
         return self.index(idx)
 
     def __len__(self):
+        if self.__frameSet is None or not self.__zfill:
+            return 1
         return len(self.__frameSet)
 
     def __str__(self):

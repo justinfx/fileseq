@@ -228,10 +228,27 @@ class TestFileSequence(unittest.TestCase):
 		self.assertEquals("/path/to/0001.exr", seqs.index(0))
 
 	def testNoPlaceholder(self):
-		seqs = fileseq.FileSequence("/path/to/file.mov")
+		expected = "/path/to/file.mov"
+		seqs = fileseq.FileSequence(expected)
+
+		self.assertEquals(expected, seqs.index(0))
+		self.assertEquals(expected, seqs.frame(0))
+		self.assertEquals(expected, seqs[0])
+		self.assertEquals(None, seqs.frameSet())
+		self.assertEquals("", seqs.frameRange())
+		self.assertEquals("", seqs.invertedFrameRange())
+		self.assertEquals(1, len(seqs))
+
 		seqs.setFrameRange("1-100")
-		self.assertEquals("/path/to/file.mov", seqs.index(0))
-		self.assertEquals("/path/to/file.mov", seqs.frame(0))
+
+		for i in xrange(0,100):
+			self.assertEquals(expected, seqs.index(i))
+			self.assertEquals(expected, seqs.frame(i+1))
+			self.assertEquals(expected, seqs[i])
+		self.assertEquals(1, len(seqs))
+
+		seqs.setPadding("#")
+		self.assertEquals(100, len(seqs))
 
 	def testSplitXY(self):
 		seqs = fileseq.FileSequence("/cheech/0-9x1/chong.1-10#.exr")
