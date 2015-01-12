@@ -2,3 +2,5 @@ build
 dist
 src/Fileseq.egg-info
 *.pyc
+.idea/
+atlassian-ide-plugin.xml
