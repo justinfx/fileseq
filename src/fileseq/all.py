@@ -17,30 +17,39 @@ __all__ = [ "FrameSet",
 
 _PADDING = {"#": 4, "@": 1}
 
-"""
-Regular expression patterns for matching frame set strings.
-Examples:
-    1-100
-    100
-    1-100x5
-"""
-_PATTERNS = [
-    re.compile("^(\-?[0-9]+)\-(\-?[0-9]+)$"),
-    re.compile("^(\-?[0-9]+)$"),
-    re.compile("^(\-?[0-9]+)\-(\-?[0-9]+)([:xy]{1})([0-9]+)$")
-]
+# Regular expression pattern for matching frame set strings.
+# Examples:
+#     1-100
+#     100
+#     1-100x5
+_RANGE_PATTERN = re.compile("^(\-?\d+)(?:\-(\-?\d+)(?:([:xy]{1})(\d+))?)?$")
 
-"""
-Regular expression for matching a file sequence string.
-Example:
-    /film/shot/renders/bilbo_bty.1-100#.exr
-"""
+# Regular expression for matching a file sequence string.
+# Example:
+#     /film/shot/renders/bilbo_bty.1-100#.exr
 _SPLITTER_PATTERN = re.compile("([\:xy\-0-9,]*)([\#\@]+)")
 
-"""
-Regular expression pattern for matching file names on disk.
-"""
+# Regular expression pattern for matching file names on disk.
 _ON_DISK_PATTERN = re.compile("^(.*/)?(?:$|(.+?)([\-0-9]{1,})(?:(\.[^.]*$)|$))")
+
+# Regular expression for padding a frame range."
+_PAD_PATTERN = re.compile("(\-?)(\d+)(?:(\-)(\-?)(\d+)(?:([:xy]{1})(\d+))?)?")
+
+def xfrange(start, stop, step=1):
+    """
+    Returns a generator that yields the frames from start to stop, inclusive.  In other words it adds or subtracts
+    a frame, as necessary, to return the stop value as well, if the stepped range would touch that value.
+    :param start: int
+    :param stop: int
+    :param step: int (sign will be ignored)
+    :return: generator
+    """
+    if start <= stop + 1:
+        for frame in xrange(start, stop + 1, abs(step)):
+            yield frame
+    else:
+        for frame in xrange(start, stop - 1, -abs(step)):
+            yield frame
 
 
 class ParseException(Exception):
@@ -64,35 +73,29 @@ class FrameSet(object):
         Return true of the given string is a frame range.  Any padding
         characters, such as '#' and '@' are ignored.
         """
+
         frange = reduce(lambda a, k: a.replace(k, ""), _PADDING.iterkeys(), str(frange))
         if not frange:
             return False
         for part in frange.split(","):
-            matched = False
-            for p in _PATTERNS:
-                if p.match(part):
-                    matched = True
-                    break
-            if not matched:
+            matched = _RANGE_PATTERN.match(part)
+            if not matched or (matched.group(4) and int(matched.group(4)) == 0):
                 return False
         return True
 
     def __init__(self, frange):
 
-        self.__frange = frange
+        self.__frange = reduce(lambda a, k: a.replace(k, ""), _PADDING.iterkeys(), str(frange))
+        if not self.__frange:
+            raise ParseException("Failed to parse frame range: %s" % frange)
         self.__set = set()
         self.__list = list()
 
-        for part in frange.split(","):
-            matched = False
-            for pat in _PATTERNS:
-                match = pat.match(part)
-                if match:
-                    matched = True
-                    self.__handleMatch(match)
-                    break
+        for part in self.__frange.split(","):
+            matched = _RANGE_PATTERN.match(part)
             if not matched:
                 raise ParseException("Failed to parse frame range: %s on part '%s'" % (frange, part))
+            self.__handleMatch(matched)
 
     def __getstate__(self):
         return self.__frange
@@ -149,7 +152,7 @@ class FrameSet(object):
                 if next_frame - frame == 1:
                     continue
                 else:
-                    result+=xrange(frame+1, next_frame)
+                    result += xrange(frame+1, next_frame)
         except IndexError:
             # when i+1 throws
             pass
@@ -160,7 +163,7 @@ class FrameSet(object):
 
     def normalize(self):
         """
-        Normalizes the current FramSet and returns a new sorted and
+        Normalizes the current FrameSet and returns a new sorted and
         compacted FrameSet
         """
         return FrameSet(framesToFrameRange(self.__list))
@@ -169,30 +172,22 @@ class FrameSet(object):
         """
         Handle the different types of sequence pattern matches.
         """
-        groups = match.groups()
-        length = len(groups)
-        if length == 2:
-            self.__addFrames(xrange(int(groups[0]), int(groups[1])+1))
-        elif length == 1:
-            self.__addFrames([int(groups[0])])
-        elif length == 4:
-            chunk = int(groups[3])
-            if chunk == 0:
-                ParseException("Failed to parse part of range: %s , invalid use of the number zero.")
-
-            start = int(groups[0])
-            end = int(groups[1])
-            modifier = groups[2]
-
-            if modifier == "x":
-                self.__addFrames(xrange(start, end+1, chunk))
-            elif modifier == ":":
-                for stagger in xrange(chunk, 0, -1):
-                    self.__addFrames(xrange(start, end+1, stagger))
-            elif modifier == "y":
-                not_good = frozenset(xrange(start, end+1, chunk))
-                self.__addFrames([f for f in xrange(start, end+1)
-                    if f not in not_good])
+        start, end, modifier, chunk = match.groups()
+        start = int(start)
+        end = int(end) if end is not None else start
+        chunk = abs(int(chunk)) if chunk is not None else 1
+        if chunk == 0:
+            raise ParseException("Failed to parse part of range: {0}, invalid use of zero.".format(match.string))
+        if modifier == 'x':
+            self.__addFrames(xfrange(start, end, chunk))
+        elif modifier == ':':
+            for stagger in xrange(chunk, 0, -1):
+                self.__addFrames(xfrange(start, end, stagger))
+        elif modifier == 'y':
+            not_good = frozenset(xfrange(start, end, chunk))
+            self.__addFrames((f for f in xfrange(start, end, 1) if f not in not_good))
+        else:
+            self.__addFrames(xfrange(start, end))
 
     def __addFrames(self, frames):
         """
@@ -203,7 +198,7 @@ class FrameSet(object):
         if not _f:
             return
         self.__set.update(_f)
-        self.__list+=_f
+        self.__list +=_f
 
     def __getitem__(self, index):
         return self.__list[index]
@@ -229,7 +224,7 @@ class FileSequence(object):
         except Exception, e:
             for placeholder in _PADDING.keys():
                 if placeholder in sequence:
-                    raiseParseException("Failed to parse FileSequence: %s" % sequence)
+                    raise ParseException("Failed to parse FileSequence: %s" % sequence)
 
             """
             The 'sequence' is really just a solitary file, containing no frame
@@ -584,30 +579,26 @@ def findSequenceOnDisk(path):
     for seq in findSequencesOnDisk(os.path.dirname(path)):
         if seq.basename() == base and seq.extension() == ext:
             return seq
+        elif os.path.isfile(path) and base.startswith(seq.basename()) and seq.extension() == ext:
+            return seq
     raise ValueError("No sequence found on disk matching %s"%path)
 
 def padFrameRange(frs, zfill):
     """
     Pad the given frame range.
     """
-    result = []
+    def do_pad(m):
+        result = list(m.groups())
+        result[1] = result[1].zfill(zfill)
+        if result[4]:
+            result[4] = result[4].zfill(zfill)
+        return ''.join((i for i in result if i))
 
-    for frange in frs.split(","):
-        if "-" in frange:
-            parts = frange.split("-")
-            if parts[1].isdigit():
-                result.append("-".join([str.zfill(p, zfill) for p in parts]))
-            else:
-                parts[1], suffix = re.split("([:xy]\d+)", parts[1])[0:2]
-                result.append("-".join([str.zfill(p, zfill) for p in parts]) + suffix)
-        else:
-             result.append(str.zfill(frange, zfill))
-
-    return ",".join(result)
+    return _PAD_PATTERN.sub(do_pad, frs)
 
 def getPaddingChars(num):
     """
-    Given a particular amount of padding, return the propper padding characters.
+    Given a particular amount of padding, return the proper padding characters.
     """
     if num == 0:
         return "@"
