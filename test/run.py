@@ -65,25 +65,34 @@ def _uchain(*args):
 
 
 FRAME_SET_SHOULD_SUCCEED = [
+    # the null value
+    ("Empty", '', []),
     # individual frames
     ('Zero', '0', [0]),
     ('NegZero', '-0', [0]),
     ('Pos', '1', [1]),
     ('Neg', '-1', [-1]),
     # permutations on comma separated individual frames
+    ('DupePos', '1,1,1', [1]),
+    ('DupeNeg', '-1,-1,-1', [-1]),
+    ('DupeMix', '-1,1,-1,1', [-1,1]),
     ('CommaSepPos', '1,3,17', [1,3,17]),
     ('CommaSepNeg', '-1,-3,-17', [-1,-3,-17]),
     ('CommaSepMix', '1,-3,17', [1,-3,17]),
     ('CommaSepPosInv', '17,3,1', [17,3,1]),
     ('CommaSepNegInv', '-17,-3,-1', [-17,-3,-1]),
     ('CommaSepMixInv', '17,-3,1', [17,-3,1]),
+    ('CommaSepMixInv', '17,-3,1', [17,-3,1]),
+    ("CommaTrailing", "1,", [1]),
+    ("CommaLeading", ",1", [1]),
+    ("CommaDupes", "1,,,,,,2,,,,,3,,,", [1,2,3]),
     # args that str(arg) cast to a valid FrameSet
     ('PosInt', 1, [1]),
     ('NegInt', -1, [-1]),
     ('FrameSet', fileseq.FrameSet("1-20"), list(xrange(1,21))),
     # unicode args that are the equivalent of a valid FrameSet
     ('UnicodeEquivalentRange', u'-1--20', list(xrange(-1,-21,-1))),
-    ('UnicodeEquivalentRangeBatch', u'-1--20x5', list(xrange(-1,-21,-5))),
+    ('UnicodeEquivalentRangeChunk', u'-1--20x5', list(xrange(-1,-21,-5))),
     ('UnicodeEquivalentRangeFill', u'-1--20y5', list(_yrange(-1,-21,-5))),
     ('UnicodeEquivalentRangeStagger', u'-1--20:5', list(_srange(-1,-21,-5))),
 ]
@@ -167,7 +176,6 @@ for lo in LO_RANGES:
         FRAME_SET_SHOULD_SUCCEED.append((name, test, expect))
 
 FRAME_SET_SHOULD_FAIL = [
-    ("EmptyString", ""),
     ("PosWChunkChar", "1x5"),
     ("NegWChunkChar", "-1x5"),
     ("PosWFillChar", "1y5"),
@@ -186,8 +194,6 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
-    ("CommaTrail", "1-20,"),
-    ("CommaLead", ",1-20"),
 ]
 
 class TestFrameSet(unittest.TestCase):
@@ -195,7 +201,7 @@ class TestFrameSet(unittest.TestCase):
     Exercise the TestFrame object.  Due to the sheer number of permutations, we'll add most tests dynamically.
     """
 
-    def _check___init____frange(self, test, expect):
+    def _check___init___range(self, test, expect):
         """
         Harness to test if the FrameSet.__init__ call works properly.
         :param test: the string to pass to FrameSet
@@ -203,13 +209,13 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
-        m = u'fileseq.FrameSet("{0}")._FrameSet__frange != {0}: got {1}'
-        r = f._FrameSet__frange
+        m = u'fileseq.FrameSet("{0}")._frange != {0}: got {1}'
+        r = f._frange
         self.assertEqual(r, str(test), m.format(test, r))
-        m = u'fileseq.FrameSet("{0}")._FrameSet__frange returns {1}: got {2}'
+        m = u'fileseq.FrameSet("{0}")._frange returns {1}: got {2}'
         self.assertIsInstance(r, str, m.format(test, str, type(r)))
 
-    def _check___init____set(self, test, expect):
+    def _check___init___items(self, test, expect):
         """
         Harness to test if the FrameSet.__init__ call works properly.
         :param test: the string to pass to FrameSet
@@ -217,13 +223,13 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
-        m = u'fileseq.FrameSet("{0}")._FrameSet__set != {1}: got {2}'
-        r = f._FrameSet__set
+        m = u'fileseq.FrameSet("{0}")._items != {1}: got {2}'
+        r = f._items
         self.assertEqual(r, set(expect), m.format(test, set(expect), r))
-        m = u'fileseq.FrameSet("{0}")._FrameSet__set returns {1}: got {2}'
-        self.assertIsInstance(r, set, m.format(test, set, type(r)))
+        m = u'fileseq.FrameSet("{0}")._FrameSet__items returns {1}: got {2}'
+        self.assertIsInstance(r, frozenset, m.format(test, frozenset, type(r)))
 
-    def _check___init____list(self, test, expect):
+    def _check___init___order(self, test, expect):
         """
         Harness to test if the FrameSet.__init__ call works properly.
         :param test: the string to pass to FrameSet
@@ -231,11 +237,11 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
-        m = u'fileseq.FrameSet("{0}")._FrameSet__list != {1}: got {2}'
-        r = f._FrameSet__list
-        self.assertEqual(r, list(expect), m.format(test, list(expect), r))
-        m = u'fileseq.FrameSet("{0}")._FrameSet__list returns {1}: got {2}'
-        self.assertIsInstance(r, list, m.format(test, list, type(r)))
+        m = u'fileseq.FrameSet("{0}")._order != {1}: got {2}'
+        r = f._order
+        self.assertEqual(r, tuple(expect), m.format(test, tuple(expect), r))
+        m = u'fileseq.FrameSet("{0}")._order returns {1}: got {2}'
+        self.assertIsInstance(r, tuple, m.format(test, tuple, type(r)))
 
     def _check___init____malformed(self, test):
         """
@@ -249,7 +255,6 @@ class TestFrameSet(unittest.TestCase):
             r = err
         except Exception as err:
             r = err
-            raise r
         m = u'fileseq.FrameSet("{0}") should fail: got {1}'
         self.assertIsInstance(r, fileseq.ParseException, m.format(test, r))
 
@@ -291,6 +296,10 @@ class TestFrameSet(unittest.TestCase):
         f = fileseq.FrameSet(test)
         i = len(expect) / 2
         m = u'fileseq.FrameSet("{0}")[{1}] != {2}: got {3}'
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertRaises(IndexError, f.__getitem__, i)
+            return
         try:
             r = f[i]
         except Exception as err:
@@ -298,6 +307,13 @@ class TestFrameSet(unittest.TestCase):
         self.assertEqual(r, expect[i], m.format(test, i, expect[i], r))
         m = u'fileseq.FrameSet("{0}")[{1}] returns {2}: got {3}'
         self.assertIsInstance(r, int, m.format(test, i, int, type(r)))
+        try:
+            r = f[:-1:2]
+        except Exception as err:
+            r = repr(err)
+        e = tuple(expect[:-1:2])
+        m = u'fileseq.FrameSet("{0}")[:1:2] != {1}: got {2}'
+        self.assertEqual(r, e, m.format(test, e, r))
 
     def _check_start(self, test, expect):
         """
@@ -308,6 +324,10 @@ class TestFrameSet(unittest.TestCase):
         """
         f = fileseq.FrameSet(test)
         m = u'fileseq.FrameSet("{0}").start() != {1}: got {2}'
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertRaises(IndexError, f.start)
+            return
         try:
             r = f.start()
         except Exception as err:
@@ -325,6 +345,10 @@ class TestFrameSet(unittest.TestCase):
         """
         f = fileseq.FrameSet(test)
         m = u'fileseq.FrameSet("{0}").end() != {1}: got {2}'
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertRaises(IndexError, f.end)
+            return
         try:
             r = f.end()
         except Exception as err:
@@ -341,6 +365,10 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertRaises(IndexError, f.frame, 0)
+            return
         i = expect[len(expect)/2]
         m = u'fileseq.FrameSet("{0}").index({1}) != {2}: got {3}'
         try:
@@ -359,6 +387,10 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertRaises(IndexError, f.frame, 0)
+            return
         i = len(expect)/2
         m = u'fileseq.FrameSet("{0}").frame({1}) != {2}: got {3}'
         try:
@@ -377,6 +409,10 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertFalse(f.hasFrame(1))
+            return
         i = max(expect)
         m = u'fileseq.FrameSet("{0}").hasFrame({1}) != {2}: got {3}'
         r = f.hasFrame(i)
@@ -392,6 +428,10 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
+        # the empty FrameSet is expected to always fail
+        if not test and not expect:
+            self.assertFalse(f.hasFrame(1))
+            return
         i = max(expect) + 1
         m = u'fileseq.FrameSet("{0}").hasFrame({1}) != {2}: got {3}'
         r = f.hasFrame(i)
@@ -410,7 +450,7 @@ class TestFrameSet(unittest.TestCase):
         m = u'list(fileseq.FrameSet("{0}")) != {1}: got {2}'
         r = f.__iter__()
         self.assertEqual(list(r), expect, m.format(test, expect, list(r)))
-        m = u'fileseq.FrameSet("{0}").end() returns {1}: got {2}'
+        m = u'fileseq.FrameSet("{0}").__iter__ returns {1}: got {2}'
         self.assertIsInstance(r, types.GeneratorType, m.format(test, types.GeneratorType, type(r)))
 
     def _check_canSerialize(self, test, expect):
@@ -426,7 +466,7 @@ class TestFrameSet(unittest.TestCase):
         self.assertIsInstance(f2, fileseq.FrameSet, m.format(test))
         self.assertTrue(str(f) == str(f2) and list(f) == list(f2), m.format(test))
         # test old objects being unpickled through new lib
-        state = f.__dict__
+        state = {'__frange': f._frange, '__set': set(f._items), '__list': list(f._order)}
         f2 = fileseq.FrameSet.__new__(fileseq.FrameSet)
         f2.__setstate__(state)
         self.assertTrue(str(f) == str(f2) and list(f) == list(f2), m.format(test))
@@ -439,6 +479,10 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = fileseq.FrameSet(test)
+        # the empty FrameSet always has a frameRange of ''
+        if not test and not expect:
+            self.assertEqual(f.frameRange(), '')
+            return
         m = u'fileseq.FrameSet("{0}").frameRange({1}) != "{2}": got "{3}"'
         p = '((?<![xy:])\d+)'
         l = max([max([len(i) for i in re.findall(p, str(f))]) + 1, 4])
@@ -463,7 +507,11 @@ class TestFrameSet(unittest.TestCase):
         r = f.invertedFrameRange()
         t = sorted(f)
         c = sorted(fileseq.FrameSet(r) if r else [])
-        self.assertEqual([i for i in xrange(t[0], t[-1]) if i not in t], sorted(c))
+        # the empty FrameSet will always return '' for inverted and normal FrameRange
+        if not test and not expect:
+            self.assertEqual(r, '')
+        else:
+            self.assertEqual([i for i in xrange(t[0], t[-1]) if i not in t], sorted(c))
         m = u'fileseq.FrameSet("{0}").invertedFrameRange() returns {1}: got {2}'
         self.assertIsInstance(r, str, m.format(test, str, type(r)))
 
@@ -493,34 +541,548 @@ class TestFrameSet(unittest.TestCase):
         self.assertEqual(r, expect, m.format(test, expect, r))
         m = u'fileseq.FrameSet.isFrameRange("{0}") returns {1}: got {2}'
         self.assertIsInstance(r, bool, m.format(test, bool, type(r)))
+        
+    def _check_fromIterable(self, expect, iterable):
+        """
+        Harness to test if the FrameSet.fromIterable call works properly.
+        :param expect: the string to use to build the expected FrameRange, which will be normalized for comparison
+        :param iterable: the iterable to test
+        :return: None
+        """
+        e = fileseq.FrameSet(expect)
+        r = fileseq.FrameSet.from_iterable(iterable)
+        m = u'fileseq.FrameSet.fromIterable({0}) != {1!r}: got {2!r}'
+        self.assertEqual(r, e, m.format(iterable, e, r))
+        m = u'fileseq.FrameSet.fromIterable({0}) returns {1}: got {2}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(expect, fileseq.FrameSet, type(r)))
+
+    def _check___repr__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__repr__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        e = 'FrameSet("{0}")'.format(test)
+        m = u'repr(fileseq.FrameSet("{0}")) != {1}: got {2}'
+        self.assertEqual(repr(f), e, m.format(test, e, repr(f)))
+        m = u'repr(fileseq.FrameSet("{0}")) returns {1}: got {2}'
+        self.assertIsInstance(repr(f), str, m.format(test, str, type(repr(f))))
+
+    def _check___reversed__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__reversed__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        e = list(reversed(expect))
+        r = reversed(f)
+        m = u'reversed(fileseq.FrameSet("{0}")) != {1}: got {2}'
+        self.assertEqual(list(r), e, m.format(test, e, r))
+        m = u'reversed(fileseq.FrameSet("{0}")) returns {1}: got {2}'
+        self.assertIsInstance(r, types.GeneratorType, m.format(test, types.GeneratorType, type(r)))
+
+    def _check___contains__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__contains__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        e = expect[-1] if len(expect) else None
+        should_succeed = e in f
+        e = (max(expect) + 1) if len(expect) else None
+        should_fail = e in f
+        m = u'{0} in fileseq.FrameSet("{1}"))'
+        # the empty FrameSet contains nothing
+        if not test and not expect:
+            self.assertFalse(should_succeed, m.format(e, test))
+            self.assertFalse(should_fail, m.format(e, test))
+        else:
+            self.assertTrue(should_succeed, m.format(e, test))
+            self.assertFalse(should_fail, m.format(e, test))
+        m = u'fileseq.FrameSet("{0}").__contains__ returns {1}: got {2}'
+        self.assertIsInstance(should_succeed, bool, m.format(test, bool, type(should_succeed)))
+        self.assertIsInstance(should_fail, bool, m.format(test, bool, type(should_fail)))
+
+    def _check___hash__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__hash__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        try:
+            r = hash(f)
+        except Exception as err:
+            r = err
+        m = u'hash(fileseq.FrameSet("{0}")) returns {1}: got {2}'
+        self.assertIsInstance(r, int, m.format(test, int, type(r)))
+
+    def _check___lt__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__lt__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is less than everything, except for itself
+        if not test and not expect:
+            self.assertTrue(f < fileseq.FrameSet('1'))
+            self.assertTrue(f < fileseq.FrameSet('-1'))
+            self.assertFalse(f < expect)
+            return
+        r = fileseq.FrameSet.from_iterable(expect + [max(expect) + 1])
+        should_succeed = f < r
+        should_fail = r < f
+        m = u'fileseq.FrameSet("{0}") < fileseq.FrameSet("{1}")'
+        self.assertTrue(should_succeed, m.format(test, r))
+        self.assertFalse(should_fail, m.format(r, test))
+        m = u'fileseq.FrameSet("{0}") < fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(should_succeed, bool, m.format(test, r, bool, type(should_succeed)))
+        self.assertIsInstance(should_fail, bool, m.format(r, test, bool, type(should_fail)))
+
+    def _check___le__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__le__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is less than everything, equal only to itself
+        if not test and not expect:
+            self.assertTrue(f <= fileseq.FrameSet('1'))
+            self.assertTrue(f <= fileseq.FrameSet('-1'))
+            self.assertTrue(f <= expect)
+            return
+        for i in [expect, expect + [max(expect) + 1]]:
+            r = fileseq.FrameSet.from_iterable(i)
+            should_succeed = f <= r
+            m = u'fileseq.FrameSet("{0}") <= fileseq.FrameSet("{1}")'
+            self.assertTrue(should_succeed, m.format(test, r))
+            m = u'fileseq.FrameSet("{0}") <= fileseq.FrameSet("{1}") returns {2}: got {3}'
+            self.assertIsInstance(should_succeed, bool, m.format(test, r, bool, type(should_succeed)))
+
+    def _check___eq__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__eq__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        r = fileseq.FrameSet(','.join((str(i) for i in expect)))
+        should_succeed = f == r
+        m = u'fileseq.FrameSet("{0}") == fileseq.FrameSet("{1}")'
+        self.assertTrue(should_succeed, m.format(test, r))
+        m = u'fileseq.FrameSet("{0}") == fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(should_succeed, bool, m.format(test, r, bool, type(should_succeed)))
+
+    def _check___ne__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__ne__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is not equal to anything, except for itself
+        if not test and not expect:
+            self.assertTrue(f != fileseq.FrameSet('1'))
+            self.assertTrue(f != fileseq.FrameSet('-1'))
+            self.assertFalse(f != expect)
+            return
+        r = fileseq.FrameSet(','.join((str(i) for i in (expect + [max(expect) + 1]))))
+        should_succeed = f != r
+        m = u'fileseq.FrameSet("{0}") != fileseq.FrameSet("{1}")'
+        self.assertTrue(should_succeed, m.format(test, r))
+        m = u'fileseq.FrameSet("{0}") != fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(should_succeed, bool, m.format(test, r, bool, type(should_succeed)))
+
+    def _check___ge__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__ge__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is greater than nothing, except for itself
+        if not test and not expect:
+            self.assertFalse(f >= fileseq.FrameSet('1'))
+            self.assertFalse(f >= fileseq.FrameSet('-1'))
+            self.assertTrue(f >= expect)
+            return
+        for i in [expect, expect[:-1]]:
+            try:
+                r = fileseq.FrameSet.from_iterable(i)
+            except fileseq.ParseException:
+                # this will happen if len(expect) == 1
+                continue
+            should_succeed = f >= r
+            m = u'fileseq.FrameSet("{0}") >= fileseq.FrameSet("{1}"'
+            self.assertTrue(should_succeed, m.format(test, r))
+            m = u'fileseq.FrameSet("{0}") >= fileseq.FrameSet("{1}") returns {2}: got {3}'
+            self.assertIsInstance(should_succeed, bool, m.format(test, r, bool, type(should_succeed)))
+
+    def _check___gt__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__gt__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is greater than nothing, except for itself
+        if not test and not expect:
+            self.assertFalse(f > fileseq.FrameSet('1'))
+            self.assertFalse(f > fileseq.FrameSet('-1'))
+            self.assertFalse(f > expect)
+            return
+        try:
+            r = fileseq.FrameSet.from_iterable(expect[:-1])
+        except fileseq.ParseException:
+            # this will happen if len(expect) == 1
+            return
+        should_succeed = f > r
+        should_fail = r > f
+        m = u'fileseq.FrameSet("{0}") > fileseq.FrameSet("{1}")'
+        self.assertTrue(should_succeed, m.format(test, r))
+        self.assertFalse(should_fail, m.format(r, test))
+        m = u'fileseq.FrameSet("{0}") > fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(should_succeed, bool, m.format(test, r, bool, type(should_succeed)))
+        self.assertIsInstance(should_fail, bool, m.format(r, test, bool, type(should_fail)))
+
+    def _check___and__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__and__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = f & t
+        e = fileseq.FrameSet.from_iterable(set(expect) & set(v), sort=True)
+        m = u'fileseq.FrameSet("{0}") & fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(f, t, e))
+        m = u'fileseq.FrameSet("{0}") & fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check___rand__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__rand__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = t & f
+        e = fileseq.FrameSet.from_iterable(set(v) & set(expect), sort=True)
+        m = u'fileseq.FrameSet("{0}") & fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(t, f, e))
+        m = u'fileseq.FrameSet("{0}") & fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(t, test, fileseq.FrameSet, type(r)))
+
+    def _check___sub__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__sub__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = f - t
+        e = fileseq.FrameSet.from_iterable(set(expect) - set(v), sort=True)
+        m = u'fileseq.FrameSet("{0}") - fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(f, t, e))
+        m = u'fileseq.FrameSet("{0}") - fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check___rsub__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__rsub__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = t - f
+        e = fileseq.FrameSet.from_iterable(set(v) - set(expect), sort=True)
+        m = u'fileseq.FrameSet("{0}") - fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(t, f, e))
+        m = u'fileseq.FrameSet("{0}") - fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(t, test, fileseq.FrameSet, type(r)))
+
+    def _check___or__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__or__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = f | t
+        e = fileseq.FrameSet.from_iterable(set(expect) | set(v), sort=True)
+        m = u'fileseq.FrameSet("{0}") | fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(f, t, e))
+        m = u'fileseq.FrameSet("{0}") | fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check___ror__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__ror__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = t | f
+        e = fileseq.FrameSet.from_iterable(set(v) | set(expect), sort=True)
+        m = u'fileseq.FrameSet("{0}") | fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(t, f, e))
+        m = u'fileseq.FrameSet("{0}") | fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(t, test, fileseq.FrameSet, type(r)))
+
+    def _check___xor__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__xor__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = f ^ t
+        e = fileseq.FrameSet.from_iterable(set(expect) ^ set(v), sort=True)
+        m = u'fileseq.FrameSet("{0}") ^ fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(f, t, e))
+        m = u'fileseq.FrameSet("{0}") ^ fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check___rxor__(self, test, expect):
+        """
+        Harness to test if the FrameSet.__rxor__ call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        v = [i + max(expect) + 1 for i in expect] or range(999, 1999)
+        t = fileseq.FrameSet.from_iterable(v)
+        r = t ^ f
+        e = fileseq.FrameSet.from_iterable(set(v) ^ set(expect), sort=True)
+        m = u'fileseq.FrameSet("{0}") ^ fileseq.FrameSet("{1}") != fileseq.FrameSet("{2}")'
+        self.assertEqual(r, e, m.format(t, f, e))
+        m = u'fileseq.FrameSet("{0}") ^ fileseq.FrameSet("{1}") returns {2}: got {3}'
+        self.assertIsInstance(r, fileseq.FrameSet, m.format(t, test, fileseq.FrameSet, type(r)))
+
+    def _check_isdisjoint(self, test, expect):
+        """
+        Harness to test if the FrameSet.isdisjoint call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is the disjoint of everything, including itself
+        if not test and not expect:
+            self.assertTrue(f.isdisjoint(fileseq.FrameSet('1')))
+            self.assertTrue(f.isdisjoint(fileseq.FrameSet('-1')))
+            self.assertTrue(f.isdisjoint(expect))
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.isdisjoint(t)
+            e = set(expect).isdisjoint(v)
+            m = u'fileseq.FrameSet("{0}").isdisjoint(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").isdisjoint(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, bool, m.format(test, t, bool, type(r)))
+
+    def _check_issubset(self, test, expect):
+        """
+        Harness to test if the FrameSet.issubset call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is the subset of everything, including itself
+        if not test and not expect:
+            self.assertTrue(f.issubset(fileseq.FrameSet('1')))
+            self.assertTrue(f.issubset(fileseq.FrameSet('-1')))
+            self.assertTrue(f.issubset(expect))
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.issubset(t)
+            e = set(expect).issubset(v)
+            m = u'fileseq.FrameSet("{0}").issubset(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").issubset(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, bool, m.format(test, t, bool, type(r)))
+
+    def _check_issuperset(self, test, expect):
+        """
+        Harness to test if the FrameSet.issuperset call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the empty FrameSet is the superset of everything, except itself
+        if not test and not expect:
+            self.assertFalse(f.issuperset(fileseq.FrameSet('1')))
+            self.assertFalse(f.issuperset(fileseq.FrameSet('-1')))
+            self.assertTrue(f.issuperset(expect))
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.issuperset(t)
+            e = set(expect).issuperset(v)
+            m = u'fileseq.FrameSet("{0}").issuperset(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").issuperset(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, bool, m.format(test, t, bool, type(r)))
+
+    def _check_union(self, test, expect):
+        """
+        Harness to test if the FrameSet.union call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the union of the empty FrameSet with any other is always the other
+        if not test and not expect:
+            self.assertEqual(f.union(fileseq.FrameSet('1')), fileseq.FrameSet('1'))
+            self.assertEqual(f.union(fileseq.FrameSet('-1')), fileseq.FrameSet('-1'))
+            self.assertEqual(f.union(expect), fileseq.FrameSet.from_iterable(expect, sort=True))
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.union(t)
+            e = fileseq.FrameSet.from_iterable(set(expect).union(v), sort=True)
+            m = u'fileseq.FrameSet("{0}").union(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").union(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check_intersection(self, test, expect):
+        """
+        Harness to test if the FrameSet.intersection call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the intersection of the empty FrameSet with any other is always the empty FrameSet
+        if not test and not expect:
+            self.assertEqual(f.intersection(fileseq.FrameSet('1')), f)
+            self.assertEqual(f.intersection(fileseq.FrameSet('-1')), f)
+            self.assertEqual(f.intersection(expect), f)
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.intersection(t)
+            e = fileseq.FrameSet.from_iterable(set(expect).intersection(v), sort=True)
+            m = u'fileseq.FrameSet("{0}").intersection(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").intersection(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check_difference(self, test, expect):
+        """
+        Harness to test if the FrameSet.difference call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the difference of the empty FrameSet with any other is always the empty FrameSet
+        if not test and not expect:
+            self.assertEqual(f.intersection(fileseq.FrameSet('1')), f)
+            self.assertEqual(f.intersection(fileseq.FrameSet('-1')), f)
+            self.assertEqual(f.intersection(expect), f)
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.difference(t)
+            e = fileseq.FrameSet.from_iterable(set(expect).difference(v), sort=True)
+            m = u'fileseq.FrameSet("{0}").difference(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").difference(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check_symmetric_difference(self, test, expect):
+        """
+        Harness to test if the FrameSet.symmetric_difference call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        # the symmetric_difference of the empty FrameSet with any other is always the empty FrameSet
+        if not test and not expect:
+            self.assertEqual(f.intersection(fileseq.FrameSet('1')), f)
+            self.assertEqual(f.intersection(fileseq.FrameSet('-1')), f)
+            self.assertEqual(f.intersection(expect), f)
+            return
+        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+            t = fileseq.FrameSet.from_iterable(v)
+            r = f.symmetric_difference(t)
+            e = fileseq.FrameSet.from_iterable(set(expect).symmetric_difference(v), sort=True)
+            m = u'fileseq.FrameSet("{0}").symmetric_difference(fileseq.FrameSet("{1}")) != {2}'
+            self.assertEquals(r, e, m.format(t, f, e))
+            m = u'fileseq.FrameSet("{0}").symmetric_difference(fileseq.FrameSet("{1}")) returns {2}: got {3}'
+            self.assertIsInstance(r, fileseq.FrameSet, m.format(test, t, fileseq.FrameSet, type(r)))
+
+    def _check_copy(self, test, expect):
+        """
+        Harness to test if the FrameSet.copy call works properly.
+        :param test: the string to pass to FrameSet
+        :param expect: the expected list of values that FrameSet will hold
+        :return: None
+        """
+        f = fileseq.FrameSet(test)
+        r = f.copy()
+        self.assertIsNot(f, r)
+        self.assertEqual(f, r)
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFrameSet dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
-
     setattr(
-        TestFrameSet, 'testFrameSet%sInitFrange' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___init____frange(self, t, e))
+        TestFrameSet, 'testFrameSet%sInitSetsRange' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___init___range(self, t, e))
     setattr(
-        TestFrameSet, 'testFrameSet%sInitSet' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___init____set(self, t, e))
+        TestFrameSet, 'testFrameSet%sInitSetsItems' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___init___items(self, t, e))
     setattr(
-        TestFrameSet, 'testFrameSet%sInitList' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___init____list(self, t, e))
+        TestFrameSet, 'testFrameSet%sInitSetsOrder' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___init___order(self, t, e))
     setattr(
-        TestFrameSet, 'testFrameSet%sStr' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___str__(self, t, e))
-    setattr(
-        TestFrameSet, 'testFrameSet%sLen' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___len__(self, t, e))
-    setattr(
-        TestFrameSet, 'testFrameSet%sGetItem' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___getitem__(self, t, e))
-    setattr(
-        TestFrameSet, 'testFrameSet%sStart' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check_start(self, t, e))
-    setattr(
-        TestFrameSet, 'testFrameSet%sEnd' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check_end(self, t, e))
+        TestFrameSet, 'testFromIterable%s' % name,
+        lambda self, e=tst, i=exp: TestFrameSet._check_fromIterable(self, e, i))
     setattr(
         TestFrameSet, 'testFrameSet%sIndex' % name,
         lambda self, t=tst, e=exp: TestFrameSet._check_index(self, t, e))
@@ -534,11 +1096,11 @@ for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
         TestFrameSet, 'testFrameSet%sHasFrameFalse' % name,
         lambda self, t=tst, e=exp: TestFrameSet._check_hasFrameTrue(self, t, e))
     setattr(
-        TestFrameSet, 'testFrameSet%sIter' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check___iter__(self, t, e))
+        TestFrameSet, 'testFrameSet%sStart' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_start(self, t, e))
     setattr(
-        TestFrameSet, 'testFrameSet%sSerialize' % name,
-        lambda self, t=tst, e=exp: TestFrameSet._check_canSerialize(self, t, e))
+        TestFrameSet, 'testFrameSet%sEnd' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_end(self, t, e))
     setattr(
         TestFrameSet, 'testFrameSet%sFrameRange' % name,
         lambda self, t=tst, e=exp: TestFrameSet._check_frameRange(self, t, e))
@@ -548,6 +1110,99 @@ for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
     setattr(
         TestFrameSet, 'testFrameSet%sNormalize' % name,
         lambda self, t=tst, e=exp: TestFrameSet._check_normalize(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sSerialize' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_canSerialize(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sGetItem' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___getitem__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sLen' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___len__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sStr' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___str__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sRepr' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___repr__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sIter' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___iter__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sReversed' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___reversed__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sContains' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___contains__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sHash' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___hash__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sLessThan' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___lt__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sLessEqual' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___le__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sEqual' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___eq__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sNotEqual' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___ne__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sGreaterEqual' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___ge__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sGreaterThan' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___gt__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sAnd' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___and__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sRightAnd' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___rand__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sSub' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___sub__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sRightSub' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___rsub__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sOr' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___or__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sRightOr' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___ror__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sExclusiveOr' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___xor__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sRightExclusiveOr' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check___rxor__(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sIsDisjoint' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_isdisjoint(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sIsSubset' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_issubset(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sIsSubset' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_issuperset(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sUnion' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_union(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sIntersection' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_intersection(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sDifference' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_difference(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sSymmetricDifference' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_symmetric_difference(self, t, e))
+    setattr(
+        TestFrameSet, 'testFrameSet%sCopy' % name,
+        lambda self, t=tst, e=exp: TestFrameSet._check_copy(self, t, e))
     setattr(
         TestFrameSet, 'testIsFrameRange%sShouldSucceed' % name,
         lambda self, t=tst: TestFrameSet._check_isFrameRange(self, t, True))
@@ -562,43 +1217,22 @@ for name, tst in FRAME_SET_SHOULD_FAIL:
 
 
 class TestFramesToFrameRange(unittest.TestCase):
+    """
+    Exercise the frameToRange func.  Due to the sheer number of permutations, we'll add most tests dynamically.
+    """
 
-    def testSimpleSequence(self):
-        self.assertEquals("1-5", fileseq.framesToFrameRange([1,2,3,4,5]))
+    def _check_frameToRangeEquivalence(self, test, expect):
+        f = fileseq.FrameSet(test)
+        r = fileseq.FrameSet(fileseq.framesToFrameRange(expect, sort=False))
+        m = '{0!r} != {1!r}'
+        self.assertEqual(f, r, m.format(f, r))
 
-    def testAdvancedSequence(self):
-        self.assertEquals("1-3,6-8,12", fileseq.framesToFrameRange([1,2,3,6,7,8,12]))
+# due to the sheer number of combinations, we build the bulk of our tests on to TestFramesToFrameRange dynamically
+for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
+    setattr(
+        TestFramesToFrameRange, 'testFramesToRangeEquivalence%s' % name,
+        lambda self, t=tst, e=exp: TestFramesToFrameRange._check_frameToRangeEquivalence(self, t, e))
 
-    def testAdvancedSequence2(self):
-        self.assertEquals("5-15x5,1-5,22", fileseq.framesToFrameRange([5,10,15,1,2,3,4,5,22], sort=False))
-        self.assertEquals("1-5,5-15x5,22", fileseq.framesToFrameRange([5,10,15,1,2,3,4,5,22]))
-
-    def testBrokenSequence(self):
-        self.assertEquals("2-3,9,12", fileseq.framesToFrameRange([2,3,9,12]))
-
-    def testBrokenSequence2(self):
-        self.assertEquals("1-2,4-8", fileseq.framesToFrameRange([1,2,4,5,6,7,8]))
-
-    def testChunkedSequence(self):
-        self.assertEquals("5-25x5", fileseq.framesToFrameRange([5,10,15,20,25]))
-
-    def testBrokenChunkedSequence(self):
-        self.assertEquals("1-9x2,2-10x2", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10], sort=False))
-        self.assertEquals("1-10", fileseq.framesToFrameRange([1,3,5,7,9,2,4,6,8,10]))
-
-    def testDuplicatedSequence(self):
-        self.assertEquals("1-2", fileseq.framesToFrameRange([1,1,1,2,2,2]))
-        self.assertEquals("-1,1", fileseq.framesToFrameRange([-1,-1,-1,1,1,1]))
-
-    def testNegativeSimpleSequence(self):
-        self.assertEquals("-5-0", fileseq.framesToFrameRange([-5,-4,-3,-2,-1,0]))
-
-    def testOutOfOrderSimpleSequence(self):
-        self.assertEquals("1-5", fileseq.framesToFrameRange([2,4,1,2,3,4,5]))
-
-    def testOutOfOrderSimpleSequence(self):
-        self.assertEquals("1,10", fileseq.framesToFrameRange([10,1]))
-        self.assertEquals("10,1", fileseq.framesToFrameRange([10,1], False))
 
 class TestFileSequence(unittest.TestCase):
 
@@ -806,3 +1440,5 @@ class TestPaddingFunctions(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
