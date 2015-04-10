@@ -39,6 +39,10 @@ class FrameSet(Set):
         only a "best guess" can be made)
         3: human-created frame ranges (ie 1-100x5) will be reduced to the
         actual internal frames (ie 1-96x5)
+        4: the "null" Frameset (FrameSet('')) is now a valid thing to create,
+        it is required by set operations, but may cause confusion as both its
+        start and end methods will raise IndexError.  The is_null
+        property has been added to allow you to guard against this.
     """
 
     __slots__ = ('_frange', '_items', '_order')
@@ -66,13 +70,8 @@ class FrameSet(Set):
 
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, basestring):
-            # we may already know frange, items, and contents; this will
-            # allow our own code to get back the instance before the expensive
-            # calculation of items and order
-            if frange is None:
-                return
             # if it's apparently a FrameSet already, short-circuit the build
-            elif set(dir(frange)).issuperset(self.__slots__):
+            if set(dir(frange)).issuperset(self.__slots__):
                 for attr in self.__slots__:
                     setattr(self, attr, getattr(frange, attr))
                 return
@@ -152,6 +151,14 @@ class FrameSet(Set):
         # this allows for hashing and fast equality checking
         self._items = frozenset(items)
         self._order = tuple(order)
+
+    @property
+    def is_null(self):
+        """
+        Read-only access to determine if the FrameSet is the null or empty FrameSet
+        :return: bool
+        """
+        return not (self._frange and self._items and self._order)
 
     @property
     def frange(self):

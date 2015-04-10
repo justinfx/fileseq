@@ -25,7 +25,7 @@ class FileSequence(object):
             self._frameSet = None
 
             try:
-                # the main case, we've got path.1-100#.exr
+                # the main case, padding characters in the path.1-100#.exr
                 path, frames, self._pad, self._ext = SPLIT_RE.split(sequence, 1)
                 self._dir, self._base = os.path.split(path)
                 self._frameSet = FrameSet(frames)
@@ -39,9 +39,14 @@ class FileSequence(object):
                 a_frame = DISK_RE.match(sequence)
                 if a_frame:
                     self._dir, self._base, frames, self._ext = a_frame.groups()
-                    self._frameSet = FrameSet(frames)
-                    self._pad = FileSequence.getPaddingChars(len(frames))
-                # edge case 3; we've got a solitary file, not a sequence
+                    # edge case 3: we've got a single versioned file, not a sequence
+                    if not self._base.endswith('.'):
+                        self._base = self._base + frames
+                        self._pad = ''
+                    else:
+                        self._frameSet = FrameSet(frames)
+                        self._pad = FileSequence.getPaddingChars(len(frames))
+                # edge case 4; we've got a solitary file, not a sequence
                 else:
                     path, self._ext = os.path.splitext(sequence)
                     self._dir, self._base = os.path.split(path)
