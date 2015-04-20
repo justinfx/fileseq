@@ -40,7 +40,11 @@ class FileSequence(object):
                 if a_frame:
                     self._dir, self._base, frames, self._ext = a_frame.groups()
                     self._frameSet = FrameSet(frames)
-                    self._pad = FileSequence.getPaddingChars(len(frames))
+                    if self._frameSet:
+                        self._pad = FileSequence.getPaddingChars(len(frames))
+                    else:
+                        self._pad = ''
+                        self._frameSet = None
                 # edge case 3; we've got a solitary file, not a sequence
                 else:
                     path, self._ext = os.path.splitext(sequence)
@@ -314,11 +318,12 @@ class FileSequence(object):
         String representation of this FileSequence.
         :return: str
         """
+        frameSet = str(self._frameSet or "")
         return "".join((
             self._dir,
             self._base,
-            str(self._frameSet or ""),
-            self._pad,
+            frameSet,
+            self._pad if frameSet else "",
             self._ext))
 
     @staticmethod
