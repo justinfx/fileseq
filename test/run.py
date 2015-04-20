@@ -197,6 +197,7 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
+    ("ActualNone", None),
 ]
 
 class TestFrameSet(unittest.TestCase):
@@ -1375,6 +1376,20 @@ class TestFileSequence(unittest.TestCase):
         fs2 = cPickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
+
+    def testHasVersionNoFrame(self):
+        fs = FileSequence("/path/to/file_v2.exr")
+        self.assertEquals(fs.start(), 0)
+        self.assertEquals(fs.end(), 0)
+        self.assertEquals(fs.padding(), '')
+        self.assertEquals(str(fs), "/path/to/file_v2.exr")
+
+    def testHasFrameNoVersion(self):
+        fs = FileSequence("/path/to/file.2.exr")
+        self.assertEquals(fs.start(), 2)
+        self.assertEquals(fs.end(), 2)
+        self.assertEquals(fs.padding(), '@')
+        self.assertEquals(str(fs), "/path/to/file.2@.exr")
 
 class TestFindSequencesOnDisk(unittest.TestCase):
 
