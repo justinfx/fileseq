@@ -1353,6 +1353,18 @@ class TestFileSequence(unittest.TestCase):
         seqs.setPadding("#")
         self.assertEquals(100, len(seqs))
 
+    def testNoPlaceholderNumExt(self):
+        basename = 'file'
+        exts = ('.7zip', '.mp4')
+
+        for ext in exts:
+            expected = basename + ext
+            seqs = FileSequence(expected)
+
+            self.assertEquals(ext, seqs.extension())
+            self.assertEquals(basename, seqs.basename())
+            self.assertEquals(expected, str(seqs))
+
     def testSplitXY(self):
         seqs = FileSequence("/cheech/0-9x1/chong.1-10#.exr")
         self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
