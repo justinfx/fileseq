@@ -39,10 +39,16 @@ class FileSequence(object):
                 a_frame = DISK_RE.match(sequence)
                 if a_frame:
                     self._dir, self._base, frames, self._ext = a_frame.groups()
+                    # it's possible we've been handed a file with no extension
+                    if self._ext is None:
+                        self._ext = ''
                     # edge case 3: we've got a single versioned file, not a sequence
-                    if not self._base.endswith('.'):
+                    if frames and not self._base.endswith('.'):
                         self._base = self._base + frames
                         self._pad = ''
+                    elif not frames:
+                        self._pad = ''
+                        self._frameSet = None
                     else:
                         self._frameSet = FrameSet(frames)
                         if self._frameSet:
@@ -342,18 +348,30 @@ class FileSequence(object):
         """
         seqs = {}
         _check = DISK_RE.match
-        for match in ifilter(None, imap(_check, paths)):
+        for match in ifilter(None, imap(_check, (p for p in paths if p))):
             dirname, basename, frame, ext = match.groups()
-            key = (dirname, basename, ext)
+            if frame and not basename.endswith('.'):
+                basename = basename + frame
+                frame = None
+            key = (dirname, basename, ext or '')
             seqs.setdefault(key, set())
-            seqs[key].add(frame)
+            if frame:
+                seqs[key].add(frame)
         for (dirname, basename, ext), frames in seqs.iteritems():
             # build the FileSequence behind the scenes, rather than dupe work
             seq = FileSequence.__new__(FileSequence)
             seq._dir = dirname
             seq._base = basename
-            seq._frameSet = FrameSet(set(imap(int, frames)))
-            seq._pad = FileSequence.getPaddingChars(min(imap(len, frames)))
+            if not frames:
+                seq._frameSet = None
+                seq._pad = ''
+            else:
+                seq._frameSet = FrameSet(set(imap(int, frames)))
+                if seq._frameSet:
+                    seq._pad = FileSequence.getPaddingChars(min(imap(len, frames)))
+                else:
+                    seq._pad = ''
+                    seq._frameSet = None
             seq._ext = ext
             seq.__init__(str(seq))
             yield seq

@@ -1391,24 +1391,56 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals(fs.padding(), '@')
         self.assertEquals(str(fs), "/path/to/file.2@.exr")
 
+    def test_yield_sequences_in_list(self):
+        paths = [
+            '/path/to/file.5.png',
+            '/path/to/file.1.exr', 
+            '/path/to/file.2.exr',
+            '/path/to/file.3.exr', 
+            '/path/to/.cruft.file', 
+            '/path/to/.cruft', 
+            '/path/to/file2.exr', 
+            '/path/to/file2.7zip', 
+            '/path/to/file.2.7zip',
+            '/path/to/file.3.7zip',
+            '/path/to/file.4.7zip',
+            '/path/to/file.4.mp4',
+            '']
+        result = set([str(fs) for fs in FileSequence.yield_sequences_in_list(paths)])
+        expect = set([
+            '/path/to/file2.7zip',
+            '/path/to/file.1-3@.exr',
+            '/path/to/file.2-4@.7zip',
+            '/path/to/file2.exr',
+            '/path/to/file.4@.mp4',
+            '/path/to/.cruft.file',
+            '/path/to/.cruft',
+            '/path/to/file.5@.png'])
+        self.assertEquals(result, expect)
+
+
 class TestFindSequencesOnDisk(unittest.TestCase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq")
-        self.assertEquals(3, len(seqs))
+        self.assertEquals(8, len(seqs))
 
-        known = set([
-            "seq/bar1000-1002,1004-1006#.exr",
-            "seq/foo.1-5#.exr",
-            "seq/foo.1-5#.jpg",
-        ])
-        found = set([str(s) for s in seqs])
-        self.assertFalse(known.difference(found))
+        known = sorted([
+            'seq/bar1000.exr',
+            'seq/bar1001.exr',
+            'seq/bar1002.exr',
+            'seq/bar1004.exr',
+            'seq/bar1005.exr',
+            'seq/bar1006.exr',
+            'seq/foo.1-5#.exr',
+            'seq/foo.1-5#.jpg'])
+
+        found = sorted(set([str(s) for s in seqs]))
+        self.assertEquals(found, known)
 
     def testNegSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seqneg")
         self.assertEquals(1, len(seqs))
-
 
     def testFindSequenceOnDiskNegative(self):
         seqs = findSequencesOnDisk("seqneg")
@@ -1419,7 +1451,7 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
 
 class TestFindSequenceOnDisk(unittest.TestCase):
-
+    
     def testFindSequenceOnDisk(self):
         tests = [
             ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
@@ -1433,7 +1465,6 @@ class TestFindSequenceOnDisk(unittest.TestCase):
             self.assertTrue(isinstance(seq, FileSequence))
             actual = str(seq)
             self.assertEqual(actual, expected)
-
 
 class TestPaddingFunctions(unittest.TestCase):
     """
