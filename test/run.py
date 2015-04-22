@@ -1391,6 +1391,62 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals(fs.padding(), '@')
         self.assertEquals(str(fs), "/path/to/file.2@.exr")
 
+    def test_yield_sequences_in_list(self):
+        paths = [
+            '/path/to/file.5.png',
+            '/path/to/file.1.exr', 
+            '/path/to/file.2.exr',
+            '/path/to/file.3.exr',
+            '/path/to/.cruft.file', 
+            '/path/to/.cruft', 
+            '/path/to/file2.exr', 
+            '/path/to/file2.7zip', 
+            '/path/to/file.2.7zip',
+            '/path/to/file.3.7zip',
+            '/path/to/file.4.7zip',
+            '/path/to/file.4.mp4',
+            '', # empty path test
+            "mixed_seqs/file5.ext",
+            "mixed_seqs/file20.ext",
+            "mixed_seqs/file30.ext",
+            "mixed_seqs/no_ext",
+            "mixed_seqs/no_ext.200",
+            "mixed_seqs/no_ext.300",
+            "mixed_seqs/no_ext_10",
+            "mixed_seqs/not_a_seq.ext",
+            "mixed_seqs/seq.0001.ext",
+            "mixed_seqs/seq.0002.ext",
+            "mixed_seqs/seq.0003.ext",
+            "mixed_seqs/seq2a.1.ext",
+            "mixed_seqs/seq2a.2.ext",
+            "mixed_seqs/seq2a.3.ext",
+            "/path/to/file4-4.exr",
+            "/path/to/file4-5.exr",
+            "/path/to/file--4.exr",
+        ]
+        actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
+        expected = set([
+            '/path/to/file2@.7zip',
+            '/path/to/file.1-3@.exr',
+            '/path/to/file.2-4@.7zip',
+            '/path/to/file2@.exr',
+            '/path/to/file.4@.mp4',
+            '/path/to/.cruft.file',
+            '/path/to/.cruft',
+            '/path/to/file.5@.png',
+            "mixed_seqs/file5,20,30@.ext",
+            "mixed_seqs/seq2a.1-3@.ext",
+            "mixed_seqs/seq.1-3#.ext",
+            "mixed_seqs/not_a_seq.ext",
+            "mixed_seqs/no_ext",
+            "mixed_seqs/no_ext_10@@",
+            "mixed_seqs/no_ext.200",
+            "mixed_seqs/no_ext.300",
+            '/path/to/file4-5,-4@@.exr',
+            '/path/to/file--4@@.exr',
+        ])
+        self.assertEquals(actual, expected)
+
 class TestFindSequencesOnDisk(unittest.TestCase):
 
     def testFindSequencesOnDisk(self):
