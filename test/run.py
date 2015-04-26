@@ -1486,8 +1486,8 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         self.assertEqual(known, found)
         self.assertFalse(known.difference(found))
 
-    def testFindSequencesOnDiskShowHiddenFiles(self):
-        seqs = findSequencesOnDisk("seqhidden", show_hidden_files=True)
+    def testFindSequencesOnDiskIncludeHiddenFiles(self):
+        seqs = findSequencesOnDisk("seqhidden", include_hidden=True)
         self.assertEquals(7, len(seqs))
 
         known = set([
