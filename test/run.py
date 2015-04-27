@@ -1465,7 +1465,6 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         seqs = findSequencesOnDisk("seqneg")
         self.assertEquals(1, len(seqs))
 
-
     def testFindSequenceOnDiskNegative(self):
         seqs = findSequencesOnDisk("seqneg")
         self.assertEquals("seqneg/bar.-1-1#.exr", str(seqs[0]))
@@ -1473,6 +1472,37 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         self.assertEquals("seqneg/bar.-1001.exr", seqs[0].frame(-1001))
         self.assertEquals("seqneg/bar.-10011.exr", seqs[0].frame(-10011))
         self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
+
+    def testFindSequencesOnDiskSkipHiddenFiles(self):
+        seqs = findSequencesOnDisk("seqhidden")
+        self.assertEquals(3, len(seqs))
+
+        known = set([
+            "seqhidden/bar1000-1002,1004-1006#.exr",
+            "seqhidden/foo.1-5#.exr",
+            "seqhidden/foo.1-5#.jpg",
+        ])
+        found = set([str(s) for s in seqs])
+        self.assertEqual(known, found)
+        self.assertFalse(known.difference(found))
+
+    def testFindSequencesOnDiskIncludeHiddenFiles(self):
+        seqs = findSequencesOnDisk("seqhidden", include_hidden=True)
+        self.assertEquals(7, len(seqs))
+
+        known = set([
+            "seqhidden/bar1000-1002,1004-1006#.exr",
+            "seqhidden/.bar1000-1002,1004-1006#.exr",
+            "seqhidden/foo.1-5#.exr",
+            "seqhidden/.foo.1-5#.exr",
+            "seqhidden/foo.1-5#.jpg",
+            "seqhidden/.foo.1-5#.jpg",
+            "seqhidden/.hidden",
+        ])
+        found = set([str(s) for s in seqs])
+        self.assertEqual(known, found)
+        self.assertFalse(known.difference(found))
+
 
 class TestFindSequenceOnDisk(unittest.TestCase):
 

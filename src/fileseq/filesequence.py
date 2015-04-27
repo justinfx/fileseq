@@ -380,17 +380,22 @@ class FileSequence(object):
         return list(FileSequence.yield_sequences_in_list(paths))
 
     @staticmethod
-    def findSequencesOnDisk(dirpath):
+    def findSequencesOnDisk(dirpath, include_hidden=False):
         """
         Yield the sequences found in the given directory.
         :param dirpath: directory to scan
+        :param include_hidden: if true, show .hidden files as well [False]
         :return: list
         """
         # reserve some functions we're going to need quick access to
+        _not_hidden = lambda f: not f.startswith('.')
         _isfile = os.path.isfile
         _join = os.path.join
         # collapse some generators to get us the files that match our regex
-        files = (_join(dirpath, f) for f in os.listdir(dirpath))
+        files = os.listdir(dirpath)
+        if not include_hidden:
+            files = ifilter(_not_hidden, files)
+        files = (_join(dirpath, f) for f in files)
         files = ifilter(_isfile, files)
         return list(FileSequence.yield_sequences_in_list(files))
 
