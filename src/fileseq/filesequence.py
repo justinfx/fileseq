@@ -411,11 +411,17 @@ class FileSequence(object):
         """
         seq = FileSequence(pattern)
         patt = seq.format('{dirname}{basename}*{extension}')
-        try:
-            return FileSequence.yield_sequences_in_list(iglob(patt)).next()
-        except StopIteration:
-            msg = 'no sequence found on disk matching {0}'
-            raise FileSeqException(msg.format(pattern))
+
+        ext = seq.extension()
+        basename = seq.basename()
+
+        matches = FileSequence.yield_sequences_in_list(iglob(patt))
+        for match in matches:
+            if match.basename() == basename and match.extension() == ext:
+                return match
+
+        msg = 'no sequence found on disk matching {0}'
+        raise FileSeqException(msg.format(pattern))
 
     @staticmethod
     def getPaddingChars(num):
