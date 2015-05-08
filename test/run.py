@@ -1451,12 +1451,13 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq")
-        self.assertEquals(3, len(seqs))
+        self.assertEquals(4, len(seqs))
 
         known = set([
             "seq/bar1000-1002,1004-1006#.exr",
             "seq/foo.1-5#.exr",
             "seq/foo.1-5#.jpg",
+            "seq/foo.debug.1-5#.exr",
         ])
         found = set([str(s) for s in seqs])
         self.assertFalse(known.difference(found))
@@ -1512,6 +1513,8 @@ class TestFindSequenceOnDisk(unittest.TestCase):
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
             ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
+            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+            ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
         ]
 
         for pattern, expected in tests:
