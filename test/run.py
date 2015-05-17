@@ -1391,16 +1391,22 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals(fs.padding(), '@')
         self.assertEquals(str(fs), "/path/to/file.2@.exr")
 
+    def testEmptyBasename(self):
+        seq = FileSequence("/path/to/1-5#.exr")
+        self.assertEquals(seq.basename(), "")
+        self.assertEquals(len(seq), 5)
+        self.assertEquals(seq.padding(), '#')
+
     def test_yield_sequences_in_list(self):
         paths = [
             '/path/to/file.5.png',
-            '/path/to/file.1.exr', 
+            '/path/to/file.1.exr',
             '/path/to/file.2.exr',
             '/path/to/file.3.exr',
-            '/path/to/.cruft.file', 
-            '/path/to/.cruft', 
-            '/path/to/file2.exr', 
-            '/path/to/file2.7zip', 
+            '/path/to/.cruft.file',
+            '/path/to/.cruft',
+            '/path/to/file2.exr',
+            '/path/to/file2.7zip',
             '/path/to/file.2.7zip',
             '/path/to/file.3.7zip',
             '/path/to/file.4.7zip',
@@ -1423,6 +1429,15 @@ class TestFileSequence(unittest.TestCase):
             "/path/to/file4-4.exr",
             "/path/to/file4-5.exr",
             "/path/to/file--4.exr",
+            "path/01.exr",
+            "path/02.exr",
+            "path/03.exr",
+            "path/001.file",
+            "path/002.file",
+            "path/003.file",
+            "path/0001.jpg",
+            "path/0002.jpg",
+            "path/0003.jpg",
         ]
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         expected = set([
@@ -1444,6 +1459,9 @@ class TestFileSequence(unittest.TestCase):
             "mixed_seqs/no_ext.300",
             '/path/to/file4-5,-4@@.exr',
             '/path/to/file--4@@.exr',
+            'path/1-3@@.exr',
+            'path/1-3@@@.file',
+            'path/1-3#.jpg',
         ])
         self.assertEquals(actual, expected)
 
@@ -1451,13 +1469,14 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq")
-        self.assertEquals(4, len(seqs))
+        self.assertEquals(5, len(seqs))
 
         known = set([
             "seq/bar1000-1002,1004-1006#.exr",
             "seq/foo.1-5#.exr",
             "seq/foo.1-5#.jpg",
             "seq/foo.debug.1-5#.exr",
+            "seq/1-3#.exr",
         ])
         found = set([str(s) for s in seqs])
         self.assertFalse(known.difference(found))
@@ -1515,6 +1534,7 @@ class TestFindSequenceOnDisk(unittest.TestCase):
             ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
+            ("seq/#.exr", "seq/1-3#.exr"),
         ]
 
         for pattern, expected in tests:

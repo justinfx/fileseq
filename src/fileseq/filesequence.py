@@ -347,7 +347,7 @@ class FileSequence(object):
         _check = DISK_RE.match
         for match in ifilter(None, imap(_check, paths)):
             dirname, basename, frame, ext = match.groups()
-            if not basename:
+            if not basename and not ext:
                 continue
             key = (dirname, basename, ext)
             seqs.setdefault(key, set())
