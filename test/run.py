@@ -197,6 +197,7 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
+    ("FloatFrames", "1.0-10.5"),
     ("ActualNone", None),
 ]
 
@@ -547,7 +548,7 @@ class TestFrameSet(unittest.TestCase):
         self.assertEqual(r, expect, m.format(test, expect, r))
         m = u'FrameSet.isFrameRange("{0}") returns {1}: got {2}'
         self.assertIsInstance(r, bool, m.format(test, bool, type(r)))
-        
+
     def _check_fromIterable(self, expect, iterable):
         """
         Harness to test if the FrameSet.fromIterable call works properly.
@@ -1075,6 +1076,19 @@ class TestFrameSet(unittest.TestCase):
         r = f.copy()
         self.assertIsNot(f, r)
         self.assertEqual(f, r)
+
+    def testFloatFrameValues(self):
+        table = [
+            ([1, 5.8, 10], [1, 5, 10]),
+            ([1.5, 5, 10.2], [1, 5, 10]),
+            ([1.001, 5, 10.999], [1, 5, 10]),
+        ]
+
+        for src, expected in table:
+            f = FrameSet(src)
+            actual = list(f)
+            self.assertEqual(actual, expected)
+
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFrameSet dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:

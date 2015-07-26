@@ -77,7 +77,7 @@ class FrameSet(Set):
                 return
             # if it's inherently disordered, sort and build
             elif isinstance(frange, Set):
-                self._items = frozenset(frange)
+                self._items = frozenset(map(int, frange))
                 self._order = tuple(sorted(self._items))
                 self._frange = FrameSet.framesToFrameRange(
                     self._order, sort=False, compress=False)
@@ -85,7 +85,7 @@ class FrameSet(Set):
             # if it's ordered, find unique and build
             elif isinstance(frange, Sequence):
                 items = set()
-                order = unique(items, frange)
+                order = unique(items, map(int, frange))
                 self._order = tuple(order)
                 self._items = frozenset(items)
                 self._frange = FrameSet.framesToFrameRange(
