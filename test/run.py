@@ -24,6 +24,7 @@ from fileseq import (FrameSet,
                      getPaddingChars, 
                      getPaddingNum, 
                      ParseException)
+from fileseq.constants import PAD_MAP
 
 
 def _yrange(first, last=None, incr=1):
@@ -1595,11 +1596,11 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingNum('##'), 8)
         self.assertEqual(getPaddingNum('#@'), 5)
         self.assertEqual(getPaddingNum('##@@'), 10)
-        allPossibleChars = [s for s in string.printable if s not in ['@','#']]
+        allPossibleChars = [s for s in string.printable if s not in PAD_MAP.keys()]
         for char in allPossibleChars:
-            self.assertRaises(KeyError, getPaddingNum, char)
-            self.assertRaises(KeyError, getPaddingNum, '#{}'.format(char))
-            self.assertRaises(KeyError, getPaddingNum, '@{}'.format(char))
+            self.assertRaises(ValueError, getPaddingNum, char)
+            self.assertRaises(ValueError, getPaddingNum, '#{}'.format(char))
+            self.assertRaises(ValueError, getPaddingNum, '@{}'.format(char))
 
     def testPadFrameRange(self):
         self.assertEqual(padFrameRange('1', 6), '000001')
