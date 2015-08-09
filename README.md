@@ -54,10 +54,18 @@ fileseq.FileSequence("/foo/bar.1-10#.exr")
 
 ### Format Path for VFX Software
 
+#### Using FileSequence.format Method:
 ```python
 >>> seq = fileseq.FileSequence("/foo/bar.1-10#.exr")
->>> ''.join([seq.directory(), seq.basename(), seq.padding(), seq.extension()]) 
+>>> seq.format(template='{dirname}{basename}{padding}{extension}') 
 "/foo/bar.#.exr"
+```
+
+#### Joining:
+```python
+>>> seq = fileseq.FileSequence("/foo/bar.1-10#.exr")
+>>> ''.join([seq.dirname(), seq.basename(), '%0{}d'.format(len(str(seq.end()))), seq.extension()])
+"/foo/bar.%02d.exr"
 ```
 
 ## Finding Sequences on Disk
