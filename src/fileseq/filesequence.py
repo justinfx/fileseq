@@ -442,7 +442,6 @@ class FileSequence(object):
         :param chars: a supported group of padding characters (str)
         :return: int
         """
-        if "@" in chars:
-            return chars.count("@")
-        elif "#" in chars:
-            return chars.count("#") * 4
+        mapping = {'@': 1, '#': 4}
+
+        return sum([mapping[char] for char in chars])

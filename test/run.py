@@ -7,6 +7,7 @@ import os
 import re
 import types
 from itertools import chain
+import string
 
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -1592,6 +1593,13 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingNum('@@@'), 3)
         self.assertEqual(getPaddingNum('#'), 4)
         self.assertEqual(getPaddingNum('##'), 8)
+        self.assertEqual(getPaddingNum('#@'), 5)
+        self.assertEqual(getPaddingNum('##@@'), 10)
+        allPossibleChars = [s for s in string.printable if s not in ['@','#']]
+        for char in allPossibleChars:
+            self.assertRaises(KeyError, getPaddingNum, char)
+            self.assertRaises(KeyError, getPaddingNum, '#{}'.format(char))
+            self.assertRaises(KeyError, getPaddingNum, '@{}'.format(char))
 
     def testPadFrameRange(self):
         self.assertEqual(padFrameRange('1', 6), '000001')
