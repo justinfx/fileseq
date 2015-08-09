@@ -1,4 +1,4 @@
-Fileseq
+Fileseq  [![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](https://readthedocs.org/projects/fileseq/?badge=latest)
 =======
 
 A Python library for parsing frame ranges and file sequences based on a similar library found in Katana.
