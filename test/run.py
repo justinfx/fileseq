@@ -14,9 +14,16 @@ SRC_DIR = os.path.join(TEST_DIR, "../src")
 sys.path.insert(0, SRC_DIR)
 os.chdir(TEST_DIR)
 
-from fileseq import (
-    FrameSet, FileSequence, framesToFrameRange, findSequencesOnDisk,
-    findSequenceOnDisk, padFrameRange, getPaddingChars, ParseException)
+from fileseq import (FrameSet, 
+                     FileSequence, 
+                     framesToFrameRange, 
+                     findSequencesOnDisk,
+                     findSequenceOnDisk, 
+                     padFrameRange, 
+                     getPaddingChars, 
+                     getPaddingNum, 
+                     ParseException)
+
 
 def _yrange(first, last=None, incr=1):
     """
@@ -1574,6 +1581,17 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingChars(3), '@@@')
         self.assertEqual(getPaddingChars(4), '#')
         self.assertEqual(getPaddingChars(8), '##')
+
+    def testgetPaddingNum(self):
+        """
+        Ensure that we're getting back the proper padding number.
+        :return: None
+        """
+        self.assertEqual(getPaddingNum('@'), 1)
+        self.assertEqual(getPaddingNum('@@'), 2)
+        self.assertEqual(getPaddingNum('@@@'), 3)
+        self.assertEqual(getPaddingNum('#'), 4)
+        self.assertEqual(getPaddingNum('##'), 8)
 
     def testPadFrameRange(self):
         self.assertEqual(padFrameRange('1', 6), '000001')

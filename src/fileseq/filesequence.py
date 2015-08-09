@@ -434,3 +434,15 @@ class FileSequence(object):
             return "#" * (num / 4)
         else:
             return "@" * num
+
+    @staticmethod
+    def getPaddingNum(chars):
+        """
+        Given a supported group of padding characters, return the amount of padding.
+        :param chars: a supported group of padding characters (str)
+        :return: int
+        """
+        if "@" in chars:
+            return chars.count("@")
+        elif "#" in chars:
+            return chars.count("#") * 4
