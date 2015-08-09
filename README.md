@@ -27,7 +27,7 @@ for f in fs:
 
 ### Access Frames
 
-#### Using Indecies:
+#### Using Indices:
 ```python
 >>> fs = fileseq.FrameSet("1-100:8")
 >>> fs[0] # First frame.
