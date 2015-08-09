@@ -7,6 +7,7 @@ import os
 import re
 import types
 from itertools import chain
+import string
 
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -14,9 +15,17 @@ SRC_DIR = os.path.join(TEST_DIR, "../src")
 sys.path.insert(0, SRC_DIR)
 os.chdir(TEST_DIR)
 
-from fileseq import (
-    FrameSet, FileSequence, framesToFrameRange, findSequencesOnDisk,
-    findSequenceOnDisk, padFrameRange, getPaddingChars, ParseException)
+from fileseq import (FrameSet, 
+                     FileSequence, 
+                     framesToFrameRange, 
+                     findSequencesOnDisk,
+                     findSequenceOnDisk, 
+                     padFrameRange, 
+                     getPaddingChars, 
+                     getPaddingNum, 
+                     ParseException)
+from fileseq.constants import PAD_MAP
+
 
 def _yrange(first, last=None, incr=1):
     """
@@ -1574,6 +1583,24 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingChars(3), '@@@')
         self.assertEqual(getPaddingChars(4), '#')
         self.assertEqual(getPaddingChars(8), '##')
+
+    def testgetPaddingNum(self):
+        """
+        Ensure that we're getting back the proper padding number.
+        :return: None
+        """
+        self.assertEqual(getPaddingNum('@'), 1)
+        self.assertEqual(getPaddingNum('@@'), 2)
+        self.assertEqual(getPaddingNum('@@@'), 3)
+        self.assertEqual(getPaddingNum('#'), 4)
+        self.assertEqual(getPaddingNum('##'), 8)
+        self.assertEqual(getPaddingNum('#@'), 5)
+        self.assertEqual(getPaddingNum('##@@'), 10)
+        allPossibleChars = [s for s in string.printable if s not in PAD_MAP.keys()]
+        for char in allPossibleChars:
+            self.assertRaises(ValueError, getPaddingNum, char)
+            self.assertRaises(ValueError, getPaddingNum, '#{}'.format(char))
+            self.assertRaises(ValueError, getPaddingNum, '@{}'.format(char))
 
     def testPadFrameRange(self):
         self.assertEqual(padFrameRange('1', 6), '000001')

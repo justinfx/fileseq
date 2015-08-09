@@ -434,3 +434,18 @@ class FileSequence(object):
             return "#" * (num / 4)
         else:
             return "@" * num
+
+    @staticmethod
+    def getPaddingNum(chars):
+        """
+        Given a supported group of padding characters, return the amount of padding.
+        :param chars: a supported group of padding characters (str)
+        :return: int
+        :raises: ValueError if unsupported padding character is detected
+        """
+        try:
+            return sum([PAD_MAP[char] for char in chars])
+        except KeyError:
+            msg = "Detected an unsupported padding character: \"{}\"."
+            msg += " Supported padding characters: {}."
+            raise ValueError(msg.format(char, str(PAD_MAP.keys())))
