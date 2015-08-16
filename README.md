@@ -68,6 +68,22 @@ fileseq.FileSequence("/foo/bar.1-10#.exr")
 "/foo/bar.%02d.exr"
 ```
 
+### Get List of File Paths
+```python
+>>> seq = fileseq.FileSequence("/foo/bar.1-10#.exr")
+>>> [seq[idx] for idx, fr in enumerate(seq.frameSet())]
+['/foo/bar.0001.exr',
+ '/foo/bar.0002.exr',
+ '/foo/bar.0003.exr',
+ '/foo/bar.0004.exr',
+ '/foo/bar.0005.exr',
+ '/foo/bar.0006.exr',
+ '/foo/bar.0007.exr',
+ '/foo/bar.0008.exr',
+ '/foo/bar.0009.exr',
+ '/foo/bar.0010.exr']
+```
+
 ## Finding Sequences on Disk
 
 ### Check a Directory for All Existing Sequences
