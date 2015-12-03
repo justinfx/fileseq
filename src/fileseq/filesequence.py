@@ -11,15 +11,12 @@ from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE
 from fileseq.frameset import FrameSet
 
 class FileSequence(object):
-    """
-    FileSequence represents an ordered sequence of files.
+    """:class:`FileSequence` represents an ordered sequence of files.
+
+    :type sequence: str
+    :param sequence: (ie: dir/path.1-100#.ext)
     """
     def __init__(self, sequence):
-        """
-        Initialize the FileSequence.
-        :param sequence: string (ie: dir/path.1-100#.ext)
-        :return: None
-        """
         if not hasattr(self, '_frameSet'):
 
             self._frameSet = None
@@ -68,8 +65,7 @@ class FileSequence(object):
         self._zfill = sum([PAD_MAP[c] for c in self._pad])
 
     def format(self, template="{basename}{range}{padding}{extension}"):
-        """
-        Return the file sequence as a formatted string according to
+        """Return the file sequence as a formatted string according to
         the given template.
 
         Utilizes the python string format syntax.  Available keys include:
@@ -82,8 +78,8 @@ class FileSequence(object):
             * inverted - the inverted frame range. (returns "" if none)
             * dirname - the directory name.
 
-        :param template: str
-        :return: str
+        :type template: str
+        :rtype: str
         """
         return template.format(
             basename=self.basename(),
@@ -96,9 +92,10 @@ class FileSequence(object):
 
     def split(self):
         """
-        Split the FileSequence into contiguous pieces and return them as a list
-        of FileSequence instances.
-        :return: list
+        Split the :class:`FileSequence` into contiguous pieces and return them
+        as a list of :class:`FileSequence` instances.
+
+        :rtype: list
         """
         result = []
         for frange in self.frameRange().split(","):
@@ -109,37 +106,44 @@ class FileSequence(object):
     def dirname(self):
         """
         Return the directory name of the sequence.
-        :return: str
+
+        :rtype: str
         """
         return self._dir
 
     def setDirname(self, dirname):
         """
         Set a new directory name for the sequence.
-        :param dirname: the new directory name (str)
-        :return: None
+
+        :type dirname: str
+        :param dirname: the new directory name
+        :rtype: None
         """
         self._dir = dirname
 
     def basename(self):
         """
         Return the basename of the sequence.
-        :return: str
+
+        :rtype: str
         """
         return self._base
 
     def setBasename(self, base):
         """
         Set a new basename for the sequence.
-        :param base: the new base name (str)
-        :return: None
+
+        :type base: str
+        :param base: the new base name
+        :rtype: None
         """
         self._base = base
 
     def padding(self):
         """
         Return the the padding characters in the sequence.
-        :return: str
+
+        :rtype: str
         """
         return self._pad
 
@@ -147,40 +151,48 @@ class FileSequence(object):
         """
         Set new padding characters for the sequence.
         i.e. "#" or "@@@", or an empty string to disable range formatting.
-        :param padding: str
-        :return: None
+
+        :type padding: str
+        :rtype: None
         """
         self._pad = padding
         self._zfill = sum([PAD_MAP[c] for c in self._pad])
 
     def frameSet(self):
         """
-        Return the FrameSet of the sequence if specified, otherwise None.
-        :return: FrameSet or None
+        Return the :class:`fileseq.frameset.FrameSet` of the sequence if specified,
+        otherwise None.
+
+        :rtype: :class:`fileseq.frameset.FrameSet` or None
         """
         return self._frameSet
 
     def setFrameSet(self, frameSet):
         """
-        Set a new FrameSet for the sequence.
-        :param frameSet: the new FrameSet object
-        :return: None
+        Set a new :class:`fileseq.frameset.FrameSet` for the sequence.
+
+        :param frameSet: the new :class:`fileseq.frameset.FrameSet` object
+        :rtype: None
         """
         self._frameSet = frameSet
 
     def extension(self):
         """
         Return the file extension of the sequence, including leading period.
-        :return: str
+
+        :rtype: str
         """
         return self._ext
 
     def setExtension(self, ext):
         """
         Set a new file extension for the sequence.
-        :param ext: the new file extension (a leading period will be added if
-        none is provided).
-        :return: None
+
+        .. note::
+            A leading period will be added if none is provided.
+
+        :param ext: the new file extension
+        :rtype: None
         """
         if ext[0] != ".":
             ext = "." + ext
@@ -188,7 +200,7 @@ class FileSequence(object):
 
     def setExtention(self, ext):
         """
-        Deprecated: use setExtension.
+        Deprecated: use :meth:`setExtension`.
         """
         import warnings
         msg = "the setExtention method is deprecated, please use setExtension"
@@ -199,7 +211,8 @@ class FileSequence(object):
         """
         Returns the string formatted frame range of the sequence.
         Will return an empty string if the sequence has no frame pattern.
-        :return: str
+
+        :rtype: str
         """
         if not self._frameSet:
             return ''
@@ -208,8 +221,9 @@ class FileSequence(object):
     def setFrameRange(self, frange):
         """
         Set a new frame range for the sequence.
-        :param frange: a properly formatted frame range, as per FrameSet
-        :return: None
+
+        :param frange: a properly formatted frame range, as per :class:`fileseq.frameset.FrameSet`
+        :rtype: None
         """
         self._frameSet = FrameSet(frange)
 
@@ -217,7 +231,8 @@ class FileSequence(object):
         """
         Returns the inverse string formatted frame range of the sequence.
         Will return an empty string if the sequence has no frame pattern.
-        :return: str
+
+        :rtype: str
         """
         if not self._frameSet:
             return ''
@@ -225,9 +240,10 @@ class FileSequence(object):
 
     def start(self):
         """
-        Returns the start frame of the sequences FrameSet.
+        Returns the start frame of the sequence's :class:`fileseq.frameset.FrameSet`.
         Will return 0 if the sequence has no frame pattern.
-        :return: int
+
+        :rtype: int
         """
         if not self._frameSet:
             return 0
@@ -235,9 +251,10 @@ class FileSequence(object):
 
     def end(self):
         """
-        Returns the end frame of the sequences FrameSet.
+        Returns the end frame of the sequences :class:`fileseq.frameset.FrameSet`.
         Will return 0 if the sequence has no frame pattern.
-        :return: int
+
+        :rtype: int
         """
         if not self._frameSet:
             return 0
@@ -246,7 +263,8 @@ class FileSequence(object):
     def zfill(self):
         """
         Returns the zfill depth (ie the number of zeroes to pad with).
-        :return: int
+
+        :rtype: int
         """
         return self._zfill
 
@@ -256,15 +274,14 @@ class FileSequence(object):
         digits are treated as a frame number and padding is applied, all other
         values are passed though.
 
-        Example:
-            seq.frame(1)
-            >> /foo/bar.0001.exr
-            seq.frame("#")
-            >> /foo/bar.#.exr
+        :Example:
+                >>> seq.frame(1)
+                /foo/bar.0001.exr
+                >>> seq.frame("#")
+                /foo/bar.#.exr
 
-        :param frame: the desired frame number (int/str) or a char to pass
-        through (ie. #)
-        :return: str
+        :param frame: the desired frame number (int/str) or a char to pass through (ie. #)
+        :rtype: str
         """
         try:
             zframe = str(int(frame)).zfill(self._zfill)
@@ -283,8 +300,10 @@ class FileSequence(object):
     def index(self, idx):
         """
         Return the path to the file at the given index.
-        :param idx: the desired index (int)
-        :return: str
+
+        :type idx: int
+        :param idx: the desired index
+        :rtype: str
         """
         if not self._frameSet:
             return str(self)
@@ -292,8 +311,10 @@ class FileSequence(object):
 
     def __iter__(self):
         """
-        Allow iteration over the path or paths this FileSequence represents.
-        :return: generator
+        Allow iteration over the path or paths this :class:`FileSequence`
+        represents.
+
+        :rtype: generator
         """
         # If there is no frame range, or there is no padding
         # characters, then we only want to represent a single path
@@ -306,16 +327,19 @@ class FileSequence(object):
 
     def __getitem__(self, idx):
         """
-        Allows access via index to the underlying FrameSet.
-        :param idx: the desired index (int)
-        :return: int
+        Allows access via index to the underlying :class:`fileseq.frameset.FrameSet`.
+
+        :type idx: int
+        :param idx: the desired index
+        :rtype: int
         """
         return self.index(idx)
 
     def __len__(self):
         """
-        The length (number of files) represented by this FileSequence.
-        :return: int
+        The length (number of files) represented by this :class:`FileSequence`.
+
+        :rtype: int
         """
         if not self._frameSet or not self._zfill:
             return 1
@@ -323,8 +347,9 @@ class FileSequence(object):
 
     def __str__(self):
         """
-        String representation of this FileSequence.
-        :return: str
+        String representation of this :class:`FileSequence`.
+
+        :rtype: str
         """
         frameSet = str(self._frameSet or "")
         return "".join((
@@ -337,11 +362,12 @@ class FileSequence(object):
     @staticmethod
     def yield_sequences_in_list(paths):
         """
-        Yield the discreet sequences within paths.  This does not try to
+        Yield the discrete sequences within paths.  This does not try to
         determine if the files actually exist on disk, it assumes you already
         know that.
+
         :param paths: a list of paths
-        :return: generator
+        :rtype: generator
         """
         seqs = {}
         _check = DISK_RE.match
@@ -371,11 +397,12 @@ class FileSequence(object):
     @staticmethod
     def findSequencesInList(paths):
         """
-        Returns the list of discreet sequences within paths.  This does not try
+        Returns the list of discrete sequences within paths.  This does not try
         to determine if the files actually exist on disk, it assumes you
         already know that.
+
         :param paths: a list of paths
-        :return: list
+        :rtype: list
         """
         return list(FileSequence.yield_sequences_in_list(paths))
 
@@ -383,9 +410,11 @@ class FileSequence(object):
     def findSequencesOnDisk(dirpath, include_hidden=False):
         """
         Yield the sequences found in the given directory.
+
         :param dirpath: directory to scan
-        :param include_hidden: if true, show .hidden files as well [False]
-        :return: list
+        :type include_hidden: bool
+        :param include_hidden: if true, show .hidden files as well
+        :rtype: list
         """
         # reserve some functions we're going to need quick access to
         _not_hidden = lambda f: not f.startswith('.')
@@ -403,11 +432,13 @@ class FileSequence(object):
     def findSequenceOnDisk(pattern):
         """
         Search for a specific sequence on disk.
-        For Example:
-            findSequenceOnDisk("seq/bar#.exr") # or any fileseq pattern
+
+        :Example:
+            >>> findSequenceOnDisk("seq/bar#.exr") # or any fileseq pattern
+
         :param pattern: the sequence pattern being searched for
-        :return: str
-        :raises: FileSeqException if no sequence is found on disk
+        :rtype: str
+        :raises: :class:`fileseq.exceptions.FileSeqException` if no sequence is found on disk
         """
         seq = FileSequence(pattern)
         patt = seq.format('{dirname}{basename}*{extension}')
@@ -439,8 +470,10 @@ class FileSequence(object):
     def getPaddingNum(chars):
         """
         Given a supported group of padding characters, return the amount of padding.
-        :param chars: a supported group of padding characters (str)
-        :return: int
+
+        :type chars: str
+        :param chars: a supported group of padding characters
+        :rtype: int
         :raises: ValueError if unsupported padding character is detected
         """
         try:
