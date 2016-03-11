@@ -441,6 +441,11 @@ class FileSequence(object):
         :raises: :class:`fileseq.exceptions.FileSeqException` if no sequence is found on disk
         """
         seq = FileSequence(pattern)
+
+        if seq.frameRange() == '' and seq.padding() == '':
+            if os.path.isfile(pattern):
+                return seq
+
         patt = seq.format('{dirname}{basename}*{extension}')
 
         ext = seq.extension()

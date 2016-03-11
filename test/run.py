@@ -1492,13 +1492,14 @@ class TestFindSequencesOnDisk(unittest.TestCase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq")
-        self.assertEquals(5, len(seqs))
+        self.assertEquals(6, len(seqs))
 
         known = set([
             "seq/bar1000-1002,1004-1006#.exr",
             "seq/foo.1-5#.exr",
             "seq/foo.1-5#.jpg",
             "seq/foo.debug.1-5#.exr",
+            "seq/foo_1#.exr",
             "seq/1-3#.exr",
         ])
         found = set([str(s) for s in seqs])
@@ -1558,6 +1559,8 @@ class TestFindSequenceOnDisk(unittest.TestCase):
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
             ("seq/#.exr", "seq/1-3#.exr"),
+            ("seq/bar1001.exr", "seq/bar1001.exr"),
+            ("seq/foo_0001.exr", "seq/foo_0001.exr"),
         ]
 
         for pattern, expected in tests:
