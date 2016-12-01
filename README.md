@@ -1,4 +1,4 @@
-# Fileseq [![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](http://fileseq.readthedocs.io/en/latest/)
+# Fileseq [![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](http://fileseq.readthedocs.io/en/latest/) ![Travis Build Status](https://api.travis-ci.org/sqlboy/fileseq.svg)
 
 A Python library for parsing frame ranges and file sequences based on a similar library found in Katana.
 

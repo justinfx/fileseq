@@ -1625,6 +1625,6 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(padFrameRange('1--100x2', -1), '1--100x2')
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    unittest.main(verbosity=0)
 
 
