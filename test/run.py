@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import division
+
 import unittest
 import cPickle
 import sys
@@ -308,7 +310,7 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = FrameSet(test)
-        i = len(expect) / 2
+        i = len(expect) // 2
         m = u'FrameSet("{0}")[{1}] != {2}: got {3}'
         # the empty FrameSet is expected to always fail
         if not test and not expect:
@@ -383,7 +385,7 @@ class TestFrameSet(unittest.TestCase):
         if not test and not expect:
             self.assertRaises(IndexError, f.frame, 0)
             return
-        i = expect[len(expect)/2]
+        i = expect[len(expect) // 2]
         m = u'FrameSet("{0}").index({1}) != {2}: got {3}'
         try:
             r = f.index(i)
@@ -405,7 +407,7 @@ class TestFrameSet(unittest.TestCase):
         if not test and not expect:
             self.assertRaises(IndexError, f.frame, 0)
             return
-        i = len(expect)/2
+        i = len(expect) // 2
         m = u'FrameSet("{0}").frame({1}) != {2}: got {3}'
         try:
             r = f.frame(i)

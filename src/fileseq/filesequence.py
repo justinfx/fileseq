@@ -467,7 +467,7 @@ class FileSequence(object):
         if num == 0:
             return "@"
         if num % 4 == 0:
-            return "#" * (num / 4)
+            return "#" * (num // 4)
         else:
             return "@" * num
 
