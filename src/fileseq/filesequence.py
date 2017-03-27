@@ -7,7 +7,7 @@ import os
 from glob import iglob
 from itertools import imap, ifilter
 from fileseq.exceptions import ParseException, FileSeqException
-from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE
+from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_RE
 from fileseq.frameset import FrameSet
 
 class FileSequence(object):
@@ -62,7 +62,11 @@ class FileSequence(object):
         else:
             self._dir = ''
 
-        self._zfill = sum([PAD_MAP[c] for c in self._pad])
+        printf_len = PRINTF_RE.split(self._pad, 1)
+        if len(printf_len) == 3:
+            self._zfill = int(printf_len[1])
+        else:
+            self._zfill = sum([PAD_MAP[c] for c in self._pad])
 
     def format(self, template="{basename}{range}{padding}{extension}"):
         """Return the file sequence as a formatted string according to
@@ -150,13 +154,17 @@ class FileSequence(object):
     def setPadding(self, padding):
         """
         Set new padding characters for the sequence.
-        i.e. "#" or "@@@", or an empty string to disable range formatting.
+        i.e. "#" or "@@@" or '%04d', or an empty string to disable range formatting.
 
         :type padding: str
         :rtype: None
         """
         self._pad = padding
-        self._zfill = sum([PAD_MAP[c] for c in self._pad])
+        printf_len = PRINTF_RE.split(self._pad, 1)
+        if len(printf_len) == 3:
+            self._zfill = int(printf_len[1])
+        else:
+            self._zfill = sum([PAD_MAP[c] for c in self._pad])
 
     def frameSet(self):
         """

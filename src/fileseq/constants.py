@@ -9,8 +9,11 @@ PAD_MAP = {"#": 4, "@": 1}
 
 # Regular expression for matching a file sequence string.
 # Example: /film/shot/renders/bilbo_bty.1-100#.exr
-SPLIT_PATTERN = r"([-:,xy\d]*)([{0}]+)".format(''.join(PAD_MAP.keys()))
+SPLIT_PATTERN = r"([-:,xy\d]*)([{0}]+|%\d+d)".format(''.join(PAD_MAP.keys()))
 SPLIT_RE = re.compile(SPLIT_PATTERN)
+
+PRINTF_PATTERN = r"%(\d+)d"
+PRINTF_RE = re.compile(PRINTF_PATTERN)
 
 # Regular expression pattern for matching file names on disk.
 DISK_PATTERN = r"^(.*/)?(?:$|(.*?)(-?\d+)?(?:(\.[^.]*$)|$))"

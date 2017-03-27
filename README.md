@@ -13,6 +13,7 @@ Support for:
 * Staggered: 1-100:3 (1-100x3, 1-100x2, 1-100)
 * Negative frame numbers: -10-100
 * Padding: #=4 padded, @=single pad
+* Printf Padding: %04d=4 padded, %01d=1 padded
 
 ## FrameSets
 

@@ -1292,6 +1292,18 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals("/foo/boo0001.exr", seq[0])
         self.assertEquals("/foo/boo0001.exr", seq.index(0))
 
+    def testSeqGettersPrintf(self):
+        seq = FileSequence("/foo/boo.1-5%04d.exr")
+        self.assertEquals(5, len(seq))
+        self.assertEquals("/foo/", seq.dirname())
+        self.assertEquals("boo.", seq.basename())
+        self.assertEquals("%04d", seq.padding())
+        self.assertEquals(".exr", seq.extension())
+
+        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEquals("/foo/boo.0001.exr", seq[0])
+        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+
     def testSetDirname(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setDirname("/bing/")
@@ -1306,6 +1318,9 @@ class TestFileSequence(unittest.TestCase):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setPadding("#")
         self.assertEquals("/foo/bong.0001.exr", seq[0])
+
+        seq.setPadding("%02d")
+        self.assertEquals("/foo/bong.01.exr", seq[0])
 
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
@@ -1352,8 +1367,14 @@ class TestFileSequence(unittest.TestCase):
         seqs = FileSequence("/path/to/something_1-10#_exr")
         self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
 
+        seqs = FileSequence("/path/to/something_1-10%04d_exr")
+        self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
+
     def testNumericFilename(self):
         seqs = FileSequence("/path/to/1-10#.exr")
+        self.assertEquals("/path/to/0001.exr", seqs.index(0))
+
+        seqs = FileSequence("/path/to/1-10%04d.exr")
         self.assertEquals("/path/to/0001.exr", seqs.index(0))
 
     def testNoPlaceholder(self):
@@ -1402,6 +1423,12 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
 
+        fs = FileSequence("/path/to/file.1-100x2%04d.exr")
+        s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
+        fs2 = cPickle.loads(s)
+        self.assertEquals(str(fs), str(fs2))
+        self.assertEquals(len(fs), len(fs2))
+
     def testHasVersionNoFrame(self):
         fs = FileSequence("/path/to/file_v2.exr")
         self.assertEquals(fs.start(), 0)
@@ -1421,6 +1448,11 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals(seq.basename(), "")
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), '#')
+
+        seq = FileSequence("/path/to/1-5%04d.exr")
+        self.assertEquals(seq.basename(), "")
+        self.assertEquals(len(seq), 5)
+        self.assertEquals(seq.padding(), '%04d')
 
     def test_yield_sequences_in_list(self):
         paths = [
