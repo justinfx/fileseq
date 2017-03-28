@@ -1337,6 +1337,10 @@ class TestFileSequence(unittest.TestCase):
         self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
         self.assertEquals("/foo/bar/bing.#.exr", seq.frame("#"))
 
+        seq = FileSequence("/foo/bar/bing.%04d.exr")
+        self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
+        self.assertEquals("/foo/bar/bing.%04d.exr", seq.frame("%04d"))
+
     def testIter(self):
         known = set ([
             "/cheech/chong.0001.exr",
@@ -1633,11 +1637,21 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingNum('##'), 8)
         self.assertEqual(getPaddingNum('#@'), 5)
         self.assertEqual(getPaddingNum('##@@'), 10)
+
+        self.assertEqual(getPaddingNum('%01d'), 1)
+        self.assertEqual(getPaddingNum('%1d'), 1)
+        self.assertEqual(getPaddingNum('%04d'), 4)
+        self.assertEqual(getPaddingNum('%10d'), 10)
+
         allPossibleChars = [s for s in string.printable if s not in PAD_MAP.keys()]
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, char)
             self.assertRaises(ValueError, getPaddingNum, '#{}'.format(char))
             self.assertRaises(ValueError, getPaddingNum, '@{}'.format(char))
+
+        allPossibleChars = [s for s in string.printable if s not in PAD_MAP.keys() and s not in string.digits]
+        for char in allPossibleChars:
+            self.assertRaises(ValueError, getPaddingNum, '%{}d'.format(char))
 
     def testPadFrameRange(self):
         self.assertEqual(padFrameRange('1', 6), '000001')

@@ -7,7 +7,7 @@ import os
 from glob import iglob
 from itertools import imap, ifilter
 from fileseq.exceptions import ParseException, FileSeqException
-from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_RE
+from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
 
 class FileSequence(object):
@@ -62,11 +62,7 @@ class FileSequence(object):
         else:
             self._dir = ''
 
-        printf_len = PRINTF_RE.split(self._pad, 1)
-        if len(printf_len) == 3:
-            self._zfill = int(printf_len[1])
-        else:
-            self._zfill = sum([PAD_MAP[c] for c in self._pad])
+        self._zfill = self.__class__.getPaddingNum(self._pad)
 
     def format(self, template="{basename}{range}{padding}{extension}"):
         """Return the file sequence as a formatted string according to
@@ -160,11 +156,7 @@ class FileSequence(object):
         :rtype: None
         """
         self._pad = padding
-        printf_len = PRINTF_RE.split(self._pad, 1)
-        if len(printf_len) == 3:
-            self._zfill = int(printf_len[1])
-        else:
-            self._zfill = sum([PAD_MAP[c] for c in self._pad])
+        self._zfill = self.__class__.getPaddingNum(self._pad)
 
     def frameSet(self):
         """
@@ -489,9 +481,14 @@ class FileSequence(object):
         :rtype: int
         :raises: ValueError if unsupported padding character is detected
         """
+        match = PRINTF_SYNTAX_PADDING_RE.match(chars)
+        if match:
+            return int(match.group(1))
+
         try:
             return sum([PAD_MAP[char] for char in chars])
         except KeyError:
             msg = "Detected an unsupported padding character: \"{}\"."
-            msg += " Supported padding characters: {}."
+            msg += " Supported padding characters: {} or printf syntax padding"
+            msg += " %<int>d"
             raise ValueError(msg.format(char, str(PAD_MAP.keys())))
