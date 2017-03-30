@@ -9,8 +9,16 @@ PAD_MAP = {"#": 4, "@": 1}
 
 # Regular expression for matching a file sequence string.
 # Example: /film/shot/renders/bilbo_bty.1-100#.exr
-SPLIT_PATTERN = r"([-:,xy\d]*)([{0}]+)".format(''.join(PAD_MAP.keys()))
+# Example: /film/shot/renders/bilbo_bty.1-100@.exr
+# Example: /film/shot/renders/bilbo_bty.1-100@@@@#.exr
+# Example: /film/shot/renders/bilbo_bty.1-100%04d.exr
+SPLIT_PATTERN = r"([-:,xy\d]*)([{0}]+|%\d+d)".format(''.join(PAD_MAP.keys()))
 SPLIT_RE = re.compile(SPLIT_PATTERN)
+
+# Regular expression pattern for matching padding against a printf syntax
+# padding string E.g. %04d
+PRINTF_SYNTAX_PADDING_PATTERN = r"%(\d+)d"
+PRINTF_SYNTAX_PADDING_RE = re.compile(PRINTF_SYNTAX_PADDING_PATTERN)
 
 # Regular expression pattern for matching file names on disk.
 DISK_PATTERN = r"^(.*/)?(?:$|(.*?)(-?\d+)?(?:(\.[^.]*$)|$))"
