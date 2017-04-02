@@ -29,6 +29,29 @@ from fileseq import (FrameSet,
 from fileseq.constants import PAD_MAP
 
 
+def _getCommonPathSep(path):
+    """
+    Find the most common path seperator character used
+    in a given path. Because windows supports both forward
+    and backward sep characters, find the most consistently
+    used.
+    Defaults to ``os.sep``
+
+    :type path: str
+    :param path: A path to check for the most common sep
+    :rtype: str
+    """
+    sep = os.sep
+    count = 0
+    for nextSep in ('/', '\\'):
+        if path.count(nextSep) > count:
+            sep = nextSep
+    return sep
+
+import fileseq.utils
+fileseq.utils._getPathSep = _getCommonPathSep
+
+
 def _yrange(first, last=None, incr=1):
     """
     Simple value generator for the 1-20y5 syntax.
@@ -1585,6 +1608,31 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         self.assertEqual(known, found)
         self.assertFalse(known.difference(found))
 
+    def testCrossPlatformPathSep(self):
+        expected = set([
+            "seqsubdirs/sub1/1-3#.exr",
+            "seqsubdirs/sub1/bar1000-1002,1004-1006#.exr",
+            "seqsubdirs/sub1/foo.1-5#.exr",
+            "seqsubdirs/sub1/foo.1-5#.jpg",
+            "seqsubdirs/sub1/foo.debug.1-5#.exr",
+            "seqsubdirs/sub1/foo_1#.exr",
+        ])
+
+        import ntpath 
+        _join = os.path.join
+        os.path.join = ntpath.join
+
+        try:
+            self.assertEqual(os.path.join('a', 'b'), 'a\\b')
+            seqs = findSequencesOnDisk("seqsubdirs/sub1")
+
+            self.assertEquals(len(expected), len(seqs))
+
+            actual = set(str(s) for s in seqs)
+            self.assertEqual(actual, expected)
+
+        finally:
+            os.path.join = _join
 
 class TestFindSequenceOnDisk(unittest.TestCase):
 
@@ -1607,6 +1655,34 @@ class TestFindSequenceOnDisk(unittest.TestCase):
             actual = str(seq)
             self.assertEqual(actual, expected)
 
+    def testCrossPlatformPathSep(self):
+        tests = [
+            ("seq/bar#.exr", "seq\\bar1000-1002,1004-1006#.exr"),
+            ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
+            ("seq/foo.#.jpg", "seq\\foo.1-5#.jpg"),
+            ("seq/foo.0002.jpg", "seq\\foo.1-5#.jpg"),
+            ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
+            ("seq/foo.debug.#.exr", "seq\\foo.debug.1-5#.exr"),
+            ("seq/#.exr", "seq\\1-3#.exr"),
+            ("seq/bar1001.exr", "seq/bar1001.exr"),
+            ("seq/foo_0001.exr", "seq/foo_0001.exr"),
+        ]
+
+        import ntpath 
+        _path = os.path
+        os.path = ntpath
+
+        try:
+            self.assertEqual(os.path.join('a', 'b'), 'a\\b')
+
+            for pattern, expected in tests:
+                seq = findSequenceOnDisk(pattern)
+                self.assertTrue(isinstance(seq, FileSequence))
+                actual = str(seq)
+                self.assertEqual(actual, expected) 
+
+        finally:
+            os.path = _path
 
 class TestPaddingFunctions(unittest.TestCase):
     """
