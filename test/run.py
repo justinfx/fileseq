@@ -1,3 +1,6 @@
+
+
+
 #!/usr/bin/python
 
 from __future__ import division
@@ -1287,7 +1290,15 @@ class TestBase(unittest.TestCase):
 
     def assertEqual(self, a, b):
         self.assertEquals(a, b)
-
+    
+    def assertEqualPaths(self, a, b):
+        return super(TestBase, self).assertEquals(self.toNormpaths(a), self.toNormpaths(b))
+    
+    def toNormpaths(self, collection):
+        if isinstance(collection, basestring):
+            return os.path.normpath(collection)
+        return map(os.path.normpath, collection)
+    
 
 class TestFramesToFrameRange(unittest.TestCase):
     """
@@ -1582,7 +1593,7 @@ class TestFindSequencesOnDisk(TestBase):
             "seq/1-3#.exr",
         ])
         found = set([str(s) for s in seqs])
-        self.assertFalse(known.difference(found))
+        self.assertEqualPaths(found, known)
 
     def testNegSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seqneg")
@@ -1600,12 +1611,12 @@ class TestFindSequencesOnDisk(TestBase):
         seqs = findSequencesOnDisk("seqhidden")
         self.assertEquals(3, len(seqs))
 
-        known = set([
+        known = set(self.toNormpaths([
             "seqhidden/bar1000-1002,1004-1006#.exr",
             "seqhidden/foo.1-5#.exr",
             "seqhidden/foo.1-5#.jpg",
-        ])
-        found = set([str(s) for s in seqs])
+        ]))
+        found = set(self.toNormpaths([str(s) for s in seqs]))
         self.assertEqual(known, found)
         self.assertFalse(known.difference(found))
 
@@ -1623,8 +1634,7 @@ class TestFindSequencesOnDisk(TestBase):
             "seqhidden/.hidden",
         ])
         found = set([str(s) for s in seqs])
-        self.assertEqual(known, found)
-        self.assertFalse(known.difference(found))
+        self.assertEqualPaths(known, found)
 
     def testCrossPlatformPathSep(self):
         expected = set([
