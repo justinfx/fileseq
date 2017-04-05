@@ -1294,7 +1294,7 @@ class TestBase(unittest.TestCase):
     def toNormpaths(self, collection):
         if isinstance(collection, basestring):
             return os.path.normpath(collection)
-        return map(os.path.normpath, collection)
+        return sorted(map(os.path.normpath, collection))
     
 
 class TestFramesToFrameRange(unittest.TestCase):
@@ -1774,6 +1774,6 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(padFrameRange('1--100x2', -1), '1--100x2')
 
 if __name__ == '__main__':
-    unittest.main(verbosity=0)
+    unittest.main(verbosity=1)
 
 
