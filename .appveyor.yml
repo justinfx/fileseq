@@ -6,4 +6,4 @@ environment:
 build: off
 
 test_script:
-  - "%PYTHON%\\python.exe setup.py test"
+  - "%PYTHON%\\python.exe test\\run.py"
