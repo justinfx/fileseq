@@ -9,6 +9,7 @@ from itertools import imap, ifilter
 from fileseq.exceptions import ParseException, FileSeqException
 from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
+from fileseq import utils
 
 class FileSequence(object):
     """:class:`FileSequence` represents an ordered sequence of files.
@@ -57,8 +58,9 @@ class FileSequence(object):
                     self._pad = ''
 
         if self._dir:
-            if not self._dir.endswith(os.sep):
-                self._dir += os.sep
+            sep = utils._getPathSep(sequence)
+            if not self._dir.endswith(sep):
+                self._dir += sep
         else:
             self._dir = ''
 
@@ -406,8 +408,8 @@ class FileSequence(object):
         """
         return list(FileSequence.yield_sequences_in_list(paths))
 
-    @staticmethod
-    def findSequencesOnDisk(dirpath, include_hidden=False):
+    @classmethod
+    def findSequencesOnDisk(cls, dirpath, include_hidden=False):
         """
         Yield the sequences found in the given directory.
 
@@ -418,14 +420,28 @@ class FileSequence(object):
         """
         # reserve some functions we're going to need quick access to
         _not_hidden = lambda f: not f.startswith('.')
-        _isfile = os.path.isfile
         _join = os.path.join
+
+        # Get just the immediate files under the dir.
+        # Avoids testing the os.listdir() for files as
+        # a second step.
+        ret = next(os.walk(dirpath), None)
+        files = ret[-1] if ret else []
+
         # collapse some generators to get us the files that match our regex
-        files = os.listdir(dirpath)
         if not include_hidden:
             files = ifilter(_not_hidden, files)
+
+        # Ensure our dirpath ends with a path separator, so
+        # that we can control which sep is used during the 
+        # os.path.join
+        sep = utils._getPathSep(dirpath)
+        if not dirpath.endswith(sep):
+            dirpath += sep
+
         files = (_join(dirpath, f) for f in files)
-        files = ifilter(_isfile, files)
+        files = list(files)
+
         return list(FileSequence.yield_sequences_in_list(files))
 
     @staticmethod

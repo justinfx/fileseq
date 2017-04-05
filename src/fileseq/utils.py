@@ -3,6 +3,7 @@
 utils - General tools of use to fileseq operations.
 """
 
+import os
 from itertools import chain
 
 def xfrange(start, stop, step=1):
@@ -50,3 +51,18 @@ def pad(number, width=0):
     :rtype: str
     """
     return str(number).zfill(width)
+
+def _getPathSep(path):
+    """
+    Abstracts returning the appropriate path separator 
+    for the given path string. 
+
+    This implementation always returns ``os.sep``
+
+    Abstracted to make test mocking easier.
+
+    :type path: str
+    :param path: A path to check for the most common sep
+    :rtype: str
+    """
+    return os.sep

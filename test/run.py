@@ -29,6 +29,29 @@ from fileseq import (FrameSet,
 from fileseq.constants import PAD_MAP
 
 
+def _getCommonPathSep(path):
+    """
+    Find the most common path seperator character used
+    in a given path. Because windows supports both forward
+    and backward sep characters, find the most consistently
+    used.
+    Defaults to ``os.sep``
+
+    :type path: str
+    :param path: A path to check for the most common sep
+    :rtype: str
+    """
+    sep = os.sep
+    count = 0
+    for nextSep in ('/', '\\'):
+        if path.count(nextSep) > count:
+            sep = nextSep
+    return sep
+
+import fileseq.utils
+fileseq.utils._getPathSep = _getCommonPathSep
+
+
 def _yrange(first, last=None, incr=1):
     """
     Simple value generator for the 1-20y5 syntax.
@@ -1248,6 +1271,32 @@ for name, tst in FRAME_SET_SHOULD_FAIL:
         lambda self, t=tst: TestFrameSet._check_isFrameRange(self, t, False))
 
 
+class TestBase(unittest.TestCase):
+
+    RX_PATHSEP = re.compile(r'[/\\]')
+
+    def assertEquals(self, a, b):
+        # Make sure string paths are compared with normalized
+        # path separators
+        if isinstance(a, basestring) and isinstance(b, basestring):
+            if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b): 
+                a = os.path.normpath(a)
+                b = os.path.normpath(b)
+
+        super(TestBase, self).assertEquals(a, b)
+
+    def assertEqual(self, a, b):
+        self.assertEquals(a, b)
+    
+    def assertEqualPaths(self, a, b):
+        return super(TestBase, self).assertEquals(self.toNormpaths(a), self.toNormpaths(b))
+    
+    def toNormpaths(self, collection):
+        if isinstance(collection, basestring):
+            return os.path.normpath(collection)
+        return sorted(map(os.path.normpath, collection))
+    
+
 class TestFramesToFrameRange(unittest.TestCase):
     """
     Exercise the frameToRange func.  Due to the sheer number of permutations, we'll add most tests dynamically.
@@ -1266,7 +1315,7 @@ for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
         lambda self, t=tst, e=exp: TestFramesToFrameRange._check_frameToRangeEquivalence(self, t, e))
 
 
-class TestFileSequence(unittest.TestCase):
+class TestFileSequence(TestBase):
 
     def testSeqGettersType1(self):
         seq = FileSequence("/foo/boo.1-5#.exr")
@@ -1526,7 +1575,7 @@ class TestFileSequence(unittest.TestCase):
         ])
         self.assertEquals(actual, expected)
 
-class TestFindSequencesOnDisk(unittest.TestCase):
+class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq")
@@ -1541,7 +1590,7 @@ class TestFindSequencesOnDisk(unittest.TestCase):
             "seq/1-3#.exr",
         ])
         found = set([str(s) for s in seqs])
-        self.assertFalse(known.difference(found))
+        self.assertEqualPaths(found, known)
 
     def testNegSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seqneg")
@@ -1559,12 +1608,12 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         seqs = findSequencesOnDisk("seqhidden")
         self.assertEquals(3, len(seqs))
 
-        known = set([
+        known = set(self.toNormpaths([
             "seqhidden/bar1000-1002,1004-1006#.exr",
             "seqhidden/foo.1-5#.exr",
             "seqhidden/foo.1-5#.jpg",
-        ])
-        found = set([str(s) for s in seqs])
+        ]))
+        found = set(self.toNormpaths([str(s) for s in seqs]))
         self.assertEqual(known, found)
         self.assertFalse(known.difference(found))
 
@@ -1582,11 +1631,35 @@ class TestFindSequencesOnDisk(unittest.TestCase):
             "seqhidden/.hidden",
         ])
         found = set([str(s) for s in seqs])
-        self.assertEqual(known, found)
-        self.assertFalse(known.difference(found))
+        self.assertEqualPaths(known, found)
 
+    def testCrossPlatformPathSep(self):
+        expected = set([
+            "seqsubdirs/sub1/1-3#.exr",
+            "seqsubdirs/sub1/bar1000-1002,1004-1006#.exr",
+            "seqsubdirs/sub1/foo.1-5#.exr",
+            "seqsubdirs/sub1/foo.1-5#.jpg",
+            "seqsubdirs/sub1/foo.debug.1-5#.exr",
+            "seqsubdirs/sub1/foo_1#.exr",
+        ])
 
-class TestFindSequenceOnDisk(unittest.TestCase):
+        import ntpath 
+        _join = os.path.join
+        os.path.join = ntpath.join
+
+        try:
+            self.assertEqual(os.path.join('a', 'b'), 'a\\b')
+            seqs = findSequencesOnDisk("seqsubdirs/sub1")
+
+            self.assertEquals(len(expected), len(seqs))
+
+            actual = set(str(s) for s in seqs)
+            self.assertEqual(actual, expected)
+
+        finally:
+            os.path.join = _join
+
+class TestFindSequenceOnDisk(TestBase):
 
     def testFindSequenceOnDisk(self):
         tests = [
@@ -1607,6 +1680,34 @@ class TestFindSequenceOnDisk(unittest.TestCase):
             actual = str(seq)
             self.assertEqual(actual, expected)
 
+    def testCrossPlatformPathSep(self):
+        tests = [
+            ("seq/bar#.exr", "seq\\bar1000-1002,1004-1006#.exr"),
+            ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
+            ("seq/foo.#.jpg", "seq\\foo.1-5#.jpg"),
+            ("seq/foo.0002.jpg", "seq\\foo.1-5#.jpg"),
+            ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
+            ("seq/foo.debug.#.exr", "seq\\foo.debug.1-5#.exr"),
+            ("seq/#.exr", "seq\\1-3#.exr"),
+            ("seq/bar1001.exr", "seq/bar1001.exr"),
+            ("seq/foo_0001.exr", "seq/foo_0001.exr"),
+        ]
+
+        import ntpath 
+        _path = os.path
+        os.path = ntpath
+
+        try:
+            self.assertEqual(os.path.join('a', 'b'), 'a\\b')
+
+            for pattern, expected in tests:
+                seq = findSequenceOnDisk(pattern)
+                self.assertTrue(isinstance(seq, FileSequence))
+                actual = str(seq)
+                self.assertEqual(actual, expected) 
+
+        finally:
+            os.path = _path
 
 class TestPaddingFunctions(unittest.TestCase):
     """
@@ -1673,6 +1774,6 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(padFrameRange('1--100x2', -1), '1--100x2')
 
 if __name__ == '__main__':
-    unittest.main(verbosity=0)
+    unittest.main(verbosity=1)
 
 
