@@ -1271,6 +1271,24 @@ for name, tst in FRAME_SET_SHOULD_FAIL:
         lambda self, t=tst: TestFrameSet._check_isFrameRange(self, t, False))
 
 
+class TestBase(unittest.TestCase):
+
+    RX_PATHSEP = re.compile(r'[/\\]')
+
+    def assertEquals(self, a, b):
+        # Make sure string paths are compared with normalized
+        # path separators
+        if isinstance(a, basestring) and isinstance(b, basestring):
+            if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b): 
+                a = os.path.normpath(a)
+                b = os.path.normpath(b)
+
+        super(TestBase, self).assertEquals(a, b)
+
+    def assertEqual(self, a, b):
+        self.assertEquals(a, b)
+
+
 class TestFramesToFrameRange(unittest.TestCase):
     """
     Exercise the frameToRange func.  Due to the sheer number of permutations, we'll add most tests dynamically.
@@ -1289,7 +1307,7 @@ for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
         lambda self, t=tst, e=exp: TestFramesToFrameRange._check_frameToRangeEquivalence(self, t, e))
 
 
-class TestFileSequence(unittest.TestCase):
+class TestFileSequence(TestBase):
 
     def testSeqGettersType1(self):
         seq = FileSequence("/foo/boo.1-5#.exr")
@@ -1549,7 +1567,7 @@ class TestFileSequence(unittest.TestCase):
         ])
         self.assertEquals(actual, expected)
 
-class TestFindSequencesOnDisk(unittest.TestCase):
+class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq")
@@ -1634,7 +1652,7 @@ class TestFindSequencesOnDisk(unittest.TestCase):
         finally:
             os.path.join = _join
 
-class TestFindSequenceOnDisk(unittest.TestCase):
+class TestFindSequenceOnDisk(TestBase):
 
     def testFindSequenceOnDisk(self):
         tests = [
