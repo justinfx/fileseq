@@ -1128,7 +1128,7 @@ class TestFrameSet(unittest.TestCase):
     def testMaxFrameSize(self):
         _maxSize = constants.MAX_FRAME_SIZE
         try:
-            maxSize = constants.MAX_FRAME_SIZE = 10000
+            maxSize = constants.MAX_FRAME_SIZE = 500
 
             # Within range
             utils.xfrange(1, 100, 1, maxSize=-1)
@@ -1432,10 +1432,18 @@ class TestFileSequence(TestBase):
         self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
         seq = findSequencesOnDisk("step_seq")[0]
         self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
+    
+    def testFormatInverted(self):
+        _maxSize = constants.MAX_FRAME_SIZE
+        try:
+            maxSize = constants.MAX_FRAME_SIZE = 500
 
-        # Test catching error for large inverted range
-        seq = FileSequence("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE+3))
-        self.assertRaises(exceptions.MaxSizeException, seq.format, '{inverted}')
+            # Test catching error for large inverted range
+            seq = FileSequence("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE+3))
+            self.assertRaises(exceptions.MaxSizeException, seq.format, '{inverted}')
+
+        finally:
+            constants.MAX_FRAME_SIZE = _maxSize
 
     def testSplit(self):
         seqs = FileSequence("/cheech/chong.1-10,30,40#.exr").split()
