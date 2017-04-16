@@ -26,6 +26,8 @@ from fileseq import (FrameSet,
                      getPaddingChars, 
                      getPaddingNum, 
                      ParseException)
+
+from fileseq import constants, exceptions, utils
 from fileseq.constants import PAD_MAP
 
 
@@ -1123,6 +1125,27 @@ class TestFrameSet(unittest.TestCase):
             actual = list(f)
             self.assertEqual(actual, expected)
 
+    def testMaxFrameSize(self):
+        _maxSize = constants.MAX_FRAME_SIZE
+        try:
+            maxSize = constants.MAX_FRAME_SIZE = 10000
+
+            # Within range
+            utils.xfrange(1, 100, 1, maxSize=-1)
+            utils.xfrange(1, 100, 1, maxSize=100)
+            FrameSet('1-%d' % maxSize)
+
+            # Shoult not be allowed
+            self.assertRaises(exceptions.MaxSizeException, utils.xfrange, 1, 100, 1, maxSize=50)
+            self.assertRaises(exceptions.MaxSizeException, FrameSet, '1-%d' % (maxSize+1))
+
+            # Inverting would produce a huge new range
+            fs = FrameSet('1,%d' % (maxSize+3))
+            self.assertRaises(exceptions.MaxSizeException, fs.invertedFrameRange)
+
+        finally:
+            constants.MAX_FRAME_SIZE = _maxSize
+
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFrameSet dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
@@ -1409,6 +1432,10 @@ class TestFileSequence(TestBase):
         self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
         seq = findSequencesOnDisk("step_seq")[0]
         self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
+
+        # Test catching error for large inverted range
+        seq = FileSequence("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE+3))
+        self.assertRaises(exceptions.MaxSizeException, seq.format, '{inverted}')
 
     def testSplit(self):
         seqs = FileSequence("/cheech/chong.1-10,30,40#.exr").split()

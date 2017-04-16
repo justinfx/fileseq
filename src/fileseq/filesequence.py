@@ -13,9 +13,13 @@ from fileseq import utils
 
 class FileSequence(object):
     """:class:`FileSequence` represents an ordered sequence of files.
+    
+    If the frame size exceeds :obj:`fileseq.constants.MAX_FRAME_SIZE`, 
+    a ``MaxSizeException`` will be thrown.
 
     :type sequence: str
     :param sequence: (ie: dir/path.1-100#.ext)
+    :raises: :class:`fileseq.exceptions.MaxSizeException`
     """
     def __init__(self, sequence):
         if not hasattr(self, '_frameSet'):
@@ -79,17 +83,26 @@ class FileSequence(object):
             * padding - the detecting amount of padding.
             * inverted - the inverted frame range. (returns "" if none)
             * dirname - the directory name.
+        
+        If asking for the inverted range value, and the new inverted range
+        exceeded :obj:`fileseq.constants.MAX_FRAME_SIZE`, a ``MaxSizeException``
+        will be raised.
 
         :type template: str
         :rtype: str
+        :raises: :class:`fileseq.exceptions.MaxSizeException` 
         """
+        # Potentially expensive if inverted range is large
+        # and user never asked for it in template
+        inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
+
         return template.format(
             basename=self.basename(),
             extension=self.extension(), start=self.start(),
             end=self.end(), length=len(self),
             padding=self.padding(),
             range=self.frameRange() or "",
-            inverted=self.invertedFrameRange() or "",
+            inverted=inverted,
             dirname=self.dirname())
 
     def split(self):
@@ -234,7 +247,11 @@ class FileSequence(object):
         Returns the inverse string formatted frame range of the sequence.
         Will return an empty string if the sequence has no frame pattern.
 
+        If new inverted range exceeded :obj:`fileseq.constants.MAX_FRAME_SIZE`, 
+        a ``MaxSizeException`` will be raised.
+
         :rtype: str
+        :raises: :class:`fileseq.exceptions.MaxSizeException`
         """
         if not self._frameSet:
             return ''

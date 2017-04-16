@@ -6,7 +6,9 @@ utils - General tools of use to fileseq operations.
 import os
 from itertools import chain
 
-def xfrange(start, stop, step=1):
+from fileseq import exceptions 
+
+def xfrange(start, stop, step=1, maxSize=-1):
     """
     Returns a generator that yields the frames from start to stop, inclusive.
     In other words it adds or subtracts a frame, as necessary, to return the
@@ -16,6 +18,9 @@ def xfrange(start, stop, step=1):
     :type stop: int
     :type step: int
     :param step: Note that the sign will be ignored
+    :type maxSize: int
+    :param maxSize: If >= raise a :class:`fileseq.exceptions.MaxSizeException` 
+                    if size is exceeded
     :rtype: generator
     """
     if start <= stop:
@@ -24,7 +29,14 @@ def xfrange(start, stop, step=1):
         stop, step = stop - 1, -abs(step)
     # because an xrange is an odd object all its own, we wrap it in a
     # generator expression to get a proper Generator
-    return (f for f in xrange(start, stop, step))
+    rng = xrange(start, stop, step)
+    if maxSize >= 0:
+        size = len(rng)
+        if size > maxSize:
+            raise exceptions.MaxSizeException(
+                "Size %d > %s (MAX_FRAME_SIZE)" % (size, maxSize))
+
+    return (f for f in rng)
 
 def unique(seen, *iterables):
     """

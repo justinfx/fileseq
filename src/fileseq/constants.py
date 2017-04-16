@@ -5,6 +5,10 @@ constants - General constants of use to fileseq operations.
 
 import re
 
+# The max frame count of a FrameSet before a MaxSizeException
+# exception is raised
+MAX_FRAME_SIZE = 10000000
+    
 PAD_MAP = {"#": 4, "@": 1}
 
 # Regular expression for matching a file sequence string.
