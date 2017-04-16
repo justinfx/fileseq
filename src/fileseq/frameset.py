@@ -9,9 +9,12 @@ from collections import Set, Sequence
 
 from fileseq import constants
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
-from fileseq.utils import xfrange, unique, pad
 from fileseq.exceptions import MaxSizeException, ParseException
+from fileseq.utils import xfrange, unique, pad
 
+# Issue #44
+# Possibly use an alternate xrange implementation, depending on platform. 
+from fileseq.utils import xrange
 
 class FrameSet(Set):
     """

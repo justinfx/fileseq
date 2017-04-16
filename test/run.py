@@ -237,6 +237,14 @@ FRAME_SET_SHOULD_FAIL = [
     ("ActualNone", None),
 ]
 
+class TestUtils(unittest.TestCase):
+    
+    def testXrange(self):
+        # Test that a platform-specific xrange does not produce OverflowError
+        xrng = utils.xrange(1, sys.maxint)
+        self.assertTrue(len(xrng) != 0)
+    
+    
 class TestFrameSet(unittest.TestCase):
     """
     Exercise the TestFrame object.  Due to the sheer number of permutations, we'll add most tests dynamically.
