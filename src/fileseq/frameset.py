@@ -3,10 +3,18 @@
 frameset - A set-like object representing a frame range for fileseq.
 """
 
+import numbers
+
 from collections import Set, Sequence
-from fileseq.utils import xfrange, unique, pad
+
+from fileseq import constants
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
-from fileseq.exceptions import ParseException
+from fileseq.exceptions import MaxSizeException, ParseException
+from fileseq.utils import xfrange, unique, pad
+
+# Issue #44
+# Possibly use an alternate xrange implementation, depending on platform. 
+from fileseq.utils import xrange
 
 class FrameSet(Set):
     """
@@ -33,15 +41,19 @@ class FrameSet(Set):
         >>> {FrameSet('1-20'): 'good'}
 
     Caveats:
-        1. All frozenset operations return a normalized :class:`FrameSet`:
+        1. Because the internal storage of a ``FrameSet`` contains the discreet
+           values of the entire range, an exception will be thrown if the range
+           exceeds a large reasonable limit, which could lead to huge memory 
+           allocations or memory failures. See `fileseq.constants.MAX_FRAME_SIZE`.
+        2. All frozenset operations return a normalized :class:`FrameSet`:
            internal frames are in numerically increasing order.
-        2. Equality is based on the contents and order, NOT the frame range
+        3. Equality is based on the contents and order, NOT the frame range
            string (there are a finite, but potentially
            extremely large, number of strings that can represent any given range,
            only a "best guess" can be made).
-        3. Human-created frame ranges (ie 1-100x5) will be reduced to the
+        4. Human-created frame ranges (ie 1-100x5) will be reduced to the
            actual internal frames (ie 1-96x5).
-        4. The "null" :class:`Frameset` (``FrameSet('')``) is now a valid thing
+        5. The "null" :class:`Frameset` (``FrameSet('')``) is now a valid thing
            to create, it is required by set operations, but may cause confusion
            as both its start and end methods will raise IndexError.  The
            :meth:`is_null`
@@ -51,7 +63,9 @@ class FrameSet(Set):
     :param frange: the frame range as a string (ie "1-100x5")
     :rtype: None
     :raises: :class:`fileseq.exceptions.ParseException` if the frame range
-             (or a portion of it) could not be parsed
+             (or a portion of it) could not be parsed.
+             :class:`fileseq.exceptions.MaxSizeException` if the range exceeds
+             `fileseq.constants.MAX_FRAME_SIZE`
     """
 
     __slots__ = ('_frange', '_items', '_order')
@@ -70,7 +84,7 @@ class FrameSet(Set):
         return self
 
 
-    def __init__(self, frange):
+    def __init__(self, frange):        
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, basestring):
             # if it's apparently a FrameSet already, short-circuit the build
@@ -80,6 +94,7 @@ class FrameSet(Set):
                 return
             # if it's inherently disordered, sort and build
             elif isinstance(frange, Set):
+                self._maxSizeCheck(frange)
                 self._items = frozenset(map(int, frange))
                 self._order = tuple(sorted(self._items))
                 self._frange = FrameSet.framesToFrameRange(
@@ -87,6 +102,7 @@ class FrameSet(Set):
                 return
             # if it's ordered, find unique and build
             elif isinstance(frange, Sequence):
+                self._maxSizeCheck(frange)
                 items = set()
                 order = unique(items, map(int, frange))
                 self._order = tuple(order)
@@ -116,6 +132,8 @@ class FrameSet(Set):
         items = set()
         order = []
 
+        maxSize = constants.MAX_FRAME_SIZE 
+
         for part in self._frange.split(","):
             # this is to deal with leading / trailing commas
             if not part:
@@ -124,29 +142,33 @@ class FrameSet(Set):
             start, end, modifier, chunk = FrameSet._parse_frange_part(part)
             # handle batched frames (1-100x5)
             if modifier == 'x':
-                frames = xfrange(start, end, chunk)
+                frames = xfrange(start, end, chunk, maxSize=maxSize)
                 frames = [f for f in frames if f not in items]
+                self._maxSizeCheck(len(frames) + len(items))
                 order.extend(frames)
                 items.update(frames)
             # handle staggered frames (1-100:5)
             elif modifier == ':':
                 for stagger in xrange(chunk, 0, -1):
-                    frames = xfrange(start, end, stagger)
+                    frames = xfrange(start, end, stagger, maxSize=maxSize)
                     frames = [f for f in frames if f not in items]
+                    self._maxSizeCheck(len(frames) + len(items))
                     order.extend(frames)
                     items.update(frames)
             # handle filled frames (1-100y5)
             elif modifier == 'y':
-                not_good = frozenset(xfrange(start, end, chunk))
-                frames = xfrange(start, end, 1)
+                not_good = frozenset(xfrange(start, end, chunk, maxSize=maxSize))
+                frames = xfrange(start, end, 1, maxSize=maxSize)
                 frames = (f for f in frames if f not in not_good)
                 frames = [f for f in frames if f not in items]
+                self._maxSizeCheck(len(frames) + len(items))
                 order.extend(frames)
                 items.update(frames)
             # handle full ranges and single frames
             else:
-                frames = xfrange(start, end, 1 if start < end else -1)
+                frames = xfrange(start, end, 1 if start < end else -1, maxSize=maxSize)
                 frames = [f for f in frames if f not in items]
+                self._maxSizeCheck(len(frames) + len(items))
                 order.extend(frames)
                 items.update(frames)
 
@@ -298,18 +320,29 @@ class FrameSet(Set):
             >>> FrameSet('1-100x2').invertedFrameRange(5)
             '00002-00098x2'
 
+        If the inverted frame size exceeds `fileseq.constants.MAX_FRAME_SIZE`, 
+        a ``MaxSizeException`` will be raised.
+
         :type zfill: int
         :param zfill: the width to use to zero-pad the frame range string
         :rtype: str
+        :raises: :class:`fileseq.exceptions.MaxSizeException`
         """
         result = []
         frames = sorted(self.items)
         for idx, frame in enumerate(frames[:-1]):
             next_frame = frames[idx + 1]
             if next_frame - frame != 1:
-                result += xrange(frame + 1, next_frame)
+                r = xrange(frame + 1, next_frame)
+                # Check if the next update to the result set
+                # will exceed out max frame size. 
+                # Prevent memory overflows.
+                self._maxSizeCheck(len(r) + len(result))
+                result += r
+        
         if not result:
             return ''
+        
         return FrameSet.framesToFrameRange(
             result, zfill=zfill, sort=False, compress=False)
 
@@ -759,6 +792,30 @@ class FrameSet(Set):
         :rtype: :class:`FrameSet`
         """
         return FrameSet(str(self))
+
+    @classmethod
+    def _maxSizeCheck(cls, obj):
+        """
+        Raise a MaxSizeException if ``obj`` exceeds MAX_FRAME_SIZE
+
+        :type obj: number or collection
+        :raises: :class:`fileseq.exceptions.MaxSizeException`
+        """
+        fail = False
+        size = 0
+
+        if isinstance(obj, numbers.Number):
+            if obj > constants.MAX_FRAME_SIZE:
+                fail = True
+                size = obj
+
+        elif hasattr(obj, '__len__'):
+            size = len(obj)
+            fail = size > constants.MAX_FRAME_SIZE
+
+        if fail:
+            raise MaxSizeException('Frame size %s > %s (MAX_FRAME_SIZE)' \
+                    % (size, constants.MAX_FRAME_SIZE))
 
     @staticmethod
     def isFrameRange(frange):

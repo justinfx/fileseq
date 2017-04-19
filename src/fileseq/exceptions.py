@@ -9,6 +9,12 @@ class FileSeqException(ValueError):
     """
     pass
 
+class MaxSizeException(ValueError):
+    """
+	Thrown when a range exceeds allowable size.
+    """
+    pass
+
 class ParseException(FileSeqException):
     """
     Thrown after a frame range or file sequence parse error.
