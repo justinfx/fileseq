@@ -1768,7 +1768,7 @@ class TestFindSequenceOnDisk(TestBase):
         for pattern, expected in tests:
             if expected is None:
                 with self.assertRaises(FileSeqException):
-                    findSequenceOnDisk(pattern)
+                    findSequenceOnDisk(pattern, strictPadding=True)
                 continue
             
             seq = findSequenceOnDisk(pattern, strictPadding=True)

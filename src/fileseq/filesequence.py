@@ -464,7 +464,7 @@ class FileSequence(object):
         return list(FileSequence.yield_sequences_in_list(files))
 
     @classmethod
-    def findSequenceOnDisk(cls, pattern, strictPadding=True):
+    def findSequenceOnDisk(cls, pattern, strictPadding=False):
         """
         Search for a specific sequence on disk.
 
@@ -472,16 +472,16 @@ class FileSequence(object):
         frame values of the files on disk (if strictPadding is True).
 
         :Example:
-            # Any fileseq pattern
-            # Find exactly 4-padded sequence, i.e. seq/bar1-100#.exr
-            # returns only frames bar1000.exr through bar9999.exr
-            >>> findSequenceOnDisk("seq/bar#.exr")
-
             # Find sequence matching basename and extension, and a wildcard for
             # any frame.
             # returns bar.1.exr bar.10.exr, bar.100.exr, bar.1000.exr, inclusive
-            >>> findSequenceOnDisk("seq/bar@@@@.exr", strictPadding=False)
-            
+            >>> findSequenceOnDisk("seq/bar@@@@.exr")
+
+            # Find exactly 4-padded sequence, i.e. seq/bar1-100#.exr
+            # returns only frames bar1000.exr through bar9999.exr
+            >>> findSequenceOnDisk("seq/bar#.exr", strictPadding=True)
+
+           
         :param pattern: the sequence pattern being searched for
         :rtype: str
         :param strictPadding: if True, ignore files with padding length different from pattern
