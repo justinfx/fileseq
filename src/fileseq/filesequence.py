@@ -390,6 +390,7 @@ class FileSequence(object):
         """
         seqs = {}
         _check = DISK_RE.match
+
         for match in ifilter(None, imap(_check, paths)):
             dirname, basename, frame, ext = match.groups()
             if not basename and not ext:
@@ -398,6 +399,7 @@ class FileSequence(object):
             seqs.setdefault(key, set())
             if frame:
                 seqs[key].add(frame)
+
         for (dirname, basename, ext), frames in seqs.iteritems():
             # build the FileSequence behind the scenes, rather than dupe work
             seq = FileSequence.__new__(FileSequence)
@@ -461,19 +463,26 @@ class FileSequence(object):
 
         return list(FileSequence.yield_sequences_in_list(files))
 
-    @staticmethod
-    def findSequenceOnDisk(pattern):
+    @classmethod
+    def findSequenceOnDisk(cls, pattern, strictPadding=True):
         """
         Search for a specific sequence on disk.
 
-        :Example:
-            >>> findSequenceOnDisk("seq/bar#.exr") # or any fileseq pattern
+        The padding characters used in the pattern are used to filter the 
+        frame values of the files on disk (if strictPadding is True).
 
+        :Example:
+            # Any fileseq pattern. 
+            # Find 4-padded sequence, i.e. seq/bar1-100#.exr
+            >>> findSequenceOnDisk("seq/bar#.exr")
+            
         :param pattern: the sequence pattern being searched for
         :rtype: str
+        :param strictPadding: if true, filter files with frames that don't match the same padding in pattern
+        :rtype: bool
         :raises: :class:`fileseq.exceptions.FileSeqException` if no sequence is found on disk
         """
-        seq = FileSequence(pattern)
+        seq = cls(pattern)
 
         if seq.frameRange() == '' and seq.padding() == '':
             if os.path.isfile(pattern):
@@ -483,14 +492,38 @@ class FileSequence(object):
 
         ext = seq.extension()
         basename = seq.basename()
+        pad = seq.padding()
 
-        matches = FileSequence.yield_sequences_in_list(iglob(patt))
+        globbed = iglob(patt)
+        if pad and strictPadding:
+            globbed = cls._filterByPaddingNum(globbed, seq.zfill())
+
+        matches = cls.yield_sequences_in_list(globbed)
         for match in matches:
             if match.basename() == basename and match.extension() == ext:
                 return match
 
         msg = 'no sequence found on disk matching {0}'
         raise FileSeqException(msg.format(pattern))
+
+    @classmethod
+    def _filterByPaddingNum(cls, iterable, num):
+        """
+        Yield only path elements from iterable which have a frame
+        padding that matches the given target padding number
+        """
+        _check = DISK_RE.match
+
+        for item in iterable:
+            # Add a filter for paths that don't match the frame
+            # padding of a given number
+            matches = _check(item)
+            if matches:
+                actualNum = len(matches.group(3))
+                if actualNum != num:
+                    continue
+            
+            yield item
 
     @staticmethod
     def getPaddingChars(num):

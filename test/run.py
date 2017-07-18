@@ -25,7 +25,8 @@ from fileseq import (FrameSet,
                      padFrameRange, 
                      getPaddingChars, 
                      getPaddingNum, 
-                     ParseException)
+                     ParseException,
+                     FileSeqException)
 
 from fileseq import constants, exceptions, utils
 from fileseq.constants import PAD_MAP
@@ -1751,6 +1752,31 @@ class TestFindSequenceOnDisk(TestBase):
 
         finally:
             os.path = _path
+
+    def testPaddingMatch(self):
+        tests = [
+            ("mixed/seq.#.ext", "mixed/seq.-1-5#.ext"),
+            ("mixed/seq.@@.ext", "mixed/seq.-1-5@@.ext"),
+            ("mixed/seq.@@@@@.ext", "mixed/seq.-1-5@@@@@.ext"),
+            ("mixed/seq.@.ext", None),
+            ("mixed/seq.%04d.ext", "mixed/seq.-1-5#.ext"),
+            ("mixed/seq.%02d.ext", "mixed/seq.-1-5@@.ext"),
+            ("mixed/seq.%05d.ext", "mixed/seq.-1-5@@@@@.ext"),
+            ("mixed/seq.%01d.ext", None),
+        ]
+
+        for pattern, expected in tests:
+            if expected is None:
+                with self.assertRaises(FileSeqException):
+                    findSequenceOnDisk(pattern)
+                continue
+            
+            seq = findSequenceOnDisk(pattern, strictPadding=True)
+            self.assertTrue(isinstance(seq, FileSequence))
+            
+            actual = str(seq)
+            self.assertEqual(actual, expected)
+
 
 class TestPaddingFunctions(unittest.TestCase):
     """
