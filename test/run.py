@@ -1618,6 +1618,15 @@ class TestFileSequence(TestBase):
         ])
         self.assertEquals(actual, expected)
 
+    def testIgnoreFrameSetStrings(self):
+        for char in "xy:,".split():
+            fs = FileSequence("/path/to/file{0}1-1x1#.exr".format(char))
+            self.assertEquals(fs.basename(), "file{0}".format(char))
+            self.assertEquals(fs.start(), 1)
+            self.assertEquals(fs.end(), 1)
+            self.assertEquals(fs.padding(), '#')
+            self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
+
 class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):

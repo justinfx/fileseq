@@ -16,7 +16,7 @@ PAD_MAP = {"#": 4, "@": 1}
 # Example: /film/shot/renders/bilbo_bty.1-100@.exr
 # Example: /film/shot/renders/bilbo_bty.1-100@@@@#.exr
 # Example: /film/shot/renders/bilbo_bty.1-100%04d.exr
-SPLIT_PATTERN = r"([-:,xy\d]*)([{0}]+|%\d+d)".format(''.join(PAD_MAP.keys()))
+SPLIT_PATTERN = r"((?:[-\d][-:,xy\d]*)?)([{0}]+|%\d+d)".format(''.join(PAD_MAP.keys()))
 SPLIT_RE = re.compile(SPLIT_PATTERN)
 
 # Regular expression pattern for matching padding against a printf syntax
