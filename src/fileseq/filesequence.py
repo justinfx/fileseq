@@ -65,8 +65,6 @@ class FileSequence(object):
             sep = utils._getPathSep(sequence)
             if not self._dir.endswith(sep):
                 self._dir += sep
-        else:
-            self._dir = ''
 
         self._zfill = self.__class__.getPaddingNum(self._pad)
 

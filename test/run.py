@@ -1531,6 +1531,7 @@ class TestFileSequence(TestBase):
         self.assertEquals(fs.start(), 0)
         self.assertEquals(fs.end(), 0)
         self.assertEquals(fs.padding(), '')
+        self.assertEquals(fs.extension(), '.exr')
         self.assertEquals(str(fs), "/path/to/file_v2.exr")
 
     def testHasFrameNoVersion(self):
@@ -1538,7 +1539,27 @@ class TestFileSequence(TestBase):
         self.assertEquals(fs.start(), 2)
         self.assertEquals(fs.end(), 2)
         self.assertEquals(fs.padding(), '@')
+        self.assertEquals(fs.extension(), '.exr')
         self.assertEquals(str(fs), "/path/to/file.2@.exr")
+
+    def testNoFrameNoVersionNoExt(self):
+        fs = FileSequence("/path/to/file")
+        self.assertEquals(fs.start(), 0)
+        self.assertEquals(fs.end(), 0)
+        self.assertEquals(fs.padding(), '')
+        self.assertEquals(fs.dirname(), '/path/to/')
+        self.assertEquals(fs.basename(), 'file')
+        self.assertEquals(fs.extension(), '')
+        self.assertEquals(str(fs), "/path/to/file")
+
+        fs = FileSequence("file")
+        self.assertEquals(fs.start(), 0)
+        self.assertEquals(fs.end(), 0)
+        self.assertEquals(fs.padding(), '')
+        self.assertEquals(fs.dirname(), '')
+        self.assertEquals(fs.basename(), 'file')
+        self.assertEquals(fs.extension(), '')
+        self.assertEquals(str(fs), "file")
 
     def testEmptyBasename(self):
         seq = FileSequence("/path/to/1-5#.exr")
