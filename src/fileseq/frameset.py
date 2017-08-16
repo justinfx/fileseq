@@ -943,7 +943,7 @@ class FrameSet(Set):
             if curr_stride == new_stride:
                 last_frame = curr_frame
                 curr_count += 1
-            elif curr_count == 2:
+            elif curr_count == 2 and curr_stride != 1:
                 yield _build(curr_start, curr_start, None, zfill)
                 curr_start = last_frame
                 curr_stride = new_stride
@@ -954,7 +954,7 @@ class FrameSet(Set):
                 curr_start = curr_frame
                 last_frame = curr_frame
                 curr_count = 1
-        if curr_count == 2:
+        if curr_count == 2 and curr_stride != 1:
             yield _build(curr_start, curr_start, None, zfill)
             yield _build(curr_frame, curr_frame, None, zfill)
         else:

@@ -1155,6 +1155,19 @@ class TestFrameSet(unittest.TestCase):
         finally:
             constants.MAX_FRAME_SIZE = _maxSize
 
+    def test2FramesContiguous(self):
+        table = [
+            ([1,2], "1-2"),
+            ([-1,0], "-1-0"),
+            ([-2,-1], "-2--1"),
+            ([1,2,5,7,8,10,11], "1-2,5,7-8,10-11"),
+            ([-5,-4,-1,1,2,5,7,8,12,13,14,15,16,52,53], "-5--4,-1,1-2,5,7-8,12-16,52-53"),
+        ]
+
+        for frames, expected in table:
+            fs = FrameSet(frames)
+            self.assertEqual(str(fs), expected)
+
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFrameSet dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
@@ -1613,6 +1626,15 @@ class TestFileSequence(TestBase):
             "path/0001.jpg",
             "path/0002.jpg",
             "path/0003.jpg",
+            "2frames.01.jpg",
+            "2frames.02.jpg",
+            '8frames.01.jpg',
+            '8frames.02.jpg',
+            '8frames.05.jpg',
+            '8frames.07.jpg',
+            '8frames.08.jpg',
+            '8frames.10.jpg',
+            '8frames.11.jpg',
         ]
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         expected = set([
@@ -1632,11 +1654,13 @@ class TestFileSequence(TestBase):
             "mixed_seqs/no_ext_10@@",
             "mixed_seqs/no_ext.200",
             "mixed_seqs/no_ext.300",
-            '/path/to/file4-5,-4@@.exr',
+            '/path/to/file4-5--4@@.exr',
             '/path/to/file--4@@.exr',
             'path/1-3@@.exr',
             'path/1-3@@@.file',
             'path/1-3#.jpg',
+            '2frames.1-2@@.jpg',
+            '8frames.1-2,5,7-8,10-11@@.jpg',
         ])
         self.assertEquals(actual, expected)
 
