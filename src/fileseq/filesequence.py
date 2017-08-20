@@ -4,6 +4,8 @@ filesequence - A parsing object representing sequential files for fileseq.
 """
 
 import os
+import re
+import functools
 from glob import iglob
 from itertools import imap, ifilter
 from fileseq.exceptions import ParseException, FileSeqException
@@ -426,18 +428,74 @@ class FileSequence(object):
         return list(FileSequence.yield_sequences_in_list(paths))
 
     @classmethod
-    def findSequencesOnDisk(cls, dirpath, include_hidden=False):
+    def findSequencesOnDisk(cls, pattern, include_hidden=False, strictPadding=False):
         """
         Yield the sequences found in the given directory.
+        
+        Example::
+            findSequencesOnDisk('/path/to/files')
 
-        :param dirpath: directory to scan
+        The pattern can also specify glob-like shell wildcards including the following:
+            ?         - 1 wildcard character
+            *         - 1 or more wildcard character
+            {foo,bar} - either 'foo' or 'bar'
+        
+        Exact frame ranges are not considered, and padding characters are converted to
+        wildcards (# or @)
+
+        Example::
+            findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
+            findSequencesOnDisk('/path/to/files/imag?_*_{left,right}.@@@.jpg', strictPadding=True)
+        
+        :param pattern: directory to scan, or pattern to filter in directory
         :type include_hidden: bool
         :param include_hidden: if true, show .hidden files as well
+        :type strictPadding: bool
+        :param strictPadding: if True, ignore files with padding length different from pattern
         :rtype: list
         """
         # reserve some functions we're going to need quick access to
         _not_hidden = lambda f: not f.startswith('.')
+        _match_pattern = None
+        _filter_padding = None
         _join = os.path.join
+
+        dirpath, filepat = pattern, None
+
+        # Support the pattern defining a filter for the files
+        # in the existing directory
+        if not os.path.isdir(pattern):
+            dirpath, filepat = os.path.split(pattern)
+
+            if not os.path.isdir(dirpath):
+                return []
+
+            # Start building a regex for filtering files
+            seq = cls(filepat)
+            patt = seq.basename().replace('.', r'\.')
+            if seq.padding():
+                patt += '\d+'
+            if seq.extension():
+                patt += seq.extension()
+
+            # Convert braces groups into regex capture groups
+            view = bytearray(patt)
+            matches = re.finditer(r'{(.*?)(?:,(.*?))*}', patt)
+            for match in reversed(list(matches)):
+                i, j = match.span()
+                view[i:j] = '(%s)' % '|'.join([m.strip() for m in match.groups()])
+            view = view.replace('*', '.*')
+            view = view.replace('?', '.')
+            view += '$'
+            print view
+            try:
+                _match_pattern = re.compile(str(view)).match
+            except re.error:
+                msg = 'Invalid file pattern: {}'.format(filepat)
+                raise FileSeqException(msg)
+
+            if seq.padding() and strictPadding:
+                _filter_padding = functools.partial(cls._filterByPaddingNum, num=seq.zfill())
 
         # Get just the immediate files under the dir.
         # Avoids testing the os.listdir() for files as
@@ -448,6 +506,15 @@ class FileSequence(object):
         # collapse some generators to get us the files that match our regex
         if not include_hidden:
             files = ifilter(_not_hidden, files)
+
+        # Filter by files that match the provided file pattern
+        if _match_pattern:
+            files = ifilter(_match_pattern, files)
+
+        # Filter by files that match the frame padding in the file pattern
+        if _filter_padding:
+            # returns a generator
+            files = _filter_padding(files)
 
         # Ensure our dirpath ends with a path separator, so
         # that we can control which sep is used during the 
