@@ -291,6 +291,23 @@ class FrameSet(Set):
         """
         return self.order[-1]
 
+    def isConsecutive(self):
+        """
+        Return whether the frame range represents consecutive integers,
+        as opposed to having a stepping >= 2
+    
+        :Example:
+            >>> FrameSet('1-100').isConsecutive()
+            True
+            >>> FrameSet('1-100x2').isConsecutive()
+            False
+            >>> FrameSet('1-50,60-100').isConsecutive()
+            False
+
+        :rtype: bool
+        """
+        return len(self) == abs(self.end()-self.start()) + 1
+
     def frameRange(self, zfill=0):
         """
         Return the frame range used to create this :class:`FrameSet`, padded if
