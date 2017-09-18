@@ -1168,6 +1168,39 @@ class TestFrameSet(unittest.TestCase):
             fs = FrameSet(frames)
             self.assertEqual(str(fs), expected)
 
+    def testIsConsecutive(self):
+        consec = [
+            "10-100",
+            "-100-100",
+            "-100--50",
+            "1,2,3,4,5",
+            "5,6,7,8,9",
+            "-5,-4,-3,-2,-1,0,1",
+            "1,2,3,4,3,2,3,4,5,4",
+            "-10-3,1-10,5-20,7-30",
+            "10--10",
+            "10-2,8-0,4--5",
+        ]
+
+        nonconsec = [
+            "10-20x2",
+            "10-20x2,15-30x3",
+            "-5-1,3-10",
+            "-10-10x2",
+            "10--1010x2",
+            "1,2,3,4,6,7,8",
+            "1,2,3,4,5,0",
+            "5,4,3,2,1,6",
+        ]
+
+        for t in consec:
+            self.assertTrue(FrameSet(t).isConsecutive(), 
+                "Expected %s to be consecutive" % t)
+
+        for t in nonconsec:
+            self.assertFalse(FrameSet(t).isConsecutive(), 
+                "Expected %s to not be consecutive" % t)
+
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFrameSet dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
