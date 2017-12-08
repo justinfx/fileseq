@@ -1,0 +1,10 @@
+diff a/src/fileseq/filesequence.py b/src/fileseq/filesequence.py	(rejected hunks)
+@@ -435,6 +438,8 @@ class FileSequence(object):
+         :param include_hidden: if true, show .hidden files as well
+         :rtype: list
+         """
++        dirpath = utils.asString(dirpath)
++
+         # reserve some functions we're going to need quick access to
+         _not_hidden = lambda f: not f.startswith('.')
+         _join = os.path.join
