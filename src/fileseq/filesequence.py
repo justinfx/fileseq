@@ -24,6 +24,9 @@ class FileSequence(object):
     :raises: :class:`fileseq.exceptions.MaxSizeException`
     """
     def __init__(self, sequence):
+
+        sequence = utils.asString(sequence)
+
         if not hasattr(self, '_frameSet'):
 
             self._frameSet = None
@@ -134,7 +137,7 @@ class FileSequence(object):
         :param dirname: the new directory name
         :rtype: None
         """
-        self._dir = dirname
+        self._dir = utils.asString(dirname)
 
     def basename(self):
         """
@@ -152,7 +155,7 @@ class FileSequence(object):
         :param base: the new base name
         :rtype: None
         """
-        self._base = base
+        self._base = utils.asString(base)
 
     def padding(self):
         """
@@ -211,7 +214,7 @@ class FileSequence(object):
         """
         if ext[0] != ".":
             ext = "." + ext
-        self._ext = ext
+        self._ext = utils.asString(ext)
 
     def setExtention(self, ext):
         """
@@ -391,7 +394,7 @@ class FileSequence(object):
         seqs = {}
         _check = DISK_RE.match
 
-        for match in ifilter(None, imap(_check, paths)):
+        for match in ifilter(None, imap(_check, imap(utils.asString, paths))):
             dirname, basename, frame, ext = match.groups()
             if not basename and not ext:
                 continue

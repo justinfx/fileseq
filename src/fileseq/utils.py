@@ -125,3 +125,20 @@ def _getPathSep(path):
     :rtype: str
     """
     return os.sep
+
+_STR_TYPES = frozenset((unicode, str, bytes))
+
+def asString(obj):
+    """
+    Ensure an object is either explicitely str or unicode
+    and not some derived type that can change semantics.
+
+    If the object is unicode, return unicode.
+    Otherwise return the string conversion of the object.
+
+    :type obj: Object to return as str or unicode
+    :rtpe: str or unicode
+    """
+    if type(obj) in _STR_TYPES:
+        return obj
+    return str(obj)

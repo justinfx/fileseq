@@ -8,7 +8,7 @@ import sys
 import os
 import re
 import types
-from itertools import chain
+from itertools import chain, imap
 import string
 
 
@@ -1393,6 +1393,30 @@ for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
         lambda self, t=tst, e=exp: TestFramesToFrameRange._check_frameToRangeEquivalence(self, t, e))
 
 
+class _CustomPathString(str):
+    """
+    Custom string will always treat substring slices
+    as path components, and normalize them by removing
+    trailing and duplicate path seps
+    """
+    @classmethod
+    def _create(cls, val):
+        if val:
+            val = os.path.normpath(str(val))
+        return cls(val)
+
+    def __new__(cls, path):
+        if path:
+            path = os.path.normpath(path)
+        return super(_CustomPathString, cls).__new__(cls, path)
+
+    def __add__(self, other):
+        return self._create(super(_CustomPathString, self).__add__(other))
+
+    def __getslice__(self, i, j):
+        return self._create(super(_CustomPathString, self).__getslice__(i, j))
+
+
 class TestFileSequence(TestBase):
 
     def testSeqGettersType1(self):
@@ -1618,6 +1642,18 @@ class TestFileSequence(TestBase):
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), '%04d')
 
+    def testHandleStringSubclasses(self):
+        tests = [
+            ("/path/to/files.0001.ext", "/path/to/", "files."),
+            ("/path/to/files.1-100#.ext", "/path/to/", "files."),
+            ("/path/to/files.ext", "/path/to/", "files"),
+            ("/path/to/files", "/path/to/", "files"),
+        ]
+        for path, dirname, basename in tests:
+            fs = FileSequence(_CustomPathString(path))
+            self.assertTrue(fs.dirname() == dirname, "Expected '%s', got '%s' (with %s)" % (dirname, fs.dirname(), path))
+            self.assertTrue(fs.basename() == basename, "Expected '%s', got '%s' (with %s)" % (basename, fs.basename(), path))
+
     def test_yield_sequences_in_list(self):
         paths = [
             '/path/to/file.5.png',
@@ -1669,7 +1705,7 @@ class TestFileSequence(TestBase):
             '8frames.10.jpg',
             '8frames.11.jpg',
         ]
-        actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
+
         expected = set([
             '/path/to/file2@.7zip',
             '/path/to/file.1-3@.exr',
@@ -1695,6 +1731,12 @@ class TestFileSequence(TestBase):
             '2frames.1-2@@.jpg',
             '8frames.1-2,5,7-8,10-11@@.jpg',
         ])
+
+        actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
+        self.assertEquals(actual, expected)
+
+        paths = imap(_CustomPathString, paths)
+        actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         self.assertEquals(actual, expected)
 
     def testIgnoreFrameSetStrings(self):
@@ -1705,6 +1747,7 @@ class TestFileSequence(TestBase):
             self.assertEquals(fs.end(), 1)
             self.assertEquals(fs.padding(), '#')
             self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
+
 
 class TestFindSequencesOnDisk(TestBase):
 
