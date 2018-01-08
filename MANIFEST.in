@@ -1,2 +1,3 @@
 graft test
+include README.md
 global-include *.exr *.py
