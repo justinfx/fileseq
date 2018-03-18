@@ -381,6 +381,12 @@ class FileSequence(object):
             self._pad if frameSet else "",
             self._ext))
 
+    def __repr__(self):
+        try:
+            return "<FileSequence: '%s'>" % str(self)
+        except TypeError:
+            return super(FileSequence, self).__repr__()
+
     @staticmethod
     def yield_sequences_in_list(paths):
         """
