@@ -25,7 +25,7 @@ PRINTF_SYNTAX_PADDING_PATTERN = r"%(\d+)d"
 PRINTF_SYNTAX_PADDING_RE = re.compile(PRINTF_SYNTAX_PADDING_PATTERN)
 
 # Regular expression pattern for matching file names on disk.
-DISK_PATTERN = r"^((?:.*[/\\])?)(?:(.*?)(-?\d+)?((?:\.[^.]*)?))?$"
+DISK_PATTERN = r"^((?:.*[/\\])?)(.*?)(-?\d+)?((?:\.\w*[a-zA-Z]\w)*(?:\.[^.]+)?)$"
 DISK_RE = re.compile(DISK_PATTERN)
 
 # Regular expression pattern for matching frame set strings.
