@@ -55,6 +55,7 @@ target/
 
 # PyCharm & Atlassian
 .idea/
+*.iml
 atlassian-ide-plugin.xml
 
 # Line Profiler Logs
