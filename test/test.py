@@ -206,6 +206,10 @@ class TestFileSequence(TestBase):
         seq.setDirname("/bing/")
         self.assertEquals("/bing/bong.1.exr", seq[0])
 
+        seq = FileSequence("/foo/bong.1-5@.exr")
+        seq.setDirname("bing")
+        self.assertEquals("bing/bong.1.exr", seq[0])
+
     def testSetBasename(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setBasename("bar.")

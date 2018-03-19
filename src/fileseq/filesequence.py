@@ -67,9 +67,7 @@ class FileSequence(object):
                     self._pad = ''
 
         if self._dir:
-            sep = utils._getPathSep(sequence)
-            if not self._dir.endswith(sep):
-                self._dir += sep
+            self.setDirname(self._dir)
 
         self._zfill = self.__class__.getPaddingNum(self._pad)
 
@@ -137,6 +135,12 @@ class FileSequence(object):
         :param dirname: the new directory name
         :rtype: None
         """
+        # Make sure the dirname always ends in
+        # a path separator character
+        sep = utils._getPathSep(dirname)
+        if not dirname.endswith(sep):
+            dirname += sep
+
         self._dir = utils.asString(dirname)
 
     def basename(self):
