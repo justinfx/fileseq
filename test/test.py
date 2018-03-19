@@ -392,12 +392,13 @@ class TestFileSequence(TestBase):
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), '%04d')
 
-    def testHandleStringSubclasses(self):
+    def ringSubclasses(self):
+        sep = lambda p: p.replace("/", os.sep)
         tests = [
-            ("/path/to/files.0001.ext", "/path/to/", "files."),
-            ("/path/to/files.1-100#.ext", "/path/to/", "files."),
-            ("/path/to/files.ext", "/path/to/", "files"),
-            ("/path/to/files", "/path/to/", "files"),
+            ("/path/to/files.0001.ext", sep("/path/to/"), "files."),
+            ("/path/to/files.1-100#.ext", sep("/path/to/"), "files."),
+            ("/path/to/files.ext", sep("/path/to/"), "files"),
+            ("/path/to/files", sep("/path/to/"), "files"),
         ]
         for path, dirname, basename in tests:
             fs = FileSequence(_CustomPathString(path))
@@ -485,7 +486,7 @@ class TestFileSequence(TestBase):
 
         paths = imap(_CustomPathString, paths)
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals(actual, expected)
+        self.assertEquals(actual, {str(_CustomPathString(p)) for p in expected})
 
     def testIgnoreFrameSetStrings(self):
         for char in "xy:,".split():
