@@ -331,9 +331,7 @@ class FileSequence(object):
         :param idx: the desired index
         :rtype: str
         """
-        if not self._frameSet:
-            return str(self)
-        return self.frame(self._frameSet[idx])
+        return self.__getitem__(idx)
 
     def __iter__(self):
         """
@@ -355,11 +353,18 @@ class FileSequence(object):
         """
         Allows access via index to the underlying :class:`fileseq.frameset.FrameSet`.
 
-        :type idx: int
+        :type idx: int or slice
         :param idx: the desired index
-        :rtype: int
+        :rtype: str or list
         """
-        return self.index(idx)
+        if not self._frameSet:
+            return str(self)
+
+        frames = self._frameSet[idx]
+        getter = self.frame
+        if hasattr(frames, '__iter__'):
+            return [getter(i) for i in frames]
+        return getter(frames)
 
     def __len__(self):
         """
