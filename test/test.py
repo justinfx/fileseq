@@ -7,6 +7,7 @@ import cPickle
 import re
 from itertools import imap
 import string
+from collections import namedtuple
 
 from utils import *
 
@@ -111,6 +112,21 @@ class TestFrameSet(unittest.TestCase):
         for t in nonconsec:
             self.assertFalse(FrameSet(t).isConsecutive(), 
                 "Expected %s to not be consecutive" % t)
+
+    def testSlicing(self):
+        Case = namedtuple('Case', ['input', 'slice', 'expected'])
+        table = [
+            Case('1-10', slice(3, 6), (4, 5, 6)),
+            Case('1-10', slice(None, 5), (1,2,3,4,5)),
+            Case('1-10', slice(5, None), (6,7,8,9,10)),
+            Case('1-10', slice(-3, None), (8, 9, 10)),
+            Case('1-10', slice(-6, None, 2), (5,7,9)),
+        ]
+
+        for case in table:
+            fs = FrameSet(case.input)
+            actual = fs[case.slice]
+            self.assertEqual(case.expected, actual)
 
 
 class TestBase(unittest.TestCase):
@@ -250,6 +266,32 @@ class TestFileSequence(TestBase):
         }
         seq = FileSequence("/cheech/chong.1,3,5#.exr")
         self.assertFalse(known.difference(seq))
+
+    def testSlicing(self):
+        Case = namedtuple('Case', ['input', 'slice', 'expected'])
+        table = [
+            Case('file.1-10#.ext', 1, 'file.0002.ext'),
+            Case('file.1-10#.ext', -1, 'file.0010.ext'),
+            Case('file.1-10#.ext', slice(3, 6), FileSequence('file.4-6#.ext')),
+            Case('file.1-10#.ext', slice(None, 5), FileSequence('file.1-5#.ext')),
+            Case('file.1-10#.ext', slice(5, None), FileSequence('file.6-10#.ext')),
+            Case('file.1-10#.ext', slice(-3, None), FileSequence('file.8-10#.ext')),
+            Case('file.1-10#.ext', slice(-6, None, 2), FileSequence('file.5-9x2#.ext')),
+            Case('file.-5-30x3#.ext', slice(3, 8, 2), FileSequence('file.4-16x6#.ext')),
+            Case('file.-5-30x3#.ext', slice(None, None, 2), FileSequence('file.-5-25x6#.ext')),
+        ]
+
+        for case in table:
+            fs = FileSequence(case.input)
+            actual = fs[case.slice]
+            self.assertEqual(case.expected, actual)
+
+        fs = FileSequence('file.1-10#.ext')
+        raises = [-20, 20, slice(11, None), slice(-200, -100)]
+        for case in raises:
+            with self.assertRaises(IndexError):
+                ret = fs.__getitem__(case)
+                raise RuntimeError("expected case %s to raise an IndexError; got %s" % (case, ret))
 
     def testFormat(self):
         seq = FileSequence("/cheech/chong.1-10,30,40#.exr")
