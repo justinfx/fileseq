@@ -396,6 +396,12 @@ class FileSequence(object):
         except TypeError:
             return super(FileSequence, self).__repr__()
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def __ne__(self, other):
+        return str(self) != str(other)
+
     @staticmethod
     def yield_sequences_in_list(paths):
         """
