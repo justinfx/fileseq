@@ -272,12 +272,13 @@ class TestFileSequence(TestBase):
         table = [
             Case('file.1-10#.ext', 1, 'file.0002.ext'),
             Case('file.1-10#.ext', -1, 'file.0010.ext'),
-            Case('file.1-10#.ext', slice(3, 6), ['file.%04d.ext' % i for i in (4, 5, 6)]),
-            Case('file.1-10#.ext', slice(None, 5), ['file.%04d.ext' % i for i in range(1, 6)]),
-            Case('file.1-10#.ext', slice(5, None), ['file.%04d.ext' % i for i in range(6, 11)]),
-            Case('file.1-10#.ext', slice(-3, None), ['file.%04d.ext' % i for i in (8, 9, 10)]),
-            Case('file.1-10#.ext', slice(-6, None, 2), ['file.%04d.ext' % i for i in (5, 7, 9)]),
-            Case('file.-5-30x3#.ext', slice(3, 8, 2), ['file.%04d.ext' % i for i in (4, 10, 16)]),
+            Case('file.1-10#.ext', slice(3, 6), FileSequence('file.4-6#.ext')),
+            Case('file.1-10#.ext', slice(None, 5), FileSequence('file.1-5#.ext')),
+            Case('file.1-10#.ext', slice(5, None), FileSequence('file.6-10#.ext')),
+            Case('file.1-10#.ext', slice(-3, None), FileSequence('file.8-10#.ext')),
+            Case('file.1-10#.ext', slice(-6, None, 2), FileSequence('file.5-9x2#.ext')),
+            Case('file.-5-30x3#.ext', slice(3, 8, 2), FileSequence('file.4-16x6#.ext')),
+            Case('file.-5-30x3#.ext', slice(None, None, 2), FileSequence('file.-5-25x6#.ext')),
         ]
 
         for case in table:
@@ -285,8 +286,8 @@ class TestFileSequence(TestBase):
             actual = fs[case.slice]
             self.assertEqual(case.expected, actual)
 
-        fs = FileSequence('file.0001.ext')
-        raises = [-10, -2, 1]
+        fs = FileSequence('file.1-10#.ext')
+        raises = [-20, 20, slice(11, None), slice(-200, -100)]
         for case in raises:
             with self.assertRaises(IndexError):
                 ret = fs.__getitem__(case)

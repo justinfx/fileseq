@@ -71,6 +71,19 @@ class FileSequence(object):
 
         self._zfill = self.__class__.getPaddingNum(self._pad)
 
+    def copy(self):
+        """
+        Create a deep copy of this sequence
+
+        :return: :obj:`fileseq.FileSequence`
+        """
+        fs = self.__class__.__new__(self.__class__)
+        fs.__dict__ = self.__dict__.copy()
+        fs._frameSet = None
+        if self._frameSet is not None:
+            fs._frameSet = self._frameSet.copy()
+        return fs
+
     def format(self, template="{basename}{range}{padding}{extension}"):
         """Return the file sequence as a formatted string according to
         the given template.
@@ -351,20 +364,33 @@ class FileSequence(object):
 
     def __getitem__(self, idx):
         """
-        Allows access via index to the underlying :class:`fileseq.frameset.FrameSet`.
+        Allows indexing and slicing into the underlying :class:`fileseq.FrameSet`.
+
+        When indexing, a string filepath is returns for the frame.
+
+        When slicing, a new :class:`FileSequence` is returned.
+        Slicing outside the range of the sequence results in an
+        IndexError
 
         :type idx: int or slice
         :param idx: the desired index
-        :rtype: str or list
+        :rtype: str or :obj:`FileSequence`
         """
         if not self._frameSet:
             return str(self)
 
         frames = self._frameSet[idx]
-        getter = self.frame
-        if hasattr(frames, '__iter__'):
-            return [getter(i) for i in frames]
-        return getter(frames)
+
+        if not hasattr(idx, 'start'):
+            return self.frame(frames)
+
+        fset = FrameSet(frames)
+        if fset.is_null:
+            raise IndexError("slice is out of range and returns no frames")
+
+        fs = self.copy()
+        fs.setFrameSet(fset)
+        return fs
 
     def __len__(self):
         """
