@@ -25,7 +25,10 @@ setup(name='Fileseq',
 
       author='Matt Chambers',
       author_email='yougotrooted@gmail.com',
-      
+
+      maintainer='Justin Israel',
+      maintainer_email='justinisrael@gmail.com',
+
       url='https://github.com/sqlboy/fileseq',
       
       description=descript,
