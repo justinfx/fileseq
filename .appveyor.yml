@@ -6,5 +6,5 @@ environment:
 build: off
 
 test_script:
-  - "%PYTHON%\\python.exe test\\test.py"
+  - "%PYTHON%\\python.exe test\\test_unit.py"
   - "%PYTHON%\\python.exe test\\test_fuzz.py"
