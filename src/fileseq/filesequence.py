@@ -537,7 +537,6 @@ class FileSequence(object):
             view = view.replace('*', '.*')
             view = view.replace('?', '.')
             view += '$'
-            print view
             try:
                 _match_pattern = re.compile(str(view)).match
             except re.error:
