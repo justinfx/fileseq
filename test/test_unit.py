@@ -579,7 +579,8 @@ class TestFindSequencesOnDisk(TestBase):
             seqs = findSequencesOnDisk(pattern, strictPadding=True)
             for seq in seqs:
                 self.assertTrue(isinstance(seq, FileSequence))
-            actual = [str(seq) for seq in seqs]
+            actual = self.toNormpaths([str(seq) for seq in seqs])
+            expected = self.toNormpaths(expected)
             self.assertEqual(actual, expected)
 
     def testNegSequencesOnDisk(self):
