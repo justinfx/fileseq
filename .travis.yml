@@ -4,7 +4,8 @@ python:
 
 # command to run tests
 script:
-- "./test/run.py"
+- "./test/test_unit.py"
+- "./test/test_fuzz.py"
 
 # blacklist
 #branches:
