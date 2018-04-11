@@ -639,7 +639,7 @@ class FileSequence(object):
             # padding of a given number
             matches = _check(item)
             if matches:
-                actualNum = len(matches.group(3))
+                actualNum = len(matches.group(3) or '')
                 if actualNum != num:
                     continue
             
