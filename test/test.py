@@ -543,8 +543,8 @@ class TestFileSequence(TestBase):
 class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):
-        seqs = findSequencesOnDisk("seq")
-        self.assertEquals(6, len(seqs))
+        seqs = findSequencesOnDisk("seq", strictPadding=True)
+        self.assertEquals(7, len(seqs))
 
         known = {
             "seq/bar1000-1002,1004-1006#.exr",
@@ -552,10 +552,35 @@ class TestFindSequencesOnDisk(TestBase):
             "seq/foo.1-5#.jpg",
             "seq/foo.debug.1-5#.exr",
             "seq/foo_1#.exr",
+            "seq/foo_0001_extra.exr",
             "seq/1-3#.exr",
         }
         found = set([str(s) for s in seqs])
         self.assertEqualPaths(found, known)
+
+    def testStrictPadding(self):
+        tests = [
+            ("seq/bar#.exr", ["seq/bar1000-1002,1004-1006#.exr"]),
+            ("seq/bar@@@@.exr", ["seq/bar1000-1002,1004-1006#.exr"]),
+            ("seq/bar@@@.exr", []),
+            ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
+            ("seq/foo.#.jpg", ["seq/foo.1-5#.jpg"]),
+            ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
+            ("seq/foo.debug.#.exr", ["seq/foo.debug.1-5#.exr"]),
+            ("seq/#.exr", ["seq/1-3#.exr"]),
+            ("seq/foo_#.exr", ["seq/foo_1#.exr"]),
+            ("seq/foo_#_extra.exr", []),
+            ("seq/foo_##.exr", []),
+            ("seq/foo_@.exr", []),
+            ("seq/foo_@@_extra.exr", []),
+        ]
+
+        for pattern, expected in tests:
+            seqs = findSequencesOnDisk(pattern, strictPadding=True)
+            for seq in seqs:
+                self.assertTrue(isinstance(seq, FileSequence))
+            actual = [str(seq) for seq in seqs]
+            self.assertEqual(actual, expected)
 
     def testNegSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seqneg")
@@ -624,6 +649,7 @@ class TestFindSequencesOnDisk(TestBase):
         finally:
             os.path.join = _join
 
+
 class TestFindSequenceOnDisk(TestBase):
 
     def testFindSequenceOnDisk(self):
@@ -640,7 +666,34 @@ class TestFindSequenceOnDisk(TestBase):
         ]
 
         for pattern, expected in tests:
-            seq = findSequenceOnDisk(pattern)
+            seq = findSequenceOnDisk(pattern, strictPadding=False)
+            self.assertTrue(isinstance(seq, FileSequence))
+            actual = str(seq)
+            self.assertEqual(actual, expected)
+
+    def testStrictPadding(self):
+        tests = [
+            ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
+            ("seq/bar@@@@.exr", "seq/bar1000-1002,1004-1006#.exr"),
+            ("seq/bar@@@.exr", None),
+            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+            ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
+            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+            ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
+            ("seq/#.exr", "seq/1-3#.exr"),
+            ("seq/foo_#.exr", "seq/foo_1#.exr"),
+            ("seq/foo_#_extra.exr", "seq/foo_1#_extra.exr"),
+            ("seq/foo_##.exr", None),
+            ("seq/foo_@.exr", None),
+        ]
+
+        for pattern, expected in tests:
+            if expected is None:
+                with self.assertRaises(fileseq.FileSeqException):
+                    findSequenceOnDisk(pattern, strictPadding=True)
+                return
+
+            seq = findSequenceOnDisk(pattern, strictPadding=True)
             self.assertTrue(isinstance(seq, FileSequence))
             actual = str(seq)
             self.assertEqual(actual, expected)
@@ -704,7 +757,7 @@ class TestPaddingFunctions(unittest.TestCase):
     Test functions that help deal with padding on file sequences.
     """
 
-    def testgetPaddingChars(self):
+    def testGetPaddingChars(self):
         """
         Ensure that we're getting back the proper padding characters.
         :return: None
@@ -716,7 +769,7 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingChars(4), '#')
         self.assertEqual(getPaddingChars(8), '##')
 
-    def testgetPaddingNum(self):
+    def testGetPaddingNum(self):
         """
         Ensure that we're getting back the proper padding number.
         :return: None
