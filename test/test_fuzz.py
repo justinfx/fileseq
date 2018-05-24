@@ -113,6 +113,7 @@ LO_RANGES = [
     ('NegToPosChunkInv', '-20-1x5', list(xrange(-20,2,5))),
     ('NegToNegChunkInv', '-20--1x5', list(xrange(-20,0,5))),
     ('PosToNegChunkInv', '20--1x5', list(xrange(20,-2,-5))),
+    ('PosToPosNegChunkInv', '20-1x-1', list(xrange(20,0,-1))),
     ('PosToPosFill', '1-20y5', list(_yrange(1,21,5))),
     ('NegToPosFill', '-1-20y5', list(_yrange(-1,21,5))),
     ('NegToNegFill', '-1--20y5', list(_yrange(-1,-21,-5))),
