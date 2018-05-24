@@ -30,7 +30,7 @@ DISK_RE = re.compile(DISK_PATTERN)
 
 # Regular expression pattern for matching frame set strings.
 # Examples: '1' or '1-100', '1-100x5', '1-100:5', '1-100y5', '1,2', etc.
-FRANGE_PATTERN = r"^(-?\d+)(?:-(-?\d+)(?:([:xy]{1})(\d+))?)?$"
+FRANGE_PATTERN = r"^(-?\d+)(?:-(-?\d+)(?:([:xy]{1})(-?\d+))?)?$"
 FRANGE_RE = re.compile(FRANGE_PATTERN)
 
 # Regular expression for padding a frame range.

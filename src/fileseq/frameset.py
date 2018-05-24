@@ -896,6 +896,11 @@ class FrameSet(Set):
         start, end, modifier, chunk = match.groups()
         start = int(start)
         end = int(end) if end is not None else start
+
+        if end > start and chunk is not None and int(chunk) < 0:
+            msg = 'Could not parse "{0}: chunk can not be negative'
+            raise ParseException(msg.format(frange))
+
         chunk = abs(int(chunk)) if chunk is not None else 1
         # a zero chunk is just plain illogical
         if chunk == 0:
