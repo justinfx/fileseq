@@ -25,8 +25,21 @@ PRINTF_SYNTAX_PADDING_PATTERN = r"%(\d+)d"
 PRINTF_SYNTAX_PADDING_RE = re.compile(PRINTF_SYNTAX_PADDING_PATTERN)
 
 # Regular expression pattern for matching file names on disk.
-DISK_PATTERN = r"^((?:.*[/\\])?)(.*?)(-?\d+)?((?:\.\w*[a-zA-Z]\w)*(?:\.[^.]+)?)$"
-DISK_RE = re.compile(DISK_PATTERN)
+DISK_PATTERN = r"""^
+                ((?:.*[/\\])?)      # dirname, up to slash
+                (.*?)               # basename, before frame/ext
+                (-?\d+)?            # optional frame number
+                (                   # extension, with leading dot
+                    # if there was a frame match, allow
+                    # for parsing long extension like .tar.gz
+                    (?(3)
+                        (?:\.\w*[a-zA-Z]\w)*
+                    )
+
+                    (?:\.[^.]*)?    # the rest of the extension
+                )
+                $"""
+DISK_RE = re.compile(DISK_PATTERN, re.X)
 
 # Regular expression pattern for matching frame set strings.
 # Examples: '1' or '1-100', '1-100x5', '1-100:5', '1-100y5', '1,2', etc.

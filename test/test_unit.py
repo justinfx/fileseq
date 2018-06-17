@@ -2,6 +2,7 @@
 
 from __future__ import division
 
+import logging
 import unittest
 import cPickle
 import re
@@ -434,7 +435,45 @@ class TestFileSequence(TestBase):
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), '%04d')
 
-    def ringSubclasses(self):
+    def testMultipleDotExt(self):
+        test = namedtuple('Test', 'src dirname basename start end pad ext out')
+        tests = [
+            test("/path/to/file_part.v2.1-100#.tar.gz",
+                 '/path/to/', 'file_part.v2.', 1, 100, '#', '.tar.gz',
+                 "/path/to/file_part.v2.1-100#.tar.gz"),
+
+            test("/path/to/file_part.v2.tar.gz",
+                 '/path/to/', 'file_part.v2', 0, 0, '', '.tar.gz',
+                 "/path/to/file_part.v2.tar.gz"),
+
+            test("/path/to/file_part.v2.100.tar.gz",
+                 '/path/to/', 'file_part.v2.', 100, 100, '@@@', '.tar.gz',
+                 "/path/to/file_part.v2.100@@@.tar.gz"),
+
+            test("/path/to/file_part.v2.single_file.tar.gz",
+                 '/path/to/', 'file_part.v2', 0, 0, '', '.single_file.tar.gz',
+                 "/path/to/file_part.v2.single_file.tar.gz"),
+
+            test("/path/to/file_part.single_file.tar.gz",
+                 '/path/to/', 'file_part.single_file.tar', 0, 0, '', '.gz',
+                 "/path/to/file_part.single_file.tar.gz"),
+        ]
+
+        for i, t in enumerate(tests):
+            fs = FileSequence(t.src)
+            try:
+                self.assertEquals(fs.start(), t.start)
+                self.assertEquals(fs.end(), t.end)
+                self.assertEquals(fs.padding(), t.pad)
+                self.assertEquals(fs.dirname(), t.dirname)
+                self.assertEquals(fs.basename(), t.basename)
+                self.assertEquals(fs.extension(), t.ext)
+                self.assertEquals(str(fs), t.out)
+            except Exception as e:
+                logging.error("test #%d: %s", i, t)
+                raise
+
+    def testHandleStringSubclasses(self):
         sep = lambda p: p.replace("/", os.sep)
         tests = [
             ("/path/to/files.0001.ext", sep("/path/to/"), "files."),
@@ -461,6 +500,7 @@ class TestFileSequence(TestBase):
             '/path/to/file.3.7zip',
             '/path/to/file.4.7zip',
             '/path/to/file.4.mp4',
+            '/path/to/file.v2.tar.gz',
             '', # empty path test
             "mixed_seqs/file5.ext",
             "mixed_seqs/file20.ext",
@@ -504,6 +544,7 @@ class TestFileSequence(TestBase):
             '/path/to/file.2-4@.7zip',
             '/path/to/file2@.exr',
             '/path/to/file.4@.mp4',
+            '/path/to/file.v2@.tar.gz',
             '/path/to/.cruft.file',
             '/path/to/.cruft',
             '/path/to/file20.v123.5@.png',
