@@ -53,7 +53,10 @@ class xrange2(object):
 if os.name == 'nt':
     xrange = xrange2
 else:
-    xrange = xrange
+    try:
+        xrange = xrange
+    except:
+        xrange = range
 
 
 def xfrange(start, stop, step=1, maxSize=-1):
