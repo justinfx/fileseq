@@ -681,6 +681,12 @@ class FileSequence(object):
         try:
             return sum([PAD_MAP[char] for char in chars])
         except KeyError:
+            # Try to establish what the bad character was for the error msg
+            try:
+                for char in chars:
+                    PAD_MAP[char]
+            except KeyError:
+                pass
             msg = "Detected an unsupported padding character: \"{}\"."
             msg += " Supported padding characters: {} or printf syntax padding"
             msg += " %<int>d"
