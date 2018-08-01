@@ -535,16 +535,17 @@ class FileSequence(object):
                 patt += seq.extension()
 
             # Convert braces groups into regex capture groups
-            view = bytearray(patt)
             matches = re.finditer(r'{(.*?)(?:,(.*?))*}', patt)
             for match in reversed(list(matches)):
                 i, j = match.span()
-                view[i:j] = '(%s)' % '|'.join([m.strip() for m in match.groups()])
-            view = view.replace('*', '.*')
-            view = view.replace('?', '.')
-            view += '$'
+                regex = '(%s)' % '|'.join([m.strip() for m in match.groups()])
+                patt = "".join((patt[0:i], regex, patt[j:]))
+            patt = patt.replace('*', '.*')
+            patt = patt.replace('?', '.')
+            patt += '$'
+
             try:
-                _match_pattern = re.compile(str(view)).match
+                _match_pattern = re.compile(str(patt)).match
             except re.error:
                 msg = 'Invalid file pattern: {}'.format(filepat)
                 raise FileSeqException(msg)

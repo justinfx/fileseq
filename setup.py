@@ -44,4 +44,6 @@ setup(name='Fileseq',
       ],
       
       keywords='vfx visual effects file sequence frames image',
+
+      requires=["six"],
      )

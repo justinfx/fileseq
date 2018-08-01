@@ -4,6 +4,7 @@ utils - General tools of use to fileseq operations.
 """
 
 import os
+import six
 from itertools import chain, count, islice
 
 from fileseq import exceptions 
@@ -126,8 +127,6 @@ def _getPathSep(path):
     """
     return os.sep
 
-_STR_TYPES = frozenset((unicode, str, bytes))
-
 def asString(obj):
     """
     Ensure an object is either explicitly str or unicode
@@ -139,6 +138,8 @@ def asString(obj):
     :type obj: Object to return as str or unicode
     :rtype: str or unicode
     """
-    if type(obj) in _STR_TYPES:
+    if isinstance(obj, six.text_type):
         return obj
-    return str(obj)
+    elif isinstance(obj, six.binary_type):
+        return obj.decode("utf-8")
+    return six.text_type(obj)

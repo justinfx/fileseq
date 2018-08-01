@@ -3,6 +3,7 @@
 frameset - A set-like object representing a frame range for fileseq.
 """
 
+import six
 import numbers
 
 from collections import Set, Sequence
@@ -10,7 +11,7 @@ from collections import Set, Sequence
 from fileseq import constants
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
 from fileseq.exceptions import MaxSizeException, ParseException
-from fileseq.utils import xfrange, unique, pad
+from fileseq.utils import xfrange, unique, pad, asString
 
 # Issue #44
 # Possibly use an alternate xrange implementation, depending on platform. 
@@ -86,9 +87,11 @@ class FrameSet(Set):
 
     def __init__(self, frange):        
         # if the user provides anything but a string, short-circuit the build
-        if not isinstance(frange, basestring):
+        if not isinstance(frange, six.text_type):
+            if isinstance(frange, six.binary_type):
+                frange = frange.decode("utf-8")
             # if it's apparently a FrameSet already, short-circuit the build
-            if set(dir(frange)).issuperset(self.__slots__):
+            elif set(dir(frange)).issuperset(self.__slots__):
                 for attr in self.__slots__:
                     setattr(self, attr, getattr(frange, attr))
                 return
@@ -113,14 +116,14 @@ class FrameSet(Set):
             # in all other cases, cast to a string
             else:
                 try:
-                    frange = str(frange)
+                    frange = asString(frange)
                 except Exception as err:
                     msg = 'Could not parse "{0}": cast to string raised: {1}'
                     raise ParseException(msg.format(frange, err))
 
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        self._frange = str(frange).translate(None, ''.join(PAD_MAP.keys()))
+        self._frange = asString(frange).translate(None, ''.join(PAD_MAP.keys()))
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -396,7 +399,7 @@ class FrameSet(Set):
             # this is to allow unpickling of "3rd generation" FrameSets,
             # which are immutable and may be empty.
             self.__init__(state[0])
-        elif isinstance(state, basestring):
+        elif isinstance(state, six.string_types):
             # this is to allow unpickling of "2nd generation" FrameSets,
             # which were mutable and could not be empty.
             self.__init__(state)
@@ -846,7 +849,7 @@ class FrameSet(Set):
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        frange = str(frange).translate(None, ''.join(PAD_MAP.keys()))
+        frange = asString(frange).translate(None, ''.join(PAD_MAP.keys()))
         if not frange:
             return True
         for part in frange.split(','):
