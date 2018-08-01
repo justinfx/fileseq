@@ -81,7 +81,7 @@ class FrameSet(Set):
         :raises: :class:`fileseq.exceptions.ParseException` if the frame range
                  (or a portion of it) could not be parsed
         """
-        self = super(cls, FrameSet).__new__(cls, *args, **kwargs)
+        self = super(cls, FrameSet).__new__(cls)
         return self
 
 
