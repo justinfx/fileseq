@@ -544,7 +544,7 @@ class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq", strictPadding=True)
-        self.assertEquals(7, len(seqs))
+        self.assertEquals(9, len(seqs))
 
         known = {
             "seq/bar1000-1002,1004-1006#.exr",
@@ -554,6 +554,8 @@ class TestFindSequencesOnDisk(TestBase):
             "seq/foo_1#.exr",
             "seq/foo_0001_extra.exr",
             "seq/1-3#.exr",
+            "seq/baz_left.1-3#.exr",
+            "seq/baz_right.1-3#.exr",
         }
         found = set([str(s) for s in seqs])
         self.assertEqualPaths(found, known)
@@ -573,6 +575,9 @@ class TestFindSequencesOnDisk(TestBase):
             ("seq/foo_##.exr", []),
             ("seq/foo_@.exr", []),
             ("seq/foo_@@_extra.exr", []),
+            ("seq/baz_{left,right}.#.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
+            ("seq/baz_{left,right}.@@@@.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
+            ("seq/baz_{left,right}.@@@.exr", []),
         ]
 
         for pattern, expected in tests:
