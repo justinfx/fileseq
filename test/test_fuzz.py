@@ -221,7 +221,7 @@ class TestFrameSet(unittest.TestCase):
         r = f._frange
         self.assertEqual(r, str(test), m.format(test, r))
         m = u'FrameSet("{0}")._frange returns {1}: got {2}'
-        self.assertIsInstance(r, str, m.format(test, str, type(r)))
+        self.assertIsInstance(r, six.text_type, m.format(test, six.text_type, type(r)))
 
     def _check___init___items(self, test, expect):
         """
@@ -501,7 +501,7 @@ class TestFrameSet(unittest.TestCase):
             r = repr(err)
         self.assertEqual(r, expect, m.format(test, l, expect, r))
         m = u'FrameSet("{0}").frameRange({1}) returns {2}: got {3}'
-        self.assertIsInstance(r, str, m.format(test, l, str, type(r)))
+        self.assertIsInstance(r, six.text_type, m.format(test, l, six.text_type, type(r)))
 
     def _check_invertedFrameRange(self, test, expect):
         """
