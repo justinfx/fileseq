@@ -3,12 +3,18 @@
 from __future__ import division
 
 import unittest
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 import re
+import six
 import types
 from itertools import chain
 
 from utils import *
+from fileseq.utils import xrange
 
 from fileseq import FrameSet, framesToFrameRange, ParseException
 
@@ -463,7 +469,7 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = FrameSet(test)
-        f2 = cPickle.loads(cPickle.dumps(f))
+        f2 = pickle.loads(pickle.dumps(f))
         m = u'FrameSet("{0}") does not pickle correctly'
         self.assertIsInstance(f2, FrameSet, m.format(test))
         self.assertTrue(str(f) == str(f2) and list(f) == list(f2), m.format(test))
@@ -495,7 +501,7 @@ class TestFrameSet(unittest.TestCase):
             r = repr(err)
         self.assertEqual(r, expect, m.format(test, l, expect, r))
         m = u'FrameSet("{0}").frameRange({1}) returns {2}: got {3}'
-        self.assertIsInstance(r, str, m.format(test, i, str, type(r)))
+        self.assertIsInstance(r, str, m.format(test, l, str, type(r)))
 
     def _check_invertedFrameRange(self, test, expect):
         """

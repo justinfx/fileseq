@@ -2,14 +2,22 @@
 
 from __future__ import division
 
+import six
 import unittest
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import re
-from itertools import imap
+try:
+    from future_builtins import map
+except ImportError:
+    pass
 import string
 from collections import namedtuple
 
 from utils import *
+from fileseq.utils import xrange
 
 from fileseq import (FrameSet, 
                      FileSequence, 
@@ -28,7 +36,7 @@ class TestUtils(unittest.TestCase):
     
     def testXrange(self):
         # Test that a platform-specific xrange does not produce OverflowError
-        xrng = utils.xrange(1, sys.maxint)
+        xrng = xrange(1, sys.maxsize)
         self.assertTrue(len(xrng) != 0)
 
 
@@ -136,7 +144,7 @@ class TestBase(unittest.TestCase):
     def assertEquals(self, a, b):
         # Make sure string paths are compared with normalized
         # path separators
-        if isinstance(a, basestring) and isinstance(b, basestring):
+        if isinstance(a, six.string_types) and isinstance(b, six.string_types):
             if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b): 
                 a = os.path.normpath(a)
                 b = os.path.normpath(b)
@@ -150,7 +158,7 @@ class TestBase(unittest.TestCase):
         return super(TestBase, self).assertEquals(self.toNormpaths(a), self.toNormpaths(b))
     
     def toNormpaths(self, collection):
-        if isinstance(collection, basestring):
+        if isinstance(collection, six.string_types):
             return os.path.normpath(collection)
         return sorted(map(os.path.normpath, collection))
     
@@ -377,14 +385,14 @@ class TestFileSequence(TestBase):
 
     def testSerialization(self):
         fs = FileSequence("/path/to/file.1-100x2#.exr")
-        s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
-        fs2 = cPickle.loads(s)
+        s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
+        fs2 = pickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
 
         fs = FileSequence("/path/to/file.1-100x2%04d.exr")
-        s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
-        fs2 = cPickle.loads(s)
+        s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
+        fs2 = pickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
 
@@ -526,7 +534,7 @@ class TestFileSequence(TestBase):
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         self.assertEquals(actual, expected)
 
-        paths = imap(_CustomPathString, paths)
+        paths = map(_CustomPathString, paths)
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         self.assertEquals(actual, {str(_CustomPathString(p)) for p in expected})
 
