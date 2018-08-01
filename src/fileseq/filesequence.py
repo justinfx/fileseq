@@ -7,7 +7,13 @@ import os
 import re
 import functools
 from glob import iglob
-from itertools import imap, ifilter
+
+try:
+    from future_builtins import filter, map
+except ImportError:
+    # PY3
+    pass
+
 from fileseq.exceptions import ParseException, FileSeqException
 from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
@@ -441,7 +447,7 @@ class FileSequence(object):
         seqs = {}
         _check = DISK_RE.match
 
-        for match in ifilter(None, imap(_check, imap(utils.asString, paths))):
+        for match in filter(None, map(_check, map(utils.asString, paths))):
             dirname, basename, frame, ext = match.groups()
             if not basename and not ext:
                 continue
@@ -450,15 +456,15 @@ class FileSequence(object):
             if frame:
                 seqs[key].add(frame)
 
-        for (dirname, basename, ext), frames in seqs.iteritems():
+        for (dirname, basename, ext), frames in seqs.items():
             # build the FileSequence behind the scenes, rather than dupe work
             seq = FileSequence.__new__(FileSequence)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
             if frames:
-                seq._frameSet = FrameSet(set(imap(int, frames))) if frames else None
-                seq._pad = FileSequence.getPaddingChars(min(imap(len, frames)))
+                seq._frameSet = FrameSet(set(map(int, frames))) if frames else None
+                seq._pad = FileSequence.getPaddingChars(min(map(len, frames)))
             else:
                 seq._frameSet = None
                 seq._pad = ''
@@ -554,11 +560,11 @@ class FileSequence(object):
 
         # collapse some generators to get us the files that match our regex
         if not include_hidden:
-            files = ifilter(_not_hidden, files)
+            files = filter(_not_hidden, files)
 
         # Filter by files that match the provided file pattern
         if _match_pattern:
-            files = ifilter(_match_pattern, files)
+            files = filter(_match_pattern, files)
 
         # Filter by files that match the frame padding in the file pattern
         if _filter_padding:
