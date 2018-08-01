@@ -17,7 +17,8 @@ import os
 
 _ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src")
 sys.path.insert(0, _ROOT)
-execfile(os.path.join(_ROOT, "fileseq/__version__.py"))
+with open(os.path.join(_ROOT, "fileseq/__version__.py")) as version_file:
+    exec(version_file.read())
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

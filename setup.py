@@ -6,7 +6,8 @@ from codecs import open
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-execfile(os.path.join(here, "src/fileseq/__version__.py"))
+with open(os.path.join(here, "src/fileseq/__version__.py")) as version_file:
+    exec(version_file.read())
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
