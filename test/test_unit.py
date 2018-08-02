@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import division
 
@@ -250,12 +251,12 @@ class TestFileSequence(TestBase):
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameSet(FrameSet("10-20"))
-        self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
+        self.assertEquals(u"/cheech/chong.10-20#.exr", six.text_type(seq))
 
     def testSetFrameRange(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameRange("10-20")
-        self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
+        self.assertEquals(u"/cheech/chong.10-20#.exr", six.text_type(seq))
 
     def testFrame(self):
         seq = FileSequence("/foo/bar/bing.#.exr")
@@ -562,10 +563,10 @@ class TestFindSequencesOnDisk(TestBase):
             "seq/foo_1#.exr",
             "seq/foo_0001_extra.exr",
             "seq/1-3#.exr",
-            "seq/baz_left.1-3#.exr",
-            "seq/baz_right.1-3#.exr",
+            u"seq/Фото_left.1-3#.exr",
+            u"seq/Фото_right.1-3#.exr",
         }
-        found = set([str(s) for s in seqs])
+        found = set([six.text_type(s) for s in seqs])
         self.assertEqualPaths(found, known)
 
     def testStrictPadding(self):
@@ -583,16 +584,16 @@ class TestFindSequencesOnDisk(TestBase):
             ("seq/foo_##.exr", []),
             ("seq/foo_@.exr", []),
             ("seq/foo_@@_extra.exr", []),
-            ("seq/baz_{left,right}.#.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
-            ("seq/baz_{left,right}.@@@@.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
-            ("seq/baz_{left,right}.@@@.exr", []),
+            (u"seq/Фото_{left,right}.#.exr", [u"seq/Фото_left.1-3#.exr", u"seq/Фото_right.1-3#.exr"]),
+            (u"seq/Фото_{left,right}.@@@@.exr", [u"seq/Фото_left.1-3#.exr", u"seq/Фото_right.1-3#.exr"]),
+            (u"seq/Фото_{left,right}.@@@.exr", []),
         ]
 
         for pattern, expected in tests:
             seqs = findSequencesOnDisk(pattern, strictPadding=True)
             for seq in seqs:
                 self.assertTrue(isinstance(seq, FileSequence))
-            actual = self.toNormpaths([str(seq) for seq in seqs])
+            actual = self.toNormpaths([six.text_type(seq) for seq in seqs])
             expected = self.toNormpaths(expected)
             self.assertEqual(actual, expected)
 
@@ -602,22 +603,22 @@ class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequenceOnDiskNegative(self):
         seqs = findSequencesOnDisk("seqneg")
-        self.assertEquals("seqneg/bar.-1-1#.exr", str(seqs[0]))
-        self.assertEquals("seqneg/bar.-001.exr", seqs[0].frame(-1))
-        self.assertEquals("seqneg/bar.-1001.exr", seqs[0].frame(-1001))
-        self.assertEquals("seqneg/bar.-10011.exr", seqs[0].frame(-10011))
-        self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
+        self.assertEquals(u"seqneg/Фото.-1-1#.exr", six.text_type(seqs[0]))
+        self.assertEquals(u"seqneg/Фото.-001.exr", seqs[0].frame(-1))
+        self.assertEquals(u"seqneg/Фото.-1001.exr", seqs[0].frame(-1001))
+        self.assertEquals(u"seqneg/Фото.-10011.exr", seqs[0].frame(-10011))
+        self.assertEquals(u"seqneg/Фото.1000.exr", seqs[0].frame(1000))
 
     def testFindSequencesOnDiskSkipHiddenFiles(self):
         seqs = findSequencesOnDisk("seqhidden")
         self.assertEquals(3, len(seqs))
 
         known = set(self.toNormpaths([
-            "seqhidden/bar1000-1002,1004-1006#.exr",
+            u"seqhidden/Фото1000-1002,1004-1006#.exr",
             "seqhidden/foo.1-5#.exr",
             "seqhidden/foo.1-5#.jpg",
         ]))
-        found = set(self.toNormpaths([str(s) for s in seqs]))
+        found = set(self.toNormpaths([six.text_type(s) for s in seqs]))
         self.assertEqual(known, found)
         self.assertFalse(known.difference(found))
 
@@ -626,15 +627,15 @@ class TestFindSequencesOnDisk(TestBase):
         self.assertEquals(7, len(seqs))
 
         known = {
-            "seqhidden/bar1000-1002,1004-1006#.exr",
-            "seqhidden/.bar1000-1002,1004-1006#.exr",
+            u"seqhidden/Фото1000-1002,1004-1006#.exr",
+            u"seqhidden/.Фото1000-1002,1004-1006#.exr",
             "seqhidden/foo.1-5#.exr",
             "seqhidden/.foo.1-5#.exr",
             "seqhidden/foo.1-5#.jpg",
             "seqhidden/.foo.1-5#.jpg",
             "seqhidden/.hidden",
         }
-        found = set([str(s) for s in seqs])
+        found = set([six.text_type(s) for s in seqs])
         self.assertEqualPaths(known, found)
 
     def testCrossPlatformPathSep(self):
