@@ -5,6 +5,7 @@ filesequence - A parsing object representing sequential files for fileseq.
 
 import os
 import re
+import six
 import functools
 from glob import iglob
 
@@ -329,7 +330,7 @@ class FileSequence(object):
         :rtype: str
         """
         try:
-            zframe = str(int(frame)).zfill(self._zfill)
+            zframe = six.text_type(int(frame)).zfill(self._zfill)
         except ValueError:
             zframe = frame
 
@@ -340,7 +341,7 @@ class FileSequence(object):
         if self._zfill == 0:
             zframe = ""
 
-        return "".join((self._dir, self._base, zframe, self._ext))
+        return u"".join((self._dir, self._base, zframe, self._ext))
 
     def index(self, idx):
         """
@@ -362,7 +363,7 @@ class FileSequence(object):
         # If there is no frame range, or there is no padding
         # characters, then we only want to represent a single path
         if not self._frameSet or not self._zfill:
-            yield str(self)
+            yield six.text_type(self)
             return
 
         for f in self._frameSet:
@@ -383,7 +384,7 @@ class FileSequence(object):
         :rtype: str or :obj:`FileSequence`
         """
         if not self._frameSet:
-            return str(self)
+            return six.text_type(self)
 
         frames = self._frameSet[idx]
 
@@ -414,25 +415,25 @@ class FileSequence(object):
 
         :rtype: str
         """
-        frameSet = str(self._frameSet or "")
-        return "".join((
+        frameSet = six.text_type(self._frameSet or u"")
+        return u"".join((
             self._dir,
             self._base,
             frameSet,
-            self._pad if frameSet else "",
+            self._pad if frameSet else u"",
             self._ext))
 
     def __repr__(self):
         try:
-            return "<FileSequence: '%s'>" % str(self)
+            return u"<FileSequence: '%s'>" % six.text_type(self)
         except TypeError:
             return super(FileSequence, self).__repr__()
 
     def __eq__(self, other):
-        return str(self) == str(other)
+        return six.text_type(self) == six.text_type(other)
 
     def __ne__(self, other):
-        return str(self) != str(other)
+        return six.text_type(self) != six.text_type(other)
 
     @staticmethod
     def yield_sequences_in_list(paths):
@@ -468,7 +469,7 @@ class FileSequence(object):
             else:
                 seq._frameSet = None
                 seq._pad = ''
-            seq.__init__(str(seq))
+            seq.__init__(six.text_type(seq))
             yield seq
 
     @staticmethod
@@ -545,7 +546,7 @@ class FileSequence(object):
             patt += '$'
 
             try:
-                _match_pattern = re.compile(str(patt)).match
+                _match_pattern = re.compile(six.text_type(patt)).match
             except re.error:
                 msg = 'Invalid file pattern: {}'.format(filepat)
                 raise FileSeqException(msg)
