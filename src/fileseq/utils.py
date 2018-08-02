@@ -113,7 +113,7 @@ def pad(number, width=0):
     :param width: width for zero padding
     :rtype: str
     """
-    return str(number).zfill(width)
+    return six.text_type(number).zfill(width)
 
 def _getPathSep(path):
     """

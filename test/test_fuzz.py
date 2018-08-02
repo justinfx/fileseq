@@ -523,7 +523,7 @@ class TestFrameSet(unittest.TestCase):
             e = [i for i in xrange(t[0], t[-1]) if i not in t]
             self.assertEqual(c, e, m.format(test, e, c))
         m = u'FrameSet("{0}").invertedFrameRange() returns {1}: got {2}'
-        self.assertIsInstance(r, str, m.format(test, str, type(r)))
+        self.assertIsInstance(r, six.text_type, m.format(test, six.text_type, type(r)))
 
     def _check_normalize(self, test, expect):
         """
