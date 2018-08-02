@@ -406,7 +406,7 @@ class FrameSet(Set):
                 result += r
 
         if not result:
-            return ''
+            return u''
 
         return FrameSet.framesToFrameRange(
             result, zfill=zfill, sort=False, compress=False)
@@ -1052,15 +1052,15 @@ class FrameSet(Set):
             str:
         """
         if stop is None:
-            return ''
+            return u''
         pad_start = pad(start, zfill)
         pad_stop = pad(stop, zfill)
         if stride is None or start == stop:
-            return '{0}'.format(pad_start)
+            return u'{0}'.format(pad_start)
         elif abs(stride) == 1:
-            return '{0}-{1}'.format(pad_start, pad_stop)
+            return u'{0}-{1}'.format(pad_start, pad_stop)
         else:
-            return '{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
+            return u'{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
 
     @staticmethod
     def framesToFrameRanges(frames, zfill=0):
@@ -1129,9 +1129,9 @@ class FrameSet(Set):
             frames = unique(set(), frames)
         frames = list(frames)
         if not frames:
-            return ''
+            return u''
         if len(frames) == 1:
             return pad(frames[0], zfill)
         if sort:
             frames.sort()
-        return ','.join(FrameSet.framesToFrameRanges(frames, zfill))
+        return u','.join(FrameSet.framesToFrameRanges(frames, zfill))
