@@ -443,7 +443,7 @@ class TestFileSequence(TestBase):
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), '%04d')
 
-    def ringSubclasses(self):
+    def testStringSubclasses(self):
         sep = lambda p: p.replace("/", os.sep)
         tests = [
             ("/path/to/files.0001.ext", sep("/path/to/"), "files."),
