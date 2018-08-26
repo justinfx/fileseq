@@ -925,7 +925,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.isdisjoint(t)
             e = set(expect).isdisjoint(v)
             m = u'FrameSet("{0}").isdisjoint(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").isdisjoint(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, bool, m.format(test, t, bool, type(r)))
 
@@ -948,7 +948,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.issubset(t)
             e = set(expect).issubset(v)
             m = u'FrameSet("{0}").issubset(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").issubset(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, bool, m.format(test, t, bool, type(r)))
 
@@ -971,7 +971,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.issuperset(t)
             e = set(expect).issuperset(v)
             m = u'FrameSet("{0}").issuperset(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").issuperset(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, bool, m.format(test, t, bool, type(r)))
 
@@ -994,7 +994,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.union(t)
             e = FrameSet.from_iterable(set(expect).union(v), sort=True)
             m = u'FrameSet("{0}").union(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").union(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, FrameSet, m.format(test, t, FrameSet, type(r)))
 
@@ -1017,7 +1017,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.intersection(t)
             e = FrameSet.from_iterable(set(expect).intersection(v), sort=True)
             m = u'FrameSet("{0}").intersection(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").intersection(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, FrameSet, m.format(test, t, FrameSet, type(r)))
 
@@ -1040,7 +1040,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.difference(t)
             e = FrameSet.from_iterable(set(expect).difference(v), sort=True)
             m = u'FrameSet("{0}").difference(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").difference(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, FrameSet, m.format(test, t, FrameSet, type(r)))
 
@@ -1063,7 +1063,7 @@ class TestFrameSet(unittest.TestCase):
             r = f.symmetric_difference(t)
             e = FrameSet.from_iterable(set(expect).symmetric_difference(v), sort=True)
             m = u'FrameSet("{0}").symmetric_difference(FrameSet("{1}")) != {2}'
-            self.assertEquals(r, e, m.format(t, f, e))
+            self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").symmetric_difference(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, FrameSet, m.format(test, t,
                                                                 FrameSet, type(r)))

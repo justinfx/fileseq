@@ -142,7 +142,7 @@ class TestBase(unittest.TestCase):
 
     RX_PATHSEP = re.compile(r'[/\\]')
 
-    def assertEquals(self, a, b):
+    def assertEqual(self, a, b):
         # Make sure string paths are compared with normalized
         # path separators
         if isinstance(a, six.string_types) and isinstance(b, six.string_types):
@@ -150,13 +150,13 @@ class TestBase(unittest.TestCase):
                 a = os.path.normpath(a)
                 b = os.path.normpath(b)
 
-        super(TestBase, self).assertEquals(a, b)
+        super(TestBase, self).assertEqual(a, b)
 
-    def assertEqual(self, a, b):
-        self.assertEquals(a, b)
+    def assertEquals(self, a, b):
+        self.assertEqual(a, b)
     
     def assertEqualPaths(self, a, b):
-        return super(TestBase, self).assertEquals(self.toNormpaths(a), self.toNormpaths(b))
+        return super(TestBase, self).assertEqual(self.toNormpaths(a), self.toNormpaths(b))
     
     def toNormpaths(self, collection):
         if isinstance(collection, six.string_types):
@@ -192,80 +192,80 @@ class TestFileSequence(TestBase):
 
     def testSeqGettersType1(self):
         seq = FileSequence("/foo/boo.1-5#.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("#", seq.padding())
-        self.assertEquals(".exr", seq.extension())
+        self.assertEqual(5, len(seq))
+        self.assertEqual("/foo/", seq.dirname())
+        self.assertEqual("boo.", seq.basename())
+        self.assertEqual("#", seq.padding())
+        self.assertEqual(".exr", seq.extension())
 
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+        self.assertEqual("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEqual("/foo/boo.0001.exr", seq[0])
+        self.assertEqual("/foo/boo.0001.exr", seq.index(0))
 
     def testSeqGettersType2(self):
         seq = FileSequence("/foo/boo1-5#.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo", seq.basename())
-        self.assertEquals("#", seq.padding())
-        self.assertEquals(".exr", seq.extension())
+        self.assertEqual(5, len(seq))
+        self.assertEqual("/foo/", seq.dirname())
+        self.assertEqual("boo", seq.basename())
+        self.assertEqual("#", seq.padding())
+        self.assertEqual(".exr", seq.extension())
 
-        self.assertEquals("/foo/boo9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo0001.exr", seq[0])
-        self.assertEquals("/foo/boo0001.exr", seq.index(0))
+        self.assertEqual("/foo/boo9999.exr", seq.frame(9999))
+        self.assertEqual("/foo/boo0001.exr", seq[0])
+        self.assertEqual("/foo/boo0001.exr", seq.index(0))
 
     def testSeqGettersPrintf(self):
         seq = FileSequence("/foo/boo.1-5%04d.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("%04d", seq.padding())
-        self.assertEquals(".exr", seq.extension())
+        self.assertEqual(5, len(seq))
+        self.assertEqual("/foo/", seq.dirname())
+        self.assertEqual("boo.", seq.basename())
+        self.assertEqual("%04d", seq.padding())
+        self.assertEqual(".exr", seq.extension())
 
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+        self.assertEqual("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEqual("/foo/boo.0001.exr", seq[0])
+        self.assertEqual("/foo/boo.0001.exr", seq.index(0))
 
     def testSetDirname(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setDirname("/bing/")
-        self.assertEquals("/bing/bong.1.exr", seq[0])
+        self.assertEqual("/bing/bong.1.exr", seq[0])
 
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setDirname("bing")
-        self.assertEquals("bing/bong.1.exr", seq[0])
+        self.assertEqual("bing/bong.1.exr", seq[0])
 
     def testSetBasename(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setBasename("bar.")
-        self.assertEquals("/foo/bar.1.exr", seq[0])
+        self.assertEqual("/foo/bar.1.exr", seq[0])
 
     def testSetPadding(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setPadding("#")
-        self.assertEquals("/foo/bong.0001.exr", seq[0])
+        self.assertEqual("/foo/bong.0001.exr", seq[0])
 
         seq.setPadding("%02d")
-        self.assertEquals("/foo/bong.01.exr", seq[0])
+        self.assertEqual("/foo/bong.01.exr", seq[0])
 
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameSet(FrameSet("10-20"))
-        self.assertEquals(u"/cheech/chong.10-20#.exr", six.text_type(seq))
+        self.assertEqual(u"/cheech/chong.10-20#.exr", six.text_type(seq))
 
     def testSetFrameRange(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameRange("10-20")
-        self.assertEquals(u"/cheech/chong.10-20#.exr", six.text_type(seq))
+        self.assertEqual(u"/cheech/chong.10-20#.exr", six.text_type(seq))
 
     def testFrame(self):
         seq = FileSequence("/foo/bar/bing.#.exr")
-        self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
-        self.assertEquals("/foo/bar/bing.#.exr", seq.frame("#"))
+        self.assertEqual("/foo/bar/bing.0001.exr", seq.frame(1))
+        self.assertEqual("/foo/bar/bing.#.exr", seq.frame("#"))
 
         seq = FileSequence("/foo/bar/bing.%04d.exr")
-        self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
-        self.assertEquals("/foo/bar/bing.%04d.exr", seq.frame("%04d"))
+        self.assertEqual("/foo/bar/bing.0001.exr", seq.frame(1))
+        self.assertEqual("/foo/bar/bing.%04d.exr", seq.frame("%04d"))
 
     def testIter(self):
         known = {
@@ -304,14 +304,14 @@ class TestFileSequence(TestBase):
 
     def testFormat(self):
         seq = FileSequence("/cheech/chong.1-10,30,40#.exr")
-        self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
-        self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
+        self.assertEqual("chong.0001-0010,0030,0040#.exr", str(seq.format()))
+        self.assertEqual("0011-0029,0031-0039", seq.format("{inverted}"))
 
         seq = findSequencesOnDisk("broken_seq")[0]
-        self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
-        self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
+        self.assertEqual("0000-0002,0004,0006-0008", seq.format("{range}"))
+        self.assertEqual("broke.0000-0002,0004,0006-0008#.exr", seq.format())
         seq = findSequencesOnDisk("step_seq")[0]
-        self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
+        self.assertEqual("step_seq/step1.1-13x4,14-17#.exr", str(seq))
     
     def testFormatInverted(self):
         _maxSize = constants.MAX_FRAME_SIZE
@@ -327,46 +327,46 @@ class TestFileSequence(TestBase):
 
     def testSplit(self):
         seqs = FileSequence("/cheech/chong.1-10,30,40#.exr").split()
-        self.assertEquals("/cheech/chong.0001-0010#.exr", str(seqs[0]))
-        self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
-        self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
+        self.assertEqual("/cheech/chong.0001-0010#.exr", str(seqs[0]))
+        self.assertEqual("/cheech/chong.0030#.exr", str(seqs[1]))
+        self.assertEqual("/cheech/chong.0040#.exr", str(seqs[2]))
 
     def testMissingPeriods(self):
         seqs = FileSequence("/path/to/something_1-10#_exr")
-        self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
+        self.assertEqual("/path/to/something_0001_exr", seqs.index(0))
 
         seqs = FileSequence("/path/to/something_1-10%04d_exr")
-        self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
+        self.assertEqual("/path/to/something_0001_exr", seqs.index(0))
 
     def testNumericFilename(self):
         seqs = FileSequence("/path/to/1-10#.exr")
-        self.assertEquals("/path/to/0001.exr", seqs.index(0))
+        self.assertEqual("/path/to/0001.exr", seqs.index(0))
 
         seqs = FileSequence("/path/to/1-10%04d.exr")
-        self.assertEquals("/path/to/0001.exr", seqs.index(0))
+        self.assertEqual("/path/to/0001.exr", seqs.index(0))
 
     def testNoPlaceholder(self):
         expected = "/path/to/file.mov"
         seqs = FileSequence(expected)
 
-        self.assertEquals(expected, seqs.index(0))
-        self.assertEquals(expected, seqs.frame(0))
-        self.assertEquals(expected, seqs[0])
-        self.assertEquals(None, seqs.frameSet())
-        self.assertEquals("", seqs.frameRange())
-        self.assertEquals("", seqs.invertedFrameRange())
-        self.assertEquals(1, len(seqs))
+        self.assertEqual(expected, seqs.index(0))
+        self.assertEqual(expected, seqs.frame(0))
+        self.assertEqual(expected, seqs[0])
+        self.assertEqual(None, seqs.frameSet())
+        self.assertEqual("", seqs.frameRange())
+        self.assertEqual("", seqs.invertedFrameRange())
+        self.assertEqual(1, len(seqs))
 
         seqs.setFrameRange("1-100")
 
         for i in xrange(0,100):
-            self.assertEquals(expected, seqs.index(i))
-            self.assertEquals(expected, seqs.frame(i+1))
-            self.assertEquals(expected, seqs[i])
-        self.assertEquals(1, len(seqs))
+            self.assertEqual(expected, seqs.index(i))
+            self.assertEqual(expected, seqs.frame(i+1))
+            self.assertEqual(expected, seqs[i])
+        self.assertEqual(1, len(seqs))
 
         seqs.setPadding("#")
-        self.assertEquals(100, len(seqs))
+        self.assertEqual(100, len(seqs))
 
     def testNoPlaceholderNumExt(self):
         basename = 'file'
@@ -376,72 +376,72 @@ class TestFileSequence(TestBase):
             expected = basename + ext
             seqs = FileSequence(expected)
 
-            self.assertEquals(ext, seqs.extension())
-            self.assertEquals(basename, seqs.basename())
-            self.assertEquals(expected, str(seqs))
+            self.assertEqual(ext, seqs.extension())
+            self.assertEqual(basename, seqs.basename())
+            self.assertEqual(expected, str(seqs))
 
     def testSplitXY(self):
         seqs = FileSequence("/cheech/0-9x1/chong.1-10#.exr")
-        self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
+        self.assertEqual("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
 
     def testSerialization(self):
         fs = FileSequence("/path/to/file.1-100x2#.exr")
         s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
         fs2 = pickle.loads(s)
-        self.assertEquals(str(fs), str(fs2))
-        self.assertEquals(len(fs), len(fs2))
+        self.assertEqual(str(fs), str(fs2))
+        self.assertEqual(len(fs), len(fs2))
 
         fs = FileSequence("/path/to/file.1-100x2%04d.exr")
         s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
         fs2 = pickle.loads(s)
-        self.assertEquals(str(fs), str(fs2))
-        self.assertEquals(len(fs), len(fs2))
+        self.assertEqual(str(fs), str(fs2))
+        self.assertEqual(len(fs), len(fs2))
 
     def testHasVersionNoFrame(self):
         fs = FileSequence("/path/to/file_v2.exr")
-        self.assertEquals(fs.start(), 0)
-        self.assertEquals(fs.end(), 0)
-        self.assertEquals(fs.padding(), '')
-        self.assertEquals(fs.extension(), '.exr')
-        self.assertEquals(str(fs), "/path/to/file_v2.exr")
+        self.assertEqual(fs.start(), 0)
+        self.assertEqual(fs.end(), 0)
+        self.assertEqual(fs.padding(), '')
+        self.assertEqual(fs.extension(), '.exr')
+        self.assertEqual(str(fs), "/path/to/file_v2.exr")
 
     def testHasFrameNoVersion(self):
         fs = FileSequence("/path/to/file.2.exr")
-        self.assertEquals(fs.start(), 2)
-        self.assertEquals(fs.end(), 2)
-        self.assertEquals(fs.padding(), '@')
-        self.assertEquals(fs.extension(), '.exr')
-        self.assertEquals(str(fs), "/path/to/file.2@.exr")
+        self.assertEqual(fs.start(), 2)
+        self.assertEqual(fs.end(), 2)
+        self.assertEqual(fs.padding(), '@')
+        self.assertEqual(fs.extension(), '.exr')
+        self.assertEqual(str(fs), "/path/to/file.2@.exr")
 
     def testNoFrameNoVersionNoExt(self):
         fs = FileSequence("/path/to/file")
-        self.assertEquals(fs.start(), 0)
-        self.assertEquals(fs.end(), 0)
-        self.assertEquals(fs.padding(), '')
-        self.assertEquals(fs.dirname(), '/path/to/')
-        self.assertEquals(fs.basename(), 'file')
-        self.assertEquals(fs.extension(), '')
-        self.assertEquals(str(fs), "/path/to/file")
+        self.assertEqual(fs.start(), 0)
+        self.assertEqual(fs.end(), 0)
+        self.assertEqual(fs.padding(), '')
+        self.assertEqual(fs.dirname(), '/path/to/')
+        self.assertEqual(fs.basename(), 'file')
+        self.assertEqual(fs.extension(), '')
+        self.assertEqual(str(fs), "/path/to/file")
 
         fs = FileSequence("file")
-        self.assertEquals(fs.start(), 0)
-        self.assertEquals(fs.end(), 0)
-        self.assertEquals(fs.padding(), '')
-        self.assertEquals(fs.dirname(), '')
-        self.assertEquals(fs.basename(), 'file')
-        self.assertEquals(fs.extension(), '')
-        self.assertEquals(str(fs), "file")
+        self.assertEqual(fs.start(), 0)
+        self.assertEqual(fs.end(), 0)
+        self.assertEqual(fs.padding(), '')
+        self.assertEqual(fs.dirname(), '')
+        self.assertEqual(fs.basename(), 'file')
+        self.assertEqual(fs.extension(), '')
+        self.assertEqual(str(fs), "file")
 
     def testEmptyBasename(self):
         seq = FileSequence("/path/to/1-5#.exr")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(len(seq), 5)
-        self.assertEquals(seq.padding(), '#')
+        self.assertEqual(seq.basename(), "")
+        self.assertEqual(len(seq), 5)
+        self.assertEqual(seq.padding(), '#')
 
         seq = FileSequence("/path/to/1-5%04d.exr")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(len(seq), 5)
-        self.assertEquals(seq.padding(), '%04d')
+        self.assertEqual(seq.basename(), "")
+        self.assertEqual(len(seq), 5)
+        self.assertEqual(seq.padding(), '%04d')
 
     def testStringSubclasses(self):
         sep = lambda p: p.replace("/", os.sep)
@@ -533,27 +533,27 @@ class TestFileSequence(TestBase):
         }
 
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         paths = map(_CustomPathString, paths)
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals(actual, {str(_CustomPathString(p)) for p in expected})
+        self.assertEqual(actual, {str(_CustomPathString(p)) for p in expected})
 
     def testIgnoreFrameSetStrings(self):
         for char in "xy:,".split():
             fs = FileSequence("/path/to/file{0}1-1x1#.exr".format(char))
-            self.assertEquals(fs.basename(), "file{0}".format(char))
-            self.assertEquals(fs.start(), 1)
-            self.assertEquals(fs.end(), 1)
-            self.assertEquals(fs.padding(), '#')
-            self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
+            self.assertEqual(fs.basename(), "file{0}".format(char))
+            self.assertEqual(fs.start(), 1)
+            self.assertEqual(fs.end(), 1)
+            self.assertEqual(fs.padding(), '#')
+            self.assertEqual(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
 
 
 class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq", strictPadding=True)
-        self.assertEquals(9, len(seqs))
+        self.assertEqual(9, len(seqs))
 
         known = {
             "seq/bar1000-1002,1004-1006#.exr",
@@ -599,19 +599,19 @@ class TestFindSequencesOnDisk(TestBase):
 
     def testNegSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seqneg")
-        self.assertEquals(1, len(seqs))
+        self.assertEqual(1, len(seqs))
 
     def testFindSequenceOnDiskNegative(self):
         seqs = findSequencesOnDisk("seqneg")
-        self.assertEquals(u"seqneg/Фото.-1-1#.exr", six.text_type(seqs[0]))
-        self.assertEquals(u"seqneg/Фото.-001.exr", seqs[0].frame(-1))
-        self.assertEquals(u"seqneg/Фото.-1001.exr", seqs[0].frame(-1001))
-        self.assertEquals(u"seqneg/Фото.-10011.exr", seqs[0].frame(-10011))
-        self.assertEquals(u"seqneg/Фото.1000.exr", seqs[0].frame(1000))
+        self.assertEqual(u"seqneg/Фото.-1-1#.exr", six.text_type(seqs[0]))
+        self.assertEqual(u"seqneg/Фото.-001.exr", seqs[0].frame(-1))
+        self.assertEqual(u"seqneg/Фото.-1001.exr", seqs[0].frame(-1001))
+        self.assertEqual(u"seqneg/Фото.-10011.exr", seqs[0].frame(-10011))
+        self.assertEqual(u"seqneg/Фото.1000.exr", seqs[0].frame(1000))
 
     def testFindSequencesOnDiskSkipHiddenFiles(self):
         seqs = findSequencesOnDisk("seqhidden")
-        self.assertEquals(3, len(seqs))
+        self.assertEqual(3, len(seqs))
 
         known = set(self.toNormpaths([
             u"seqhidden/Фото1000-1002,1004-1006#.exr",
@@ -624,7 +624,7 @@ class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDiskIncludeHiddenFiles(self):
         seqs = findSequencesOnDisk("seqhidden", include_hidden=True)
-        self.assertEquals(7, len(seqs))
+        self.assertEqual(7, len(seqs))
 
         known = {
             u"seqhidden/Фото1000-1002,1004-1006#.exr",
@@ -656,7 +656,7 @@ class TestFindSequencesOnDisk(TestBase):
             self.assertEqual(os.path.join('a', 'b'), 'a\\b')
             seqs = findSequencesOnDisk("seqsubdirs/sub1")
 
-            self.assertEquals(len(expected), len(seqs))
+            self.assertEqual(len(expected), len(seqs))
 
             actual = set(str(s) for s in seqs)
             self.assertEqual(actual, expected)
