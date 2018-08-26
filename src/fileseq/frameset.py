@@ -122,10 +122,9 @@ class FrameSet(Set):
                     raise ParseException(msg.format(frange, err))
 
         # we're willing to trim padding characters from consideration
-        # this translation is orders of magnitude faster than prior method
-        self._frange = u''.join(
-            [char for char in asString(frange) if not char in PAD_MAP]
-        )
+        self._frange = asString(frange)
+        for key in PAD_MAP:
+            self._frange = self._frange.replace(key, u'')
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -850,8 +849,9 @@ class FrameSet(Set):
         :rtype: bool
         """
         # we're willing to trim padding characters from consideration
-        # this translation is orders of magnitude faster than prior method
-        frange = ''.join([ch for ch in asString(frange) if not ch in PAD_MAP])
+        frange = asString(frange)
+        for key in PAD_MAP:
+            frange = frange.replace(key, u'')
         if not frange:
             return True
         for part in frange.split(','):
