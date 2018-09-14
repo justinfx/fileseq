@@ -13,8 +13,9 @@ from fileseq.exceptions import MaxSizeException, ParseException
 from fileseq.utils import xfrange, unique, pad
 
 # Issue #44
-# Possibly use an alternate xrange implementation, depending on platform. 
+# Possibly use an alternate xrange implementation, depending on platform.
 from fileseq.utils import xrange
+
 
 class FrameSet(Set):
     """
@@ -43,7 +44,7 @@ class FrameSet(Set):
     Caveats:
         1. Because the internal storage of a ``FrameSet`` contains the discreet
            values of the entire range, an exception will be thrown if the range
-           exceeds a large reasonable limit, which could lead to huge memory 
+           exceeds a large reasonable limit, which could lead to huge memory
            allocations or memory failures. See `fileseq.constants.MAX_FRAME_SIZE`.
         2. All frozenset operations return a normalized :class:`FrameSet`:
            internal frames are in numerically increasing order.
@@ -58,14 +59,6 @@ class FrameSet(Set):
            as both its start and end methods will raise IndexError.  The
            :meth:`is_null`
            property has been added to allow you to guard against this.
-
-    :type frange: str
-    :param frange: the frame range as a string (ie "1-100x5")
-    :rtype: None
-    :raises: :class:`fileseq.exceptions.ParseException` if the frame range
-             (or a portion of it) could not be parsed.
-             :class:`fileseq.exceptions.MaxSizeException` if the range exceeds
-             `fileseq.constants.MAX_FRAME_SIZE`
     """
 
     __slots__ = ('_frange', '_items', '_order')
@@ -74,17 +67,31 @@ class FrameSet(Set):
         """
         Initialize the :class:`FrameSet` object.
 
-        :type frange: str
-        :param frange: the frame range as a string (ie "1-100x5")
-        :returns: the :class:`FrameSet` instance
-        :raises: :class:`fileseq.exceptions.ParseException` if the frame range
-                 (or a portion of it) could not be parsed
+        Args:
+            frange (str or FrameSet): the frame range as a string (ie "1-100x5")
+
+        Raises:
+            :class:`fileseq.exceptions.ParseException`: if the frame range
+                (or a portion of it) could not be parsed.
+            :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
+                `fileseq.constants.MAX_FRAME_SIZE`
         """
         self = super(cls, FrameSet).__new__(cls, *args, **kwargs)
         return self
 
+    def __init__(self, frange):
+        """Initialize the :class:`FrameSet` object.
 
-    def __init__(self, frange):        
+        Args:
+            frange (str or FrameSet or collections.Iterable): the frame range
+                as a string (ie "1-100x5")
+
+        Raises:
+            :class:`fileseq.exceptions.ParseException`: if the frame range
+                (or a portion of it) could not be parsed.
+            :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
+                `fileseq.constants.MAX_FRAME_SIZE`
+        """
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, basestring):
             # if it's apparently a FrameSet already, short-circuit the build
@@ -132,7 +139,7 @@ class FrameSet(Set):
         items = set()
         order = []
 
-        maxSize = constants.MAX_FRAME_SIZE 
+        maxSize = constants.MAX_FRAME_SIZE
 
         for part in self._frange.split(","):
             # this is to deal with leading / trailing commas
@@ -183,7 +190,8 @@ class FrameSet(Set):
         Read-only access to determine if the :class:`FrameSet` is the null or
         empty :class:`FrameSet`.
 
-        :rtype: bool
+        Returns:
+            bool:
         """
         return not (self._frange and self._items and self._order)
 
@@ -192,7 +200,8 @@ class FrameSet(Set):
         """
         Read-only access to the frame range used to create this :class:`FrameSet`.
 
-        :rtype: frozenset
+        Returns:
+            frozenset:
         """
         return self._frange
 
@@ -201,7 +210,8 @@ class FrameSet(Set):
         """
         Read-only access to the unique frames that form this :class:`FrameSet`.
 
-        :rtype: frozenset
+        Returns:
+            frozenset:
         """
         return self._items
 
@@ -210,7 +220,8 @@ class FrameSet(Set):
         """
         Read-only access to the ordered frames that form this :class:`FrameSet`.
 
-        :rtype: tuple
+        Returns:
+            tuple:
         """
         return self._order
 
@@ -219,9 +230,12 @@ class FrameSet(Set):
         """
         Build a :class:`FrameSet` from an iterable of frames.
 
-        :param frames: an iterable object containing frames as integers
-        :param sort: True to sort frames before creation, default is False
-        :rtype: :class:`FrameSet`
+        Args:
+            frames (collections.Iterable): an iterable object containing frames as integers
+            sort (bool): True to sort frames before creation, default is False
+
+        Returns:
+            :class:`FrameSet`:
         """
         return FrameSet(sorted(frames) if sort else frames)
 
@@ -230,9 +244,15 @@ class FrameSet(Set):
         """
         Private method to simplify comparison operations.
 
-        :param other: the :class:`FrameSet`, set, frozenset, or iterable to be compared
-        :rtype: :class:`FrameSet`
-        :returns: :class:`NotImplemented` if a comparison is impossible
+        Args:
+            other: the :class:`FrameSet`, set, frozenset, or iterable to be
+                compared
+
+        Returns:
+            :class:`FrameSet`
+
+        Raises:
+            :class:`NotImplemented`: if a comparison is impossible
         """
         if isinstance(other, FrameSet):
             return other
@@ -245,10 +265,14 @@ class FrameSet(Set):
         """
         Return the index of the given frame number within the :class:`FrameSet`.
 
-        :type frame: int
-        :param frame: the frame number to find the index for
-        :rtype: int
-        :raises: :class:`ValueError` if frame is not in self
+        Args:
+            frame (int): the frame number to find the index for
+
+        Returns:
+            int:
+
+        Raises:
+            :class:`ValueError`: if frame is not in self
         """
         return self.order.index(frame)
 
@@ -256,10 +280,14 @@ class FrameSet(Set):
         """
         Return the frame at the given index.
 
-        :type index: int
-        :param index: the index to find the frame for
-        :rtype: int
-        :raises: :class:`IndexError` if index is out of bounds
+        Args:
+            index (int): the index to find the frame for
+
+        Returns:
+            int:
+
+        Raises:
+            :class:`IndexError`: if index is out of bounds
         """
         return self.order[index]
 
@@ -267,9 +295,11 @@ class FrameSet(Set):
         """
         Check if the :class:`FrameSet` contains the frame.
 
-        :type frame: int
-        :param frame: the frame number to search for
-        :rtype: bool
+        Args:
+            frame (int): the frame number to search for
+
+        Returns:
+            bool:
         """
         return frame in self
 
@@ -277,8 +307,11 @@ class FrameSet(Set):
         """
         The first frame in the :class:`FrameSet`.
 
-        :rtype: int
-        :raises: :class:`IndexError` (with the empty :class:`FrameSet`)
+        Returns:
+            int:
+
+        Raises:
+            :class:`IndexError`: (with the empty :class:`FrameSet`)
         """
         return self.order[0]
 
@@ -286,8 +319,11 @@ class FrameSet(Set):
         """
         The last frame in the :class:`FrameSet`.
 
-        :rtype: int
-        :raises: :class:`IndexError` (with the empty :class:`FrameSet`)
+        Returns:
+            int:
+
+        Raises:
+            :class:`IndexError`: (with the empty :class:`FrameSet`)
         """
         return self.order[-1]
 
@@ -295,8 +331,8 @@ class FrameSet(Set):
         """
         Return whether the frame range represents consecutive integers,
         as opposed to having a stepping >= 2
-    
-        :Example:
+
+        Examples:
             >>> FrameSet('1-100').isConsecutive()
             True
             >>> FrameSet('1-100x2').isConsecutive()
@@ -304,7 +340,8 @@ class FrameSet(Set):
             >>> FrameSet('1-50,60-100').isConsecutive()
             False
 
-        :rtype: bool
+        Returns:
+            bool:
         """
         return len(self) == abs(self.end()-self.start()) + 1
 
@@ -313,15 +350,17 @@ class FrameSet(Set):
         Return the frame range used to create this :class:`FrameSet`, padded if
         desired.
 
-        :Example:
+        Examples:
             >>> FrameSet('1-100').frameRange()
             '1-100'
             >>> FrameSet('1-100').frameRange(5)
             '00001-00100'
 
-        :type zfill: int
-        :param zfill: the width to use to zero-pad the frame range string
-        :rtype: str
+        Args:
+            zfill (int): the width to use to zero-pad the frame range string
+
+        Returns:
+            str:
         """
         return FrameSet.padFrameRange(self.frange, zfill)
 
@@ -331,19 +370,23 @@ class FrameSet(Set):
         desired.
         The inverse is every frame within the full extent of the range.
 
-        :Example:
+        Examples:
             >>> FrameSet('1-100x2').invertedFrameRange()
             '2-98x2'
             >>> FrameSet('1-100x2').invertedFrameRange(5)
             '00002-00098x2'
 
-        If the inverted frame size exceeds `fileseq.constants.MAX_FRAME_SIZE`, 
+        If the inverted frame size exceeds `fileseq.constants.MAX_FRAME_SIZE`,
         a ``MaxSizeException`` will be raised.
 
-        :type zfill: int
-        :param zfill: the width to use to zero-pad the frame range string
-        :rtype: str
-        :raises: :class:`fileseq.exceptions.MaxSizeException`
+        Args:
+            zfill (int): the width to use to zero-pad the frame range string
+
+        Returns:
+            str:
+
+        Raises:
+            :class:`fileseq.exceptions.MaxSizeException`:
         """
         result = []
         frames = sorted(self.items)
@@ -352,14 +395,14 @@ class FrameSet(Set):
             if next_frame - frame != 1:
                 r = xrange(frame + 1, next_frame)
                 # Check if the next update to the result set
-                # will exceed out max frame size. 
+                # will exceed out max frame size.
                 # Prevent memory overflows.
                 self._maxSizeCheck(len(r) + len(result))
                 result += r
-        
+
         if not result:
             return ''
-        
+
         return FrameSet.framesToFrameRange(
             result, zfill=zfill, sort=False, compress=False)
 
@@ -367,7 +410,8 @@ class FrameSet(Set):
         """
         Returns a new normalized (sorted and compacted) :class:`FrameSet`.
 
-        :rtype: :class:`FrameSet`
+        Returns:
+            :class:`FrameSet`:
         """
         return FrameSet(FrameSet.framesToFrameRange(
             self.items, sort=True, compress=False))
@@ -376,7 +420,8 @@ class FrameSet(Set):
         """
         Allows for serialization to a pickled :class:`FrameSet`.
 
-        :rtype: tuple (frame range string, )
+        Returns:
+            tuple: (frame range string, )
         """
         # we have to special-case the empty FrameSet, because of a quirk in
         # Python where __setstate__ will not be called if the return value of
@@ -387,10 +432,12 @@ class FrameSet(Set):
         """
         Allows for de-serialization from a pickled :class:`FrameSet`.
 
-        :type state: tuple, str, or dict
-        :param state: A string/dict can be used for backwards compatibility
-        :rtype: None
-        :raises: :class:`ValueError` if state is not an appropriate type
+        Args:
+            state (tuple or str or dict): A string/dict can be used for
+                backwards compatibility
+
+        Raises:
+            ValueError: if state is not an appropriate type
         """
         if isinstance(state, tuple):
             # this is to allow unpickling of "3rd generation" FrameSets,
@@ -418,10 +465,14 @@ class FrameSet(Set):
         """
         Allows indexing into the ordered frames of this :class:`FrameSet`.
 
-        :type int:
-        :param index: the index to retrieve
-        :rtype: int
-        :raises: :class:`IndexError` if index is out of bounds
+        Args:
+            index (int): the index to retrieve
+
+        Returns:
+            int:
+
+        Raises:
+            :class:`IndexError`: if index is out of bounds
         """
         return self.order[index]
 
@@ -429,7 +480,8 @@ class FrameSet(Set):
         """
         Returns the length of the ordered frames of this :class:`FrameSet`.
 
-        :rtype: int
+        Returns:
+            int:
         """
         return len(self.order)
 
@@ -437,7 +489,8 @@ class FrameSet(Set):
         """
         Returns the frame range string of this :class:`FrameSet`.
 
-        :rtype: str
+        Returns:
+            str:
         """
         return self.frange
 
@@ -445,7 +498,8 @@ class FrameSet(Set):
         """
         Returns a long-form representation of this :class:`FrameSet`.
 
-        :rtype: str
+        Returns:
+            str:
         """
         return '{0}("{1}")'.format(self.__class__.__name__, self.frange)
 
@@ -453,7 +507,8 @@ class FrameSet(Set):
         """
         Allows for iteration over the ordered frames of this :class:`FrameSet`.
 
-        :rtype: generator
+        Returns:
+            generator:
         """
         return (i for i in self.order)
 
@@ -462,7 +517,8 @@ class FrameSet(Set):
         Allows for reversed iteration over the ordered frames of this
         :class:`FrameSet`.
 
-        :rtype: generator
+        Returns:
+            generator:
         """
         return (i for i in reversed(self.order))
 
@@ -470,9 +526,11 @@ class FrameSet(Set):
         """
         Check if item is a member of this :class:`FrameSet`.
 
-        :type item: int
-        :param item: the frame number to check for
-        :rtype: bool
+        Args:
+            item (int): the frame number to check for
+
+        Returns:
+            bool:
         """
         return item in self.items
 
@@ -481,7 +539,8 @@ class FrameSet(Set):
         Builds the hash of this :class:`FrameSet` for equality checking and to
         allow use as a dictionary key.
 
-        :rtype: int
+        Returns:
+            int:
         """
         return hash(self.frange) | hash(self.items) | hash(self.order)
 
@@ -491,7 +550,7 @@ class FrameSet(Set):
         a :class:`FrameSet`, but is a set, frozenset, or is iterable, it will be
         cast to a :class:`FrameSet`.
 
-        .. note::
+        Note:
 
             A :class:`FrameSet` is less than other if the set of its contents are
             less, OR if the contents are equal but the order of the items is less.
@@ -502,10 +561,12 @@ class FrameSet(Set):
                 >>> FrameSet("1-5") < FrameSet("5-1")
                 True
 
-        :type other: FrameSet
-        :param other: Can also be an object that can be cast to a :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): Can also be an object that can be cast to a :class:`FrameSet`
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -519,10 +580,12 @@ class FrameSet(Set):
         If `other` is not a :class:`FrameSet`, but is a set, frozenset, or
         is iterable, it will be cast to a :class:`FrameSet`.
 
-        :type other: FrameSet
-        :param other: Also accepts an object that can be cast to a :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): Also accepts an object that can be cast to a :class:`FrameSet`
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -536,10 +599,12 @@ class FrameSet(Set):
         If `other` is not a :class:`FrameSet`, but is a set, frozenset, or
         is iterable, it will be cast to a :class:`FrameSet`.
 
-        :type other: :class:`FrameSet`
-        :param other: Also accepts an object that can be cast to a :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): Also accepts an object that can be cast to a :class:`FrameSet`
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         if not isinstance(other, FrameSet):
             if not hasattr(other, '__iter__'):
@@ -556,10 +621,12 @@ class FrameSet(Set):
         If `other` is not a :class:`FrameSet`, but is a set, frozenset, or
         is iterable, it will be cast to a :class:`FrameSet`.
 
-        :type other: :class:`FrameSet`
-        :param other: Also accepts an object that can be cast to a :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): Also accepts an object that can be cast to a :class:`FrameSet`
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         is_equals = self == other
         if is_equals != NotImplemented:
@@ -572,10 +639,12 @@ class FrameSet(Set):
         If `other` is not a :class:`FrameSet`, but is a set, frozenset, or
         is iterable, it will be cast to a :class:`FrameSet`.
 
-        :type other: :class:`FrameSet`
-        :param other: Also accepts an object that can be cast to one a :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): Also accepts an object that can be cast to a :class:`FrameSet`
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -588,7 +657,7 @@ class FrameSet(Set):
         If `other` is not a :class:`FrameSet`, but is a set, frozenset, or
         is iterable, it will be cast to a :class:`FrameSet`.
 
-        .. note::
+        Note:
            A :class:`FrameSet` is greater than `other` if the set of its
            contents are greater,
            OR if the contents are equal but the order is greater.
@@ -599,10 +668,12 @@ class FrameSet(Set):
                >>> FrameSet("1-5") > FrameSet("5-1")
                False
 
-        :type other: :class:`FrameSet`
-        :param other: Also accepts an object that can be cast to a :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if :param: other fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): Also accepts an object that can be cast to a :class:`FrameSet`
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -616,14 +687,17 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` that holds only the
         frames `self` and `other` have in common.
 
-        .. note::
+        Note:
 
             The order of operations is irrelevant:
             ``(self & other) == (other & self)``
 
-        :type other: :class:`FrameSet`
-        :rtype: :class:`FrameSet`, or :class:`NotImplemented` if :param: other
-                fails to convert to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            :class:`FrameSet`:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -638,13 +712,16 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` that holds only the
         frames of `self` that are not in `other.`
 
-        .. note::
+        Note:
 
             This is for left-hand subtraction (``self - other``).
 
-        :type other: :class:`FrameSet`
-        :rtype: :class:`FrameSet`, or :class:`NotImplemented` if `other`
-                fails to convert to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            :class:`FrameSet`:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -657,13 +734,16 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` that holds only the
         frames of `other` that are not in `self.`
 
-        .. note::
+        Note:
 
             This is for right-hand subtraction (``other - self``).
 
-        :type other: :class:`FrameSet`
-        :rtype: :class:`FrameSet`, or :class:`NotImplemented` if `other`
-                fails to convert to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            :class:`FrameSet`:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -676,14 +756,17 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` that holds all the
         frames in `self,` `other,` or both.
 
-        .. note::
+        Note:
 
             The order of operations is irrelevant:
             ``(self | other) == (other | self)``
 
-        :type other: :class:`FrameSet`
-        :rtype: :class:`FrameSet`, or :class:`NotImplemented` if `other`
-                fails to convert to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            :class:`FrameSet`:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -698,13 +781,16 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` that holds all the
         frames in `self` or `other` but not both.
 
-        .. note::
+        Note:
             The order of operations is irrelevant:
             ``(self ^ other) == (other ^ self)``
 
-        :type other: :class:`FrameSet`
-        :rtype: :class:`FrameSet`, or :class:`NotImplemented` if `other`
-                fails to convert to a :class:`FrameSet`.
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            :class:`FrameSet`:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -718,9 +804,12 @@ class FrameSet(Set):
         Check if the contents of :class:self has no common intersection with the
         contents of :class:other.
 
-        :type other: :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -732,9 +821,12 @@ class FrameSet(Set):
         Check if the contents of `self` is a subset of the contents of
         `other.`
 
-        :type other: :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -746,9 +838,12 @@ class FrameSet(Set):
         Check if the contents of `self` is a superset of the contents of
         `other.`
 
-        :type other: :class:`FrameSet`
-        :rtype: bool, or :class:`NotImplemented` if `other` fails to convert
-                to a :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            bool:
+            :class:`NotImplemented`: if `other` fails to convert to a :class:`FrameSet`
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -760,8 +855,11 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` with the elements of `self` and
         of `other`.
 
-        :type other: :class:`FrameSet` or objects that can cast to :class:`FrameSet`
-        :rtype: :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): or objects that can cast to :class:`FrameSet`
+
+        Returns:
+            :class:`FrameSet`:
         """
         from_frozenset = self.items.union(*map(set, other))
         return self.from_iterable(from_frozenset, sort=True)
@@ -771,8 +869,11 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` with the elements common to `self` and
         `other`.
 
-        :type other: :class:`FrameSet` or objects that can cast to :class:`FrameSet`
-        :rtype: :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): or objects that can cast to :class:`FrameSet`
+
+        Returns:
+            :class:`FrameSet`:
         """
         from_frozenset = self.items.intersection(*map(set, other))
         return self.from_iterable(from_frozenset, sort=True)
@@ -782,8 +883,11 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` with elements in `self` but not in
         `other`.
 
-        :type other: :class:`FrameSet` or objects that can cast to :class:`FrameSet`
-        :rtype: :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`): or objects that can cast to :class:`FrameSet`
+
+        Returns:
+            :class:`FrameSet`:
         """
         from_frozenset = self.items.difference(*map(set, other))
         return self.from_iterable(from_frozenset, sort=True)
@@ -793,8 +897,11 @@ class FrameSet(Set):
         Returns a new :class:`FrameSet` that contains all the elements in either
         `self` or `other`, but not both.
 
-        :type other: :class:`FrameSet`
-        :rtype: :class:`FrameSet`
+        Args:
+            other (:class:`FrameSet`):
+
+        Returns:
+            :class:`FrameSet`:
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
@@ -806,7 +913,8 @@ class FrameSet(Set):
         """
         Returns a shallow copy of this :class:`FrameSet`.
 
-        :rtype: :class:`FrameSet`
+        Returns:
+            :class:`FrameSet`:
         """
         return FrameSet(str(self))
 
@@ -815,8 +923,11 @@ class FrameSet(Set):
         """
         Raise a MaxSizeException if ``obj`` exceeds MAX_FRAME_SIZE
 
-        :type obj: number or collection
-        :raises: :class:`fileseq.exceptions.MaxSizeException`
+        Args:
+            obj (numbers.Number or collection):
+
+        Raises:
+            :class:`fileseq.exceptions.MaxSizeException`:
         """
         fail = False
         size = 0
@@ -840,9 +951,11 @@ class FrameSet(Set):
         Return True if the given string is a frame range. Any padding
         characters, such as '#' and '@' are ignored.
 
-        :type frange: str
-        :param frange: a frame range to test
-        :rtype: bool
+        Args:
+            frange (str): a frame range to test
+
+        Returns:
+            bool:
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
@@ -863,9 +976,12 @@ class FrameSet(Set):
         """
         Return the zero-padded version of the frame range string.
 
-        :type frange: str
-        :param frange: a frame range to test
-        :rtype: str
+        Args:
+            frange (str): a frame range to test
+            zfill (int):
+
+        Returns:
+            str:
         """
         def _do_pad(match):
             """
@@ -883,11 +999,16 @@ class FrameSet(Set):
         """
         Internal method: parse a discrete frame range part.
 
-        :type frange: str
-        :param frange: single part of a frame range as a string (ie "1-100x5")
-        :rtype: tuple (start, end, modifier, chunk)
-        :raises: :class:`fileseq.exceptions.ParseException` if the frame range
-                 can not be parsed
+        Args:
+            frange (str): single part of a frame range as a string
+                (ie "1-100x5")
+
+        Returns:
+            tuple: (start, end, modifier, chunk)
+
+        Raises:
+            :class:`fileseq.exceptions.ParseException`: if the frame range can
+                not be parsed
         """
         match = FRANGE_RE.match(frange)
         if not match:
@@ -914,15 +1035,14 @@ class FrameSet(Set):
         Private method: builds a proper and padded
         :class:`fileseq.framerange.FrameRange` string.
 
-        :type start: int
-        :param start: first frame
-        :type stop: int
-        :param stop: last frame
-        :type stride: int
-        :param stride: increment
-        :type zfill: int
-        :param zfill: width for zero padding
-        :rtype: str
+        Args:
+            start (int): first frame
+            stop (int or None): last frame
+            stride (int or None): increment
+            zfill (int): width for zero padding
+
+        Returns:
+            str:
         """
         if stop is None:
             return ''
@@ -941,11 +1061,12 @@ class FrameSet(Set):
         Converts a sequence of frames to a series of padded
         :class:`fileseq.framerange.FrameRange` s.
 
-        :type frames: iterable
-        :param frames: sequence of frames to process
-        :type zfill: int
-        :param zfill: width for zero padding
-        :rtype: generator
+        Args:
+            frames (collections.Iterable): sequence of frames to process
+            zfill (int): width for zero padding
+
+        Yields:
+            str:
         """
         _build = FrameSet._build_frange_part
         curr_start = None
@@ -988,15 +1109,14 @@ class FrameSet(Set):
         Converts an iterator of frames into a
         :class:`fileseq.framerange.FrameRange`.
 
-        :type frames: iterable
-        :param frames: sequence of frames to process
-        :type sort: bool
-        :param sort: sort the sequence before processing
-        :type zfill: int
-        :param zfill: width for zero padding
-        :type compress: bool
-        :param compress: remove any duplicates before processing
-        :rtype: str
+        Args:
+            frames (collections.Iterable): sequence of frames to process
+            sort (bool): sort the sequence before processing
+            zfill (int): width for zero padding
+            compress (bool): remove any duplicates before processing
+
+        Returns:
+            str:
         """
         if compress:
             frames = unique(set(), frames)
