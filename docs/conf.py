@@ -11,12 +11,13 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
+import datetime
 import sys
 import os
 
 _ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src")
 sys.path.insert(0, _ROOT)
+__version__ = '?'
 execfile(os.path.join(_ROOT, "fileseq/__version__.py"))
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -35,6 +36,7 @@ execfile(os.path.join(_ROOT, "fileseq/__version__.py"))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,7 +53,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Fileseq'
-copyright = u'2015, Matthew Chambers'
+copyright = u'2015-%d, Matthew Chambers' % datetime.datetime.now().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -108,7 +110,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'nature'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
