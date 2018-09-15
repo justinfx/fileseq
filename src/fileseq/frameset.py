@@ -42,10 +42,10 @@ class FrameSet(Set):
         >>> {FrameSet('1-20'): 'good'}
 
     Caveats:
-        1. Because the internal storage of a ``FrameSet`` contains the discreet
+        1. Because the internal storage of a :class:`FrameSet` contains the discreet
            values of the entire range, an exception will be thrown if the range
            exceeds a large reasonable limit, which could lead to huge memory
-           allocations or memory failures. See `fileseq.constants.MAX_FRAME_SIZE`.
+           allocations or memory failures. See :const:`fileseq.constants.MAX_FRAME_SIZE`.
         2. All frozenset operations return a normalized :class:`FrameSet`:
            internal frames are in numerically increasing order.
         3. Equality is based on the contents and order, NOT the frame range
@@ -59,6 +59,16 @@ class FrameSet(Set):
            as both its start and end methods will raise IndexError.  The
            :meth:`is_null`
            property has been added to allow you to guard against this.
+
+    Args:
+        frange (str or FrameSet or collections.Iterable): the frame range
+            as a string (ie "1-100x5")
+
+    Raises:
+        :class:`fileseq.exceptions.ParseException`: if the frame range
+            (or a portion of it) could not be parsed.
+        :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
+            `fileseq.constants.MAX_FRAME_SIZE`
     """
 
     __slots__ = ('_frange', '_items', '_order')
@@ -68,7 +78,7 @@ class FrameSet(Set):
         Initialize the :class:`FrameSet` object.
 
         Args:
-            frange (str or FrameSet): the frame range as a string (ie "1-100x5")
+            frange (str or :class:`FrameSet`): the frame range as a string (ie "1-100x5")
 
         Raises:
             :class:`fileseq.exceptions.ParseException`: if the frame range
@@ -81,16 +91,6 @@ class FrameSet(Set):
 
     def __init__(self, frange):
         """Initialize the :class:`FrameSet` object.
-
-        Args:
-            frange (str or FrameSet or collections.Iterable): the frame range
-                as a string (ie "1-100x5")
-
-        Raises:
-            :class:`fileseq.exceptions.ParseException`: if the frame range
-                (or a portion of it) could not be parsed.
-            :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
-                `fileseq.constants.MAX_FRAME_SIZE`
         """
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, basestring):
@@ -245,8 +245,7 @@ class FrameSet(Set):
         Private method to simplify comparison operations.
 
         Args:
-            other: the :class:`FrameSet`, set, frozenset, or iterable to be
-                compared
+            other (:class:`FrameSet` or set or frozenset or or iterable): item to be compared
 
         Returns:
             :class:`FrameSet`
@@ -463,7 +462,7 @@ class FrameSet(Set):
 
     def __getitem__(self, index):
         """
-        Allows indexing into the ordered frames of this :class:`FrameSet`.
+        Allows indexing into the ordered frames of this :class:`fileseq.frameset.FrameSet`.
 
         Args:
             index (int): the index to retrieve

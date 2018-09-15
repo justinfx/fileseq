@@ -16,9 +16,6 @@ from fileseq import utils
 
 class FileSequence(object):
     """:class:`FileSequence` represents an ordered sequence of files.
-    """
-    def __init__(self, sequence):
-        """Init the class
 
         Args:
             sequence (str): (ie: dir/path.1-100#.ext)
@@ -28,7 +25,10 @@ class FileSequence(object):
 
         Raises:
             :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
-            :obj:`fileseq.constants.MAX_FRAME_SIZE`
+            :const:`fileseq.constants.MAX_FRAME_SIZE`
+    """
+    def __init__(self, sequence):
+        """Init the class
         """
         sequence = utils.asString(sequence)
 
@@ -105,7 +105,7 @@ class FileSequence(object):
             * dirname - the directory name.
 
         If asking for the inverted range value, and the new inverted range
-        exceeded :obj:`fileseq.constants.MAX_FRAME_SIZE`, a ``MaxSizeException``
+        exceeded :const:`fileseq.constants.MAX_FRAME_SIZE`, a ``MaxSizeException``
         will be raised.
 
         Args:
@@ -116,7 +116,7 @@ class FileSequence(object):
 
         Raises:
             :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
-            :obj:`fileseq.constants.MAX_FRAME_SIZE`
+            :const:`fileseq.constants.MAX_FRAME_SIZE`
         """
         # Potentially expensive if inverted range is large
         # and user never asked for it in template
@@ -223,7 +223,7 @@ class FileSequence(object):
 
         Args:
             frameSet (:class:`fileseq.frameset.FrameSet`): the new
-            :class:`fileseq.frameset.FrameSet` object
+                :class:`fileseq.frameset.FrameSet` object
         """
         self._frameSet = frameSet
 
@@ -244,10 +244,7 @@ class FileSequence(object):
             A leading period will be added if none is provided.
 
         Args:
-            ext (str):
-
-        Returns:
-            None:
+            ext (str): the new file extension
         """
         if ext[0] != ".":
             ext = "." + ext
@@ -282,7 +279,7 @@ class FileSequence(object):
         Set a new frame range for the sequence.
 
         Args:
-            frange: a properly formatted frame range, as per
+            frange (str): a properly formatted frame range, as per
                 :class:`fileseq.frameset.FrameSet`
         """
         self._frameSet = FrameSet(frange)
@@ -297,7 +294,7 @@ class FileSequence(object):
 
         Raises:
             :class:`fileseq.exceptions.MaxSizeException`: If new inverted range
-                exceeded :obj:`fileseq.constants.MAX_FRAME_SIZE`
+                exceeded :const:`fileseq.constants.MAX_FRAME_SIZE`
         """
         if not self._frameSet:
             return ''
@@ -400,7 +397,7 @@ class FileSequence(object):
 
     def __getitem__(self, idx):
         """
-        Allows indexing and slicing into the underlying :class:`fileseq.FrameSet`.
+        Allows indexing and slicing into the underlying :class:`fileseq.frameset.FrameSet`
 
         When indexing, a string filepath is returns for the frame.
 
@@ -532,19 +529,19 @@ class FileSequence(object):
         Yield the sequences found in the given directory.
 
         Examples:
-            findSequencesOnDisk('/path/to/files')
+            >>> findSequencesOnDisk('/path/to/files')
 
-        The pattern can also specify glob-like shell wildcards including the following:
-            ?         - 1 wildcard character
-            *         - 1 or more wildcard character
-            {foo,bar} - either 'foo' or 'bar'
+        The `pattern` can also specify glob-like shell wildcards including the following:
+            * ``?``         - 1 wildcard character
+            * ``*``         - 1 or more wildcard character
+            * ``{foo,bar}`` - either 'foo' or 'bar'
 
         Exact frame ranges are not considered, and padding characters are converted to
-        wildcards (# or @)
+        wildcards (``#`` or ``@``)
 
         Examples:
-            findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
-            findSequencesOnDisk('/path/to/files/imag?_*_{left,right}.@@@.jpg', strictPadding=True)
+            >>> findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
+            >>> findSequencesOnDisk('/path/to/files/imag?_*_{left,right}.@@@.jpg', strictPadding=True)
 
         Args:
             pattern (str): directory to scan, or pattern to filter in directory
@@ -632,8 +629,8 @@ class FileSequence(object):
         """
         Search for a specific sequence on disk.
 
-        The padding characters used in the pattern are used to filter the
-        frame values of the files on disk (if strictPadding is True).
+        The padding characters used in the `pattern` are used to filter the
+        frame values of the files on disk (if `strictPadding` is True).
 
         Examples:
             Find sequence matching basename and extension, and a wildcard for
@@ -649,7 +646,7 @@ class FileSequence(object):
 
         Args:
             pattern (str): the sequence pattern being searched for
-            strictPadding (bool): if True, ignore files with padding length different from pattern
+            strictPadding (bool): if True, ignore files with padding length different from `pattern`
 
         Returns:
             str:
