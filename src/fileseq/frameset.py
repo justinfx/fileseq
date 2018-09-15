@@ -1032,7 +1032,7 @@ class FrameSet(Set):
     def _build_frange_part(start, stop, stride, zfill=0):
         """
         Private method: builds a proper and padded
-        :class:`fileseq.framerange.FrameRange` string.
+        frame range string.
 
         Args:
             start (int): first frame
@@ -1058,7 +1058,7 @@ class FrameSet(Set):
     def framesToFrameRanges(frames, zfill=0):
         """
         Converts a sequence of frames to a series of padded
-        :class:`fileseq.framerange.FrameRange` s.
+        frame range strings.
 
         Args:
             frames (collections.Iterable): sequence of frames to process
@@ -1106,7 +1106,7 @@ class FrameSet(Set):
     def framesToFrameRange(frames, sort=True, zfill=0, compress=False):
         """
         Converts an iterator of frames into a
-        :class:`fileseq.framerange.FrameRange`.
+        frame range string.
 
         Args:
             frames (collections.Iterable): sequence of frames to process
