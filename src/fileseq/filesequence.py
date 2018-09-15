@@ -81,7 +81,7 @@ class FileSequence(object):
         Create a deep copy of this sequence
 
         Returns:
-            :obj:`fileseq.FileSequence`:
+            :obj:`.FileSequence`:
         """
         fs = self.__class__.__new__(self.__class__)
         fs.__dict__ = self.__dict__.copy()
@@ -209,21 +209,20 @@ class FileSequence(object):
 
     def frameSet(self):
         """
-        Return the :class:`fileseq.frameset.FrameSet` of the sequence if specified,
+        Return the :class:`.FrameSet` of the sequence if specified,
         otherwise None.
 
         Returns:
-            :class:`fileseq.frameset.FrameSet` or None:
+            :class:`.FrameSet` or None:
         """
         return self._frameSet
 
     def setFrameSet(self, frameSet):
         """
-        Set a new :class:`fileseq.frameset.FrameSet` for the sequence.
+        Set a new :class:`.FrameSet` for the sequence.
 
         Args:
-            frameSet (:class:`fileseq.frameset.FrameSet`): the new
-                :class:`fileseq.frameset.FrameSet` object
+            frameSet (:class:`.FrameSet`): the new :class:`.FrameSet` object
         """
         self._frameSet = frameSet
 
@@ -279,8 +278,7 @@ class FileSequence(object):
         Set a new frame range for the sequence.
 
         Args:
-            frange (str): a properly formatted frame range, as per
-                :class:`fileseq.frameset.FrameSet`
+            frange (str): a properly formatted frame range, as per :class:`.FrameSet`
         """
         self._frameSet = FrameSet(frange)
 
@@ -302,7 +300,7 @@ class FileSequence(object):
 
     def start(self):
         """
-        Returns the start frame of the sequence's :class:`fileseq.frameset.FrameSet`.
+        Returns the start frame of the sequence's :class:`.FrameSet`.
         Will return 0 if the sequence has no frame pattern.
 
         Returns:
@@ -314,7 +312,7 @@ class FileSequence(object):
 
     def end(self):
         """
-        Returns the end frame of the sequences :class:`fileseq.frameset.FrameSet`.
+        Returns the end frame of the sequences :class:`.FrameSet`.
         Will return 0 if the sequence has no frame pattern.
 
         Returns:
@@ -397,7 +395,7 @@ class FileSequence(object):
 
     def __getitem__(self, idx):
         """
-        Allows indexing and slicing into the underlying :class:`fileseq.frameset.FrameSet`
+        Allows indexing and slicing into the underlying :class:`.FrameSet`
 
         When indexing, a string filepath is returns for the frame.
 
@@ -652,7 +650,7 @@ class FileSequence(object):
             str:
 
         Raises:
-            :class:`fileseq.exceptions.FileSeqException`: if no sequence is found on disk
+            :class:`.FileSeqException`: if no sequence is found on disk
         """
         seq = cls(pattern)
 

@@ -65,7 +65,7 @@ class FrameSet(Set):
             as a string (ie "1-100x5")
 
     Raises:
-        :class:`fileseq.exceptions.ParseException`: if the frame range
+        :class:`.ParseException`: if the frame range
             (or a portion of it) could not be parsed.
         :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
             `fileseq.constants.MAX_FRAME_SIZE`
@@ -81,7 +81,7 @@ class FrameSet(Set):
             frange (str or :class:`FrameSet`): the frame range as a string (ie "1-100x5")
 
         Raises:
-            :class:`fileseq.exceptions.ParseException`: if the frame range
+            :class:`.ParseException`: if the frame range
                 (or a portion of it) could not be parsed.
             :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
                 `fileseq.constants.MAX_FRAME_SIZE`
@@ -462,7 +462,7 @@ class FrameSet(Set):
 
     def __getitem__(self, index):
         """
-        Allows indexing into the ordered frames of this :class:`fileseq.frameset.FrameSet`.
+        Allows indexing into the ordered frames of this :class:`FrameSet`.
 
         Args:
             index (int): the index to retrieve
@@ -1006,7 +1006,7 @@ class FrameSet(Set):
             tuple: (start, end, modifier, chunk)
 
         Raises:
-            :class:`fileseq.exceptions.ParseException`: if the frame range can
+            :class:`.ParseException`: if the frame range can
                 not be parsed
         """
         match = FRANGE_RE.match(frange)
