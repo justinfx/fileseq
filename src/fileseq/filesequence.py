@@ -620,7 +620,20 @@ class FileSequence(object):
         files = (_join(dirpath, f) for f in files)
         files = list(files)
 
-        return list(FileSequence.yield_sequences_in_list(files))
+        seqs = list(FileSequence.yield_sequences_in_list(files))
+
+        if _filter_padding:
+            pad = seq.padding()
+            if pad.startswith('%'):
+                # Ensure alternate input padding formats are conformed
+                # to a single output padding format.
+                pad = cls.getPaddingChars(cls.getPaddingNum(pad))
+            # strict padding should preserve the original padding
+            # characters in the found sequences.
+            for s in seqs:
+                s.setPadding(pad)
+
+        return seqs
 
     @classmethod
     def findSequenceOnDisk(cls, pattern, strictPadding=False):
@@ -667,10 +680,16 @@ class FileSequence(object):
         globbed = iglob(patt)
         if pad and strictPadding:
             globbed = cls._filterByPaddingNum(globbed, seq.zfill())
+            if pad.startswith('%'):
+                # Ensure alternate input padding formats are conformed
+                # to a single output padding format.
+                pad = cls.getPaddingChars(cls.getPaddingNum(pad))
 
         matches = cls.yield_sequences_in_list(globbed)
         for match in matches:
             if match.basename() == basename and match.extension() == ext:
+                if pad and strictPadding:
+                    match.setPadding(pad)
                 return match
 
         msg = 'no sequence found on disk matching {0}'
@@ -695,12 +714,38 @@ class FileSequence(object):
             # Add a filter for paths that don't match the frame
             # padding of a given number
             matches = _check(item)
-            if matches:
-                actualNum = len(matches.group(3) or '')
-                if actualNum != num:
-                    continue
+            if not matches:
+                if num <= 0:
+                    # Not a sequence pattern, but we were asked
+                    # to match on a zero padding
+                    yield item
 
-            yield item
+                continue
+
+            frame = matches.group(3) or ''
+
+            if not frame:
+                if num <= 0:
+                    # No frame value was parsed, but we were asked
+                    # to match on a zero padding
+                    yield item
+                continue
+
+            # We have a frame number
+
+            if frame[0] == '0' or frame[:2] == '-0':
+                if len(frame) == num:
+                    # A frame leading with '0' is explicitly
+                    # padded and can only be a match if its exactly
+                    # the target padding number
+                    yield item
+                continue
+
+            if len(frame) >= num:
+                # A frame that does not lead with '0' can match
+                # a padding width >= to the target padding number
+                yield item
+                continue
 
     @staticmethod
     def getPaddingChars(num):

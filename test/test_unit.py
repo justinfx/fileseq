@@ -544,7 +544,7 @@ class TestFindSequencesOnDisk(TestBase):
 
     def testFindSequencesOnDisk(self):
         seqs = findSequencesOnDisk("seq", strictPadding=True)
-        self.assertEquals(9, len(seqs))
+        self.assertEquals(len(seqs), 10)
 
         known = {
             "seq/bar1000-1002,1004-1006#.exr",
@@ -556,6 +556,7 @@ class TestFindSequencesOnDisk(TestBase):
             "seq/1-3#.exr",
             "seq/baz_left.1-3#.exr",
             "seq/baz_right.1-3#.exr",
+            "seq/big.999-1003#.ext",
         }
         found = set([str(s) for s in seqs])
         self.assertEqualPaths(found, known)
@@ -563,8 +564,12 @@ class TestFindSequencesOnDisk(TestBase):
     def testStrictPadding(self):
         tests = [
             ("seq/bar#.exr", ["seq/bar1000-1002,1004-1006#.exr"]),
-            ("seq/bar@@@@.exr", ["seq/bar1000-1002,1004-1006#.exr"]),
-            ("seq/bar@@@.exr", []),
+            ("seq/bar@@@@.exr", ["seq/bar1000-1002,1004-1006@@@@.exr"]),
+            ("seq/bar@@@.exr", ["seq/bar1000-1002,1004-1006@@@.exr"]),
+            ("seq/bar@@.exr", ["seq/bar1000-1002,1004-1006@@.exr"]),
+            ("seq/bar@.exr", ["seq/bar1000-1002,1004-1006@.exr"]),
+            ("seq/bar@@@@@.exr", []),
+            ("seq/bar#@.exr", []),
             ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
             ("seq/foo.#.jpg", ["seq/foo.1-5#.jpg"]),
             ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
@@ -574,10 +579,12 @@ class TestFindSequencesOnDisk(TestBase):
             ("seq/foo_#_extra.exr", []),
             ("seq/foo_##.exr", []),
             ("seq/foo_@.exr", []),
+            ("seq/foo_#@.exr", []),
             ("seq/foo_@@_extra.exr", []),
             ("seq/baz_{left,right}.#.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
-            ("seq/baz_{left,right}.@@@@.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
+            ("seq/baz_{left,right}.@@@@.exr", ["seq/baz_left.1-3@@@@.exr", "seq/baz_right.1-3@@@@.exr"]),
             ("seq/baz_{left,right}.@@@.exr", []),
+            ("seq/baz_{left,right}.#@.exr", []),
         ]
 
         for pattern, expected in tests:
@@ -680,24 +687,32 @@ class TestFindSequenceOnDisk(TestBase):
     def testStrictPadding(self):
         tests = [
             ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
-            ("seq/bar@@@@.exr", "seq/bar1000-1002,1004-1006#.exr"),
-            ("seq/bar@@@.exr", None),
+            ("seq/bar@@@@.exr", "seq/bar1000-1002,1004-1006@@@@.exr"),
+            ("seq/bar@@@.exr", "seq/bar1000-1002,1004-1006@@@.exr"),
+            ("seq/bar@@.exr", "seq/bar1000-1002,1004-1006@@.exr"),
+            ("seq/bar@.exr", "seq/bar1000-1002,1004-1006@.exr"),
+            ("seq/bar@@@@@.exr", None),
+            ("seq/bar#@.exr", None),
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
             ("seq/#.exr", "seq/1-3#.exr"),
             ("seq/foo_#.exr", "seq/foo_1#.exr"),
-            ("seq/foo_#_extra.exr", "seq/foo_1#_extra.exr"),
+            ("seq/foo_#_extra.exr", None),
             ("seq/foo_##.exr", None),
             ("seq/foo_@.exr", None),
+            ("seq/big.#.ext", "seq/big.999-1003#.ext"),
+            ("seq/big.@@@.ext", "seq/big.1000-1003@@@.ext"),
+            ("seq/big.@.ext", "seq/big.1000-1003@.ext"),
+            ("seq/big.#@.ext", None),
         ]
 
         for pattern, expected in tests:
             if expected is None:
                 with self.assertRaises(fileseq.FileSeqException):
                     findSequenceOnDisk(pattern, strictPadding=True)
-                return
+                continue
 
             seq = findSequenceOnDisk(pattern, strictPadding=True)
             self.assertTrue(isinstance(seq, FileSequence))
@@ -738,11 +753,13 @@ class TestFindSequenceOnDisk(TestBase):
             ("mixed/seq.#.ext", "mixed/seq.-1-5#.ext"),
             ("mixed/seq.@@.ext", "mixed/seq.-1-5@@.ext"),
             ("mixed/seq.@@@@@.ext", "mixed/seq.-1-5@@@@@.ext"),
-            ("mixed/seq.@.ext", None),
+            ("mixed/seq.@.ext", "mixed/seq.-1@.ext"),
+            ("mixed/seq.##.ext", None),
             ("mixed/seq.%04d.ext", "mixed/seq.-1-5#.ext"),
             ("mixed/seq.%02d.ext", "mixed/seq.-1-5@@.ext"),
             ("mixed/seq.%05d.ext", "mixed/seq.-1-5@@@@@.ext"),
-            ("mixed/seq.%01d.ext", None),
+            ("mixed/seq.%01d.ext", "mixed/seq.-1@.ext"),
+            ("mixed/seq.%08d.ext", None),
         ]
 
         for pattern, expected in tests:
@@ -821,6 +838,17 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(padFrameRange('1--100x2', 1), '1--100x2')
         self.assertEqual(padFrameRange('1--100x2', 0), '1--100x2')
         self.assertEqual(padFrameRange('1--100x2', -1), '1--100x2')
+
+    def testFilterByPaddingNum(self):
+        tests = [
+            (['file.1.ext'], 1, ['file.1.ext']),
+            (['file.1.ext'], 2, []),
+        ]
+
+        for test in tests:
+            source, pad, expected = test
+            actual = list(FileSequence._filterByPaddingNum(source, pad))
+            self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':
