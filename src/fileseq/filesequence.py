@@ -555,7 +555,8 @@ class FileSequence(object):
         _filter_padding = None
         _join = os.path.join
 
-        dirpath, filepat = pattern, None
+        seq = None
+        dirpath = pattern
 
         # Support the pattern defining a filter for the files
         # in the existing directory
@@ -622,12 +623,8 @@ class FileSequence(object):
 
         seqs = list(FileSequence.yield_sequences_in_list(files))
 
-        if _filter_padding:
-            pad = seq.padding()
-            if pad.startswith('%'):
-                # Ensure alternate input padding formats are conformed
-                # to a single output padding format.
-                pad = cls.getPaddingChars(cls.getPaddingNum(pad))
+        if _filter_padding and seq:
+            pad = cls.conformPadding(seq.padding())
             # strict padding should preserve the original padding
             # characters in the found sequences.
             for s in seqs:
@@ -680,10 +677,7 @@ class FileSequence(object):
         globbed = iglob(patt)
         if pad and strictPadding:
             globbed = cls._filterByPaddingNum(globbed, seq.zfill())
-            if pad.startswith('%'):
-                # Ensure alternate input padding formats are conformed
-                # to a single output padding format.
-                pad = cls.getPaddingChars(cls.getPaddingNum(pad))
+            pad = cls.conformPadding(pad)
 
         matches = cls.yield_sequences_in_list(globbed)
         for match in matches:
@@ -790,3 +784,31 @@ class FileSequence(object):
             msg += " Supported padding characters: {} or printf syntax padding"
             msg += " %<int>d"
             raise ValueError(msg.format(char, str(PAD_MAP.keys())))
+
+    @classmethod
+    def conformPadding(cls, chars):
+        """
+        Ensure alternate input padding formats are conformed
+        to formats defined in PAD_MAP
+
+        If chars is already a format defined in PAD_MAP, then
+        it is returned unmodified.
+
+        Example::
+            '#'    -> '#'
+            '@@@@' -> '@@@@'
+            '%04d' -> '#'
+
+        Args:
+            chars (str): input padding chars
+
+        Returns:
+            str: conformed padding chars
+
+        Raises:
+            ValueError: If chars contains invalid padding characters
+        """
+        pad = chars
+        if pad and pad[0] not in PAD_MAP:
+            pad = cls.getPaddingChars(cls.getPaddingNum(pad))
+        return pad

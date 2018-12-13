@@ -820,6 +820,44 @@ class TestPaddingFunctions(unittest.TestCase):
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, '%{}d'.format(char))
 
+    def testConformPadding(self):
+        """
+        Ensure that alternate padding formats are conformed
+        to a primary PAD_MAP format
+        """
+        class Case(object):
+            def __init__(self, src, expected, error=False):
+                self.src = src
+                self.expected = expected
+                self.error = error
+
+        tests = [
+            Case('#', '#',),
+            Case('#@', '#@'),
+            Case('@@@@', '@@@@'),
+            Case('@@@', '@@@'),
+            Case('@@', '@@'),
+            Case('@', '@'),
+            Case('%08d', '##'),
+            Case('%05d', '@@@@@'),
+            Case('%04d', '#'),
+            Case('%03d', '@@@'),
+            Case('%02d', '@@'),
+            Case('%01d', '@'),
+            Case('', ''),
+            Case('foo', 'foo', error=True),
+        ]
+
+        for case in tests:
+            
+            if case.error:
+                with self.assertRaises(ValueError):
+                    FileSequence.conformPadding(case.src)
+                continue
+
+            actual = FileSequence.conformPadding(case.src)
+            self.assertEqual(actual, case.expected)
+
     def testPadFrameRange(self):
         self.assertEqual(padFrameRange('1', 6), '000001')
         self.assertEqual(padFrameRange('-1', 6), '-000001')
