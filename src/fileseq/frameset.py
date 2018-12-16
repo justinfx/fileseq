@@ -947,8 +947,8 @@ class FrameSet(Set):
             fail = size > constants.MAX_FRAME_SIZE
 
         if fail:
-            raise MaxSizeException('Frame size %s > %s (MAX_FRAME_SIZE)' \
-                    % (size, constants.MAX_FRAME_SIZE))
+            raise MaxSizeException('Frame size %s > %s (MAX_FRAME_SIZE)'
+                                   % (size, constants.MAX_FRAME_SIZE))
 
     @staticmethod
     def isFrameRange(frange):
