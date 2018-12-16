@@ -35,6 +35,10 @@ from fileseq import (FrameSet,
 from fileseq import constants, exceptions, utils
 from fileseq.constants import PAD_MAP
 
+# relative location for test data
+if os.path.dirname(__file__):
+    os.chdir(os.path.dirname(__file__))
+
 
 class TestUtils(unittest.TestCase):
 
