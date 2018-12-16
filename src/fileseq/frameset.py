@@ -5,6 +5,7 @@ frameset - A set-like object representing a frame range for fileseq.
 
 from builtins import str
 from builtins import map
+from future.utils import PY3
 from past.builtins import basestring
 
 import numbers
@@ -14,7 +15,7 @@ from collections import Set, Sequence
 from fileseq import constants
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
 from fileseq.exceptions import MaxSizeException, ParseException
-from fileseq.utils import xfrange, unique, pad
+from fileseq.utils import asString, xfrange, unique, pad
 
 # Issue #44
 # Possibly use an alternate range implementation, depending on platform.
@@ -131,9 +132,14 @@ class FrameSet(Set):
 
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        self._frange = str(frange)
-        for key in PAD_MAP:
-            self._frange = self._frange.replace(key, u'')
+        if PY3:
+            frange = str(frange)
+            for key in PAD_MAP:
+                frange = frange.replace(key, u'')
+            self._frange = frange
+        else:
+            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+            self._frange = str(frange)
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -964,11 +970,16 @@ class FrameSet(Set):
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        frange = str(frange)
-        for key in PAD_MAP:
-            frange = frange.replace(key, u'')
+        if PY3:
+            frange = str(frange)
+            for key in PAD_MAP:
+                frange = frange.replace(key, u'')
+        else:
+            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+
         if not frange:
             return True
+
         for part in frange.split(','):
             if not part:
                 continue
@@ -976,6 +987,7 @@ class FrameSet(Set):
                 FrameSet._parse_frange_part(part)
             except ParseException:
                 return False
+
         return True
 
     @staticmethod
