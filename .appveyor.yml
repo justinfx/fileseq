@@ -12,6 +12,10 @@ environment:
 build: off
 
 install:
+  - ps: if (-not(Test-Path($env:PYTHON))) { & appveyor\install.ps1 }
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "python --version"
+  - "pip install --disable-pip-version-check --user --upgrade pip"
   - "python setup.py install"
 
 test_script:
