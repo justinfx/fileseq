@@ -130,7 +130,7 @@ def pad(number, width=0):
     Returns:
         str:
     """
-    return six.text_type(number).zfill(width)
+    return str(number).zfill(width)
 
 
 def _getPathSep(path):
