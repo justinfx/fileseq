@@ -506,7 +506,7 @@ class FrameSet(Set):
         Returns:
             str:
         """
-        return '{0}("{1}")'.format(self.__class__.__name__, self.frange)
+        return u'{0}("{1}")'.format(self.__class__.__name__, self.frange)
 
     def __iter__(self):
         """
@@ -998,7 +998,7 @@ class FrameSet(Set):
             result[1] = pad(result[1], zfill)
             if result[4]:
                 result[4] = pad(result[4], zfill)
-            return ''.join((i for i in result if i))
+            return u''.join((i for i in result if i))
         return PAD_RE.sub(_do_pad, frange)
 
     @staticmethod
