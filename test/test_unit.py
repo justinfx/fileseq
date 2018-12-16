@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import absolute_import
 
 from future import standard_library
-
 standard_library.install_aliases()
 from builtins import map
 from past.builtins import basestring
@@ -15,13 +14,12 @@ try:
 except ImportError:
     import pickle
 
+import os
 import re
 import string
 import sys
 from collections import namedtuple
 import unittest
-
-from fileseq.utils import *
 
 from fileseq import (FrameSet,
                      FileSequence,
@@ -35,9 +33,34 @@ from fileseq import (FrameSet,
 from fileseq import constants, exceptions, utils
 from fileseq.constants import PAD_MAP
 
-# relative location for test data
-if os.path.dirname(__file__):
-    os.chdir(os.path.dirname(__file__))
+
+TEST_DIR = os.path.abspath(os.path.dirname(__file__))
+SRC_DIR = os.path.join(TEST_DIR, "../src")
+sys.path.insert(0, SRC_DIR)
+os.chdir(TEST_DIR)
+
+
+def _getCommonPathSep(path):
+    """
+    Find the most common path seperator character used
+    in a given path. Because windows supports both forward
+    and backward sep characters, find the most consistently
+    used.
+    Defaults to ``os.sep``
+
+    :type path: str
+    :param path: A path to check for the most common sep
+    :rtype: str
+    """
+    sep = os.sep
+    count = 0
+    for nextSep in ('/', '\\'):
+        if path.count(nextSep) > count:
+            sep = nextSep
+    return sep
+
+
+utils._getPathSep = _getCommonPathSep
 
 
 class TestUtils(unittest.TestCase):
@@ -166,8 +189,9 @@ class TestBase(unittest.TestCase):
 
     def toNormpaths(self, collection):
         if isinstance(collection, basestring):
-            return os.path.normpath(collection)
-        return sorted(map(os.path.normpath, collection))
+            collection = [collection]
+        match = self.RX_PATHSEP.search
+        return sorted((os.path.normpath(p) if match(p) else p) for p in collection)
 
 
 class _CustomPathString(str):
@@ -468,6 +492,13 @@ class TestFileSequence(TestBase):
                             "Expected '%s', got '%s' (with %s)" % (basename, fs.basename(), path))
 
     def test_yield_sequences_in_list(self):
+        self._test_yield_sequences_in_list()
+
+    def test_yield_sequences_in_list_win(self):
+        sep = r'\\'
+        self._test_yield_sequences_in_list(sep)
+
+    def _test_yield_sequences_in_list(self, sep='/'):
         paths = [
             '/path/to/file20.v123.5.png',
             '/path/to/file20.v123.1.exr',
@@ -543,12 +574,16 @@ class TestFileSequence(TestBase):
             '8frames.1-2,5,7-8,10-11@@.jpg',
         }
 
+        sub = self.RX_PATHSEP.sub
+        paths = [sub(sep, p) for p in paths]
+        expected = {sub(sep, p) for p in expected}
+
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals(actual, expected)
+        self.assertEquals(expected, actual)
 
         paths = list(map(_CustomPathString, paths))
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals(actual, {str(_CustomPathString(p)) for p in expected})
+        self.assertEquals({str(_CustomPathString(p)) for p in expected}, actual)
 
     def testIgnoreFrameSetStrings(self):
         for char in "xy:,".split():
