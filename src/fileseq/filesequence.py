@@ -171,11 +171,12 @@ class FileSequence(object):
         """
         # Make sure the dirname always ends in
         # a path separator character
+        dirname = utils.asString(dirname)
         sep = utils._getPathSep(dirname)
         if not dirname.endswith(sep):
             dirname += sep
 
-        self._dir = utils.asString(dirname)
+        self._dir = dirname
 
     def basename(self):
         """
