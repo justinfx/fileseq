@@ -3,6 +3,13 @@
 utils - General tools of use to fileseq operations.
 """
 
+from builtins import bytes
+from builtins import str
+from builtins import next
+from builtins import range
+from builtins import object
+from past.builtins import unicode
+
 import os
 from itertools import chain, count, islice
 
@@ -43,8 +50,8 @@ class xrange2(object):
     def __len__(self):
         return self._len
 
-    def next(self):
-        return self._islice.next()
+    def __next__(self):
+        return next(self._islice)
 
     def __iter__(self):
         return self._islice.__iter__()
@@ -55,9 +62,9 @@ class xrange2(object):
 # OverflowError if a value passed to xrange exceeds the size of a C long.
 # Switch to an alternate implementation.
 if os.name == 'nt':
-    xrange = xrange2
+    xrange = range = xrange2
 else:
-    xrange = xrange
+    xrange = range
 
 
 def xfrange(start, stop, step=1, maxSize=-1):
@@ -91,7 +98,7 @@ def xfrange(start, stop, step=1, maxSize=-1):
 
     # because an xrange is an odd object all its own, we wrap it in a
     # generator expression to get a proper Generator
-    return (f for f in xrange(start, stop, step))
+    return (f for f in range(start, stop, step))
 
 
 def unique(seen, *iterables):
@@ -144,7 +151,7 @@ def _getPathSep(path):
     return os.sep
 
 
-_STR_TYPES = frozenset((unicode, str, bytes))
+_STR_TYPES = frozenset((unicode, str))
 
 
 def asString(obj):
@@ -163,4 +170,6 @@ def asString(obj):
     """
     if type(obj) in _STR_TYPES:
         return obj
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8")
     return str(obj)

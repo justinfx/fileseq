@@ -3,6 +3,10 @@
 frameset - A set-like object representing a frame range for fileseq.
 """
 
+from builtins import str
+from builtins import map
+from past.builtins import basestring
+
 import numbers
 
 from collections import Set, Sequence
@@ -13,8 +17,8 @@ from fileseq.exceptions import MaxSizeException, ParseException
 from fileseq.utils import xfrange, unique, pad
 
 # Issue #44
-# Possibly use an alternate xrange implementation, depending on platform.
-from fileseq.utils import xrange
+# Possibly use an alternate range implementation, depending on platform.
+from fileseq.utils import range
 
 
 class FrameSet(Set):
@@ -86,7 +90,7 @@ class FrameSet(Set):
             :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
                 `fileseq.constants.MAX_FRAME_SIZE`
         """
-        self = super(cls, FrameSet).__new__(cls, *args, **kwargs)
+        self = super(cls, FrameSet).__new__(cls)
         return self
 
     def __init__(self, frange):
@@ -127,7 +131,9 @@ class FrameSet(Set):
 
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        self._frange = str(frange).translate(None, ''.join(PAD_MAP.keys()))
+        self._frange = str(frange)
+        for key in PAD_MAP:
+            self._frange = self._frange.replace(key, u'')
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -156,7 +162,7 @@ class FrameSet(Set):
                 items.update(frames)
             # handle staggered frames (1-100:5)
             elif modifier == ':':
-                for stagger in xrange(chunk, 0, -1):
+                for stagger in range(chunk, 0, -1):
                     frames = xfrange(start, end, stagger, maxSize=maxSize)
                     frames = [f for f in frames if f not in items]
                     self._maxSizeCheck(len(frames) + len(items))
@@ -392,7 +398,7 @@ class FrameSet(Set):
         for idx, frame in enumerate(frames[:-1]):
             next_frame = frames[idx + 1]
             if next_frame - frame != 1:
-                r = xrange(frame + 1, next_frame)
+                r = range(frame + 1, next_frame)
                 # Check if the next update to the result set
                 # will exceed out max frame size.
                 # Prevent memory overflows.
@@ -958,7 +964,9 @@ class FrameSet(Set):
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        frange = str(frange).translate(None, ''.join(PAD_MAP.keys()))
+        frange = str(frange)
+        for key in PAD_MAP:
+            frange = frange.replace(key, u'')
         if not frange:
             return True
         for part in frange.split(','):

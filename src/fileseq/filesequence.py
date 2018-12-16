@@ -3,11 +3,19 @@
 filesequence - A parsing object representing sequential files for fileseq.
 """
 
+from builtins import next
+from builtins import filter
+from builtins import str
+from builtins import map
+from builtins import object
+
+from future.utils import iteritems
+
 import os
 import re
 import functools
 from glob import iglob
-from itertools import imap, ifilter
+
 from fileseq.exceptions import ParseException, FileSeqException
 from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
@@ -43,7 +51,7 @@ class FileSequence(object):
                 self._frameSet = FrameSet(frames)
             except ValueError:
                 # edge case 1; we've got an invalid pad
-                for placeholder in PAD_MAP.keys():
+                for placeholder in PAD_MAP:
                     if placeholder in sequence:
                         msg = "Failed to parse FileSequence: {0}"
                         raise ParseException(msg.format(sequence))
@@ -482,7 +490,7 @@ class FileSequence(object):
         seqs = {}
         _check = DISK_RE.match
 
-        for match in ifilter(None, imap(_check, imap(utils.asString, paths))):
+        for match in filter(None, map(_check, map(utils.asString, paths))):
             dirname, basename, frame, ext = match.groups()
             if not basename and not ext:
                 continue
@@ -491,15 +499,15 @@ class FileSequence(object):
             if frame:
                 seqs[key].add(frame)
 
-        for (dirname, basename, ext), frames in seqs.iteritems():
+        for (dirname, basename, ext), frames in iteritems(seqs):
             # build the FileSequence behind the scenes, rather than dupe work
             seq = FileSequence.__new__(FileSequence)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
             if frames:
-                seq._frameSet = FrameSet(set(imap(int, frames))) if frames else None
-                seq._pad = FileSequence.getPaddingChars(min(imap(len, frames)))
+                seq._frameSet = FrameSet(set(map(int, frames))) if frames else None
+                seq._pad = FileSequence.getPaddingChars(min(map(len, frames)))
             else:
                 seq._frameSet = None
                 seq._pad = ''
@@ -574,16 +582,16 @@ class FileSequence(object):
                 patt += seq.extension()
 
             # Convert braces groups into regex capture groups
-            view = bytearray(patt)
             matches = re.finditer(r'{(.*?)(?:,(.*?))*}', patt)
             for match in reversed(list(matches)):
                 i, j = match.span()
-                view[i:j] = '(%s)' % '|'.join([m.strip() for m in match.groups()])
-            view = view.replace('*', '.*')
-            view = view.replace('?', '.')
-            view += '$'
+                regex = '(%s)' % '|'.join([m.strip() for m in match.groups()])
+                patt = "".join((patt[0:i], regex, patt[j:]))
+            patt = patt.replace('*', '.*')
+            patt = patt.replace('?', '.')
+            patt += '$'
             try:
-                _match_pattern = re.compile(str(view)).match
+                _match_pattern = re.compile(str(patt)).match
             except re.error:
                 msg = 'Invalid file pattern: {}'.format(filepat)
                 raise FileSeqException(msg)
@@ -599,11 +607,11 @@ class FileSequence(object):
 
         # collapse some generators to get us the files that match our regex
         if not include_hidden:
-            files = ifilter(_not_hidden, files)
+            files = filter(_not_hidden, files)
 
         # Filter by files that match the provided file pattern
         if _match_pattern:
-            files = ifilter(_match_pattern, files)
+            files = filter(_match_pattern, files)
 
         # Filter by files that match the frame padding in the file pattern
         if _filter_padding:
@@ -739,9 +747,12 @@ class FileSequence(object):
             return int(match.group(1))
 
         try:
-            return sum([PAD_MAP[char] for char in chars])
+            rval = 0
+            for char in chars:
+                rval += PAD_MAP[char]
+            return rval
         except KeyError:
             msg = "Detected an unsupported padding character: \"{}\"."
             msg += " Supported padding characters: {} or printf syntax padding"
             msg += " %<int>d"
-            raise ValueError(msg.format(char, str(PAD_MAP.keys())))
+            raise ValueError(msg.format(char, str(list(PAD_MAP))))

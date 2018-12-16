@@ -1,23 +1,35 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import division
+from __future__ import absolute_import
 
-import unittest
-import cPickle
+from future import standard_library
+
+standard_library.install_aliases()
+from builtins import map
+from past.builtins import basestring
+
+try:
+    import pickle as pickle
+except ImportError:
+    import pickle
+
 import re
-from itertools import imap
 import string
+import sys
 from collections import namedtuple
+import unittest
 
-from utils import *
+from fileseq.utils import *
 
-from fileseq import (FrameSet, 
-                     FileSequence, 
+from fileseq import (FrameSet,
+                     FileSequence,
                      findSequencesOnDisk,
-                     findSequenceOnDisk, 
-                     padFrameRange, 
-                     getPaddingChars, 
-                     getPaddingNum, 
+                     findSequenceOnDisk,
+                     padFrameRange,
+                     getPaddingChars,
+                     getPaddingNum,
                      FileSeqException)
 
 from fileseq import constants, exceptions, utils
@@ -25,10 +37,10 @@ from fileseq.constants import PAD_MAP
 
 
 class TestUtils(unittest.TestCase):
-    
+
     def testXrange(self):
         # Test that a platform-specific xrange does not produce OverflowError
-        xrng = utils.xrange(1, sys.maxint)
+        xrng = utils.xrange(1, sys.maxsize)
         self.assertTrue(len(xrng) != 0)
 
 
@@ -58,10 +70,10 @@ class TestFrameSet(unittest.TestCase):
 
             # Should not be allowed
             self.assertRaises(exceptions.MaxSizeException, utils.xfrange, 1, 100, 1, maxSize=50)
-            self.assertRaises(exceptions.MaxSizeException, FrameSet, '1-%d' % (maxSize+1))
+            self.assertRaises(exceptions.MaxSizeException, FrameSet, '1-%d' % (maxSize + 1))
 
             # Inverting would produce a huge new range
-            fs = FrameSet('1,%d' % (maxSize+3))
+            fs = FrameSet('1,%d' % (maxSize + 3))
             self.assertRaises(exceptions.MaxSizeException, fs.invertedFrameRange)
 
         finally:
@@ -69,11 +81,11 @@ class TestFrameSet(unittest.TestCase):
 
     def test2FramesContiguous(self):
         table = [
-            ([1,2], "1-2"),
-            ([-1,0], "-1-0"),
-            ([-2,-1], "-2--1"),
-            ([1,2,5,7,8,10,11], "1-2,5,7-8,10-11"),
-            ([-5,-4,-1,1,2,5,7,8,12,13,14,15,16,52,53], "-5--4,-1,1-2,5,7-8,12-16,52-53"),
+            ([1, 2], "1-2"),
+            ([-1, 0], "-1-0"),
+            ([-2, -1], "-2--1"),
+            ([1, 2, 5, 7, 8, 10, 11], "1-2,5,7-8,10-11"),
+            ([-5, -4, -1, 1, 2, 5, 7, 8, 12, 13, 14, 15, 16, 52, 53], "-5--4,-1,1-2,5,7-8,12-16,52-53"),
         ]
 
         for frames, expected in table:
@@ -106,21 +118,21 @@ class TestFrameSet(unittest.TestCase):
         ]
 
         for t in consec:
-            self.assertTrue(FrameSet(t).isConsecutive(), 
-                "Expected %s to be consecutive" % t)
+            self.assertTrue(FrameSet(t).isConsecutive(),
+                            "Expected %s to be consecutive" % t)
 
         for t in nonconsec:
-            self.assertFalse(FrameSet(t).isConsecutive(), 
-                "Expected %s to not be consecutive" % t)
+            self.assertFalse(FrameSet(t).isConsecutive(),
+                             "Expected %s to not be consecutive" % t)
 
     def testSlicing(self):
         Case = namedtuple('Case', ['input', 'slice', 'expected'])
         table = [
             Case('1-10', slice(3, 6), (4, 5, 6)),
-            Case('1-10', slice(None, 5), (1,2,3,4,5)),
-            Case('1-10', slice(5, None), (6,7,8,9,10)),
+            Case('1-10', slice(None, 5), (1, 2, 3, 4, 5)),
+            Case('1-10', slice(5, None), (6, 7, 8, 9, 10)),
             Case('1-10', slice(-3, None), (8, 9, 10)),
-            Case('1-10', slice(-6, None, 2), (5,7,9)),
+            Case('1-10', slice(-6, None, 2), (5, 7, 9)),
         ]
 
         for case in table:
@@ -130,30 +142,29 @@ class TestFrameSet(unittest.TestCase):
 
 
 class TestBase(unittest.TestCase):
-
     RX_PATHSEP = re.compile(r'[/\\]')
 
     def assertEquals(self, a, b):
         # Make sure string paths are compared with normalized
         # path separators
         if isinstance(a, basestring) and isinstance(b, basestring):
-            if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b): 
+            if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b):
                 a = os.path.normpath(a)
                 b = os.path.normpath(b)
 
-        super(TestBase, self).assertEquals(a, b)
+        super(TestBase, self).assertEqual(a, b)
 
     def assertEqual(self, a, b):
         self.assertEquals(a, b)
-    
+
     def assertEqualPaths(self, a, b):
-        return super(TestBase, self).assertEquals(self.toNormpaths(a), self.toNormpaths(b))
-    
+        return super(TestBase, self).assertEqual(self.toNormpaths(a), self.toNormpaths(b))
+
     def toNormpaths(self, collection):
         if isinstance(collection, basestring):
             return os.path.normpath(collection)
         return sorted(map(os.path.normpath, collection))
-    
+
 
 class _CustomPathString(str):
     """
@@ -161,6 +172,7 @@ class _CustomPathString(str):
     as path components, and normalize them by removing
     trailing and duplicate path seps
     """
+
     @classmethod
     def _create(cls, val):
         if val:
@@ -303,14 +315,14 @@ class TestFileSequence(TestBase):
         self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
         seq = findSequencesOnDisk("step_seq")[0]
         self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
-    
+
     def testFormatInverted(self):
         _maxSize = constants.MAX_FRAME_SIZE
         try:
             maxSize = constants.MAX_FRAME_SIZE = 500
 
             # Test catching error for large inverted range
-            seq = FileSequence("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE+3))
+            seq = FileSequence("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE + 3))
             self.assertRaises(exceptions.MaxSizeException, seq.format, '{inverted}')
 
         finally:
@@ -350,9 +362,9 @@ class TestFileSequence(TestBase):
 
         seqs.setFrameRange("1-100")
 
-        for i in xrange(0,100):
+        for i in range(0, 100):
             self.assertEquals(expected, seqs.index(i))
-            self.assertEquals(expected, seqs.frame(i+1))
+            self.assertEquals(expected, seqs.frame(i + 1))
             self.assertEquals(expected, seqs[i])
         self.assertEquals(1, len(seqs))
 
@@ -377,14 +389,14 @@ class TestFileSequence(TestBase):
 
     def testSerialization(self):
         fs = FileSequence("/path/to/file.1-100x2#.exr")
-        s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
-        fs2 = cPickle.loads(s)
+        s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
+        fs2 = pickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
 
         fs = FileSequence("/path/to/file.1-100x2%04d.exr")
-        s = cPickle.dumps(fs, cPickle.HIGHEST_PROTOCOL)
-        fs2 = cPickle.loads(s)
+        s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
+        fs2 = pickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
 
@@ -435,7 +447,9 @@ class TestFileSequence(TestBase):
         self.assertEquals(seq.padding(), '%04d')
 
     def testStringSubclasses(self):
-        sep = lambda p: p.replace("/", os.sep)
+        def sep(p):
+            return p.replace("/", os.sep)
+
         tests = [
             ("/path/to/files.0001.ext", sep("/path/to/"), "files."),
             ("/path/to/files.1-100#.ext", sep("/path/to/"), "files."),
@@ -444,8 +458,10 @@ class TestFileSequence(TestBase):
         ]
         for path, dirname, basename in tests:
             fs = FileSequence(_CustomPathString(path))
-            self.assertTrue(fs.dirname() == dirname, "Expected '%s', got '%s' (with %s)" % (dirname, fs.dirname(), path))
-            self.assertTrue(fs.basename() == basename, "Expected '%s', got '%s' (with %s)" % (basename, fs.basename(), path))
+            self.assertTrue(fs.dirname() == dirname,
+                            "Expected '%s', got '%s' (with %s)" % (dirname, fs.dirname(), path))
+            self.assertTrue(fs.basename() == basename,
+                            "Expected '%s', got '%s' (with %s)" % (basename, fs.basename(), path))
 
     def test_yield_sequences_in_list(self):
         paths = [
@@ -461,7 +477,7 @@ class TestFileSequence(TestBase):
             '/path/to/file.3.7zip',
             '/path/to/file.4.7zip',
             '/path/to/file.4.mp4',
-            '', # empty path test
+            '',  # empty path test
             "mixed_seqs/file5.ext",
             "mixed_seqs/file20.ext",
             "mixed_seqs/file30.ext",
@@ -526,7 +542,7 @@ class TestFileSequence(TestBase):
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         self.assertEquals(actual, expected)
 
-        paths = imap(_CustomPathString, paths)
+        paths = list(map(_CustomPathString, paths))
         actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
         self.assertEquals(actual, {str(_CustomPathString(p)) for p in expected})
 
@@ -639,7 +655,7 @@ class TestFindSequencesOnDisk(TestBase):
             "seqsubdirs/sub1/foo_1#.exr",
         }
 
-        import ntpath 
+        import ntpath
         _join = os.path.join
         os.path.join = ntpath.join
 
@@ -695,7 +711,7 @@ class TestFindSequenceOnDisk(TestBase):
 
         for pattern, expected in tests:
             if expected is None:
-                with self.assertRaises(fileseq.FileSeqException):
+                with self.assertRaises(FileSeqException):
                     findSequenceOnDisk(pattern, strictPadding=True)
                 return
 
@@ -717,7 +733,7 @@ class TestFindSequenceOnDisk(TestBase):
             ("seq/foo_0001.exr", "seq/foo_0001.exr"),
         ]
 
-        import ntpath 
+        import ntpath
         _path = os.path
         os.path = ntpath
 
@@ -728,7 +744,7 @@ class TestFindSequenceOnDisk(TestBase):
                 seq = findSequenceOnDisk(pattern)
                 self.assertTrue(isinstance(seq, FileSequence))
                 actual = str(seq)
-                self.assertEqual(actual, expected) 
+                self.assertEqual(actual, expected)
 
         finally:
             os.path = _path
@@ -750,10 +766,10 @@ class TestFindSequenceOnDisk(TestBase):
                 with self.assertRaises(FileSeqException):
                     findSequenceOnDisk(pattern, strictPadding=True)
                 continue
-            
+
             seq = findSequenceOnDisk(pattern, strictPadding=True)
             self.assertTrue(isinstance(seq, FileSequence))
-            
+
             actual = str(seq)
             self.assertEqual(actual, expected)
 
@@ -793,13 +809,13 @@ class TestPaddingFunctions(unittest.TestCase):
         self.assertEqual(getPaddingNum('%04d'), 4)
         self.assertEqual(getPaddingNum('%10d'), 10)
 
-        allPossibleChars = [s for s in string.printable if s not in PAD_MAP.keys()]
+        allPossibleChars = [s for s in string.printable if s not in list(PAD_MAP.keys())]
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, char)
             self.assertRaises(ValueError, getPaddingNum, '#{}'.format(char))
             self.assertRaises(ValueError, getPaddingNum, '@{}'.format(char))
 
-        allPossibleChars = [s for s in string.printable if s not in PAD_MAP.keys() and s not in string.digits]
+        allPossibleChars = [s for s in string.printable if s not in list(PAD_MAP.keys()) and s not in string.digits]
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, '%{}d'.format(char))
 
