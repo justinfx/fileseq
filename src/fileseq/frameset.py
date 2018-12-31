@@ -5,8 +5,7 @@ frameset - A set-like object representing a frame range for fileseq.
 
 from builtins import str
 from builtins import map
-from future.utils import PY3
-from past.builtins import basestring
+import future.utils
 
 import numbers
 
@@ -15,7 +14,7 @@ from collections import Set, Sequence
 from fileseq import constants, utils
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
 from fileseq.exceptions import MaxSizeException, ParseException
-from fileseq.utils import asString, xfrange, unique, pad
+from fileseq.utils import xfrange, unique, pad
 
 # Issue #44
 # Possibly use an alternate range implementation, depending on platform.
@@ -98,7 +97,7 @@ class FrameSet(Set):
         """Initialize the :class:`FrameSet` object.
         """
         # if the user provides anything but a string, short-circuit the build
-        if not isinstance(frange, basestring):
+        if not isinstance(frange, future.utils.string_types):
             # if it's apparently a FrameSet already, short-circuit the build
             if set(dir(frange)).issuperset(self.__slots__):
                 for attr in self.__slots__:
@@ -132,13 +131,13 @@ class FrameSet(Set):
 
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        if PY3:
+        if future.utils.PY2:
+            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+            self._frange = utils.asString(frange)
+        else:
             frange = str(frange)
             for key in PAD_MAP:
                 frange = frange.replace(key, u'')
-            self._frange = utils.asString(frange)
-        else:
-            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
             self._frange = utils.asString(frange)
 
         # because we're acting like a set, we need to support the empty set
@@ -454,7 +453,7 @@ class FrameSet(Set):
             # this is to allow unpickling of "3rd generation" FrameSets,
             # which are immutable and may be empty.
             self.__init__(state[0])
-        elif isinstance(state, basestring):
+        elif isinstance(state, future.utils.string_types):
             # this is to allow unpickling of "2nd generation" FrameSets,
             # which were mutable and could not be empty.
             self.__init__(state)
@@ -970,12 +969,12 @@ class FrameSet(Set):
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        if PY3:
+        if future.utils.PY2:
+            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+        else:
             frange = str(frange)
             for key in PAD_MAP:
                 frange = frange.replace(key, u'')
-        else:
-            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
 
         if not frange:
             return True
