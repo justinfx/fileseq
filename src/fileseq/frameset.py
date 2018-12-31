@@ -12,7 +12,7 @@ import numbers
 
 from collections import Set, Sequence
 
-from fileseq import constants
+from fileseq import constants, utils
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
 from fileseq.exceptions import MaxSizeException, ParseException
 from fileseq.utils import asString, xfrange, unique, pad
@@ -125,7 +125,7 @@ class FrameSet(Set):
             # in all other cases, cast to a string
             else:
                 try:
-                    frange = str(frange)
+                    frange = utils.asString(frange)
                 except Exception as err:
                     msg = 'Could not parse "{0}": cast to string raised: {1}'
                     raise ParseException(msg.format(frange, err))
@@ -136,10 +136,10 @@ class FrameSet(Set):
             frange = str(frange)
             for key in PAD_MAP:
                 frange = frange.replace(key, u'')
-            self._frange = frange
+            self._frange = utils.asString(frange)
         else:
             frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
-            self._frange = str(frange)
+            self._frange = utils.asString(frange)
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -927,7 +927,7 @@ class FrameSet(Set):
         Returns:
             :class:`FrameSet`:
         """
-        return FrameSet(str(self))
+        return FrameSet(utils.asString(self))
 
     @classmethod
     def _maxSizeCheck(cls, obj):
@@ -980,7 +980,7 @@ class FrameSet(Set):
         if not frange:
             return True
 
-        for part in frange.split(','):
+        for part in utils.asString(frange).split(','):
             if not part:
                 continue
             try:

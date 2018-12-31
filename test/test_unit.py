@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 from builtins import map
-from past.builtins import basestring
+from future.utils import string_types
 
 try:
     import pickle as pickle
@@ -174,7 +174,7 @@ class TestBase(unittest.TestCase):
     def assertEquals(self, a, b):
         # Make sure string paths are compared with normalized
         # path separators
-        if isinstance(a, basestring) and isinstance(b, basestring):
+        if isinstance(a, string_types) and isinstance(b, string_types):
             if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b):
                 a = os.path.normpath(a)
                 b = os.path.normpath(b)
@@ -188,7 +188,7 @@ class TestBase(unittest.TestCase):
         return super(TestBase, self).assertEqual(self.toNormpaths(a), self.toNormpaths(b))
 
     def toNormpaths(self, collection):
-        if isinstance(collection, basestring):
+        if isinstance(collection, string_types):
             collection = [collection]
         match = self.RX_PATHSEP.search
         return sorted((os.path.normpath(p) if match(p) else p) for p in collection)

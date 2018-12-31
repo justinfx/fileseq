@@ -5,7 +5,7 @@ from __future__ import absolute_import
 
 from future import standard_library
 standard_library.install_aliases()
-from past.builtins import basestring
+from future.utils import string_types, text_type, native_str
 
 import unittest
 import pickle
@@ -216,9 +216,9 @@ class TestFrameSet(unittest.TestCase):
         f = FrameSet(test)
         m = u'FrameSet("{0}")._frange != {0}: got {1}'
         r = f._frange
-        self.assertEqual(r, str(test), m.format(test, r))
+        self.assertEqual(r, native_str(test), m.format(test, r))
         m = u'FrameSet("{0}")._frange returns {1}: got {2}'
-        self.assertIsInstance(r, str, m.format(test, str, type(r)))
+        self.assertIsInstance(r, native_str, m.format(test, native_str, type(r)))
 
     def _check___init___items(self, test, expect):
         """
@@ -273,9 +273,9 @@ class TestFrameSet(unittest.TestCase):
         f = FrameSet(test)
         m = u'str(FrameSet("{0}")) != {0}: got {1}'
         r = str(f)
-        self.assertEqual(r, str(test), m.format(test, r))
+        self.assertEqual(r, native_str(test), m.format(test, r))
         m = u'str(FrameSet("{0}")) returns {1}: got {2}'
-        self.assertIsInstance(r, str, m.format(test, str, type(r)))
+        self.assertIsInstance(r, native_str, m.format(test, native_str, type(r)))
 
     def _check___len__(self, test, expect):
         """
@@ -498,7 +498,7 @@ class TestFrameSet(unittest.TestCase):
             r = repr(err)
         self.assertEqual(r, expect, m.format(test, l, expect, r))
         m = u'FrameSet("{0}").frameRange({1}) returns {2}: got {3}'
-        self.assertIsInstance(r, str, m.format(test, l, str, type(r)))
+        self.assertIsInstance(r, text_type, m.format(test, l, text_type, type(r)))
 
     def _check_invertedFrameRange(self, test, expect):
         """
@@ -520,7 +520,7 @@ class TestFrameSet(unittest.TestCase):
             e = [i for i in range(t[0], t[-1]) if i not in t]
             self.assertEqual(c, e, m.format(test, e, c))
         m = u'FrameSet("{0}").invertedFrameRange() returns {1}: got {2}'
-        self.assertIsInstance(r, basestring, m.format(test, basestring, type(r)))
+        self.assertIsInstance(r, string_types, m.format(test, string_types, type(r)))
 
     def _check_normalize(self, test, expect):
         """
@@ -575,7 +575,7 @@ class TestFrameSet(unittest.TestCase):
         m = u'repr(FrameSet("{0}")) != {1}: got {2}'
         self.assertEqual(repr(f), e, m.format(test, e, repr(f)))
         m = u'repr(FrameSet("{0}")) returns {1}: got {2}'
-        self.assertIsInstance(repr(f), basestring, m.format(test, basestring, type(repr(f))))
+        self.assertIsInstance(repr(f), string_types, m.format(test, string_types, type(repr(f))))
 
     def _check___reversed__(self, test, expect):
         """

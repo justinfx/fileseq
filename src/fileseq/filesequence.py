@@ -360,7 +360,7 @@ class FileSequence(object):
             str:
         """
         try:
-            zframe = str(int(frame)).zfill(self._zfill)
+            zframe = utils.asString(int(frame)).zfill(self._zfill)
         except ValueError:
             zframe = frame
 
@@ -396,7 +396,7 @@ class FileSequence(object):
         # If there is no frame range, or there is no padding
         # characters, then we only want to represent a single path
         if not self._frameSet or not self._zfill:
-            yield str(self)
+            yield utils.asString(self)
             return
 
         for f in self._frameSet:
@@ -422,7 +422,7 @@ class FileSequence(object):
             :class:`IndexError`: If slice is outside the range of the sequence
         """
         if not self._frameSet:
-            return str(self)
+            return utils.asString(self)
 
         frames = self._frameSet[idx]
 
@@ -455,7 +455,7 @@ class FileSequence(object):
         Returns:
             str:
         """
-        frameSet = str(self._frameSet or u"")
+        frameSet = utils.asString(self._frameSet or u"")
         return u"".join((
             self._dir,
             self._base,
@@ -512,7 +512,7 @@ class FileSequence(object):
             else:
                 seq._frameSet = None
                 seq._pad = u''
-            seq.__init__(str(seq))
+            seq.__init__(utils.asString(seq))
             yield seq
 
     @staticmethod
@@ -756,4 +756,4 @@ class FileSequence(object):
             msg = "Detected an unsupported padding character: \"{}\"."
             msg += " Supported padding characters: {} or printf syntax padding"
             msg += " %<int>d"
-            raise ValueError(msg.format(char, str(list(PAD_MAP))))
+            raise ValueError(msg.format(char, utils.asString(list(PAD_MAP))))
