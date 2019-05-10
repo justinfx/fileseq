@@ -3,6 +3,12 @@
 utils - General tools of use to fileseq operations.
 """
 
+from builtins import bytes
+from builtins import next
+from builtins import range
+from builtins import object
+import future.utils as futils
+
 import os
 from itertools import chain, count, islice
 
@@ -43,8 +49,8 @@ class xrange2(object):
     def __len__(self):
         return self._len
 
-    def next(self):
-        return self._islice.next()
+    def __next__(self):
+        return next(self._islice)
 
     def __iter__(self):
         return self._islice.__iter__()
@@ -55,9 +61,9 @@ class xrange2(object):
 # OverflowError if a value passed to xrange exceeds the size of a C long.
 # Switch to an alternate implementation.
 if os.name == 'nt':
-    xrange = xrange2
+    xrange = range = xrange2
 else:
-    xrange = xrange
+    xrange = range
 
 
 def xfrange(start, stop, step=1, maxSize=-1):
@@ -91,7 +97,7 @@ def xfrange(start, stop, step=1, maxSize=-1):
 
     # because an xrange is an odd object all its own, we wrap it in a
     # generator expression to get a proper Generator
-    return (f for f in xrange(start, stop, step))
+    return (f for f in range(start, stop, step))
 
 
 def unique(seen, *iterables):
@@ -123,7 +129,7 @@ def pad(number, width=0):
     Returns:
         str:
     """
-    return str(number).zfill(width)
+    return asString(number).zfill(width)
 
 
 def _getPathSep(path):
@@ -144,7 +150,7 @@ def _getPathSep(path):
     return os.sep
 
 
-_STR_TYPES = frozenset((unicode, str, bytes))
+_STR_TYPES = frozenset((futils.text_type, futils.binary_type))
 
 
 def asString(obj):
@@ -163,4 +169,8 @@ def asString(obj):
     """
     if type(obj) in _STR_TYPES:
         return obj
-    return str(obj)
+    elif isinstance(obj, bytes):
+        obj = obj.decode("utf-8")
+    else:
+        obj = futils.text_type(obj)
+    return futils.native(obj)

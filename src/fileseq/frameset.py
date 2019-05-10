@@ -3,18 +3,22 @@
 frameset - A set-like object representing a frame range for fileseq.
 """
 
+from builtins import str
+from builtins import map
+import future.utils
+
 import numbers
 
 from collections import Set, Sequence
 
-from fileseq import constants
+from fileseq import constants, utils
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
 from fileseq.exceptions import MaxSizeException, ParseException
 from fileseq.utils import xfrange, unique, pad
 
 # Issue #44
-# Possibly use an alternate xrange implementation, depending on platform.
-from fileseq.utils import xrange
+# Possibly use an alternate range implementation, depending on platform.
+from fileseq.utils import range
 
 
 class FrameSet(Set):
@@ -86,14 +90,14 @@ class FrameSet(Set):
             :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
                 `fileseq.constants.MAX_FRAME_SIZE`
         """
-        self = super(cls, FrameSet).__new__(cls, *args, **kwargs)
+        self = super(cls, FrameSet).__new__(cls)
         return self
 
     def __init__(self, frange):
         """Initialize the :class:`FrameSet` object.
         """
         # if the user provides anything but a string, short-circuit the build
-        if not isinstance(frange, basestring):
+        if not isinstance(frange, future.utils.string_types):
             # if it's apparently a FrameSet already, short-circuit the build
             if set(dir(frange)).issuperset(self.__slots__):
                 for attr in self.__slots__:
@@ -120,14 +124,21 @@ class FrameSet(Set):
             # in all other cases, cast to a string
             else:
                 try:
-                    frange = str(frange)
+                    frange = utils.asString(frange)
                 except Exception as err:
                     msg = 'Could not parse "{0}": cast to string raised: {1}'
                     raise ParseException(msg.format(frange, err))
 
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        self._frange = str(frange).translate(None, ''.join(PAD_MAP.keys()))
+        if future.utils.PY2:
+            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+            self._frange = utils.asString(frange)
+        else:
+            frange = str(frange)
+            for key in PAD_MAP:
+                frange = frange.replace(key, u'')
+            self._frange = utils.asString(frange)
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -156,7 +167,7 @@ class FrameSet(Set):
                 items.update(frames)
             # handle staggered frames (1-100:5)
             elif modifier == ':':
-                for stagger in xrange(chunk, 0, -1):
+                for stagger in range(chunk, 0, -1):
                     frames = xfrange(start, end, stagger, maxSize=maxSize)
                     frames = [f for f in frames if f not in items]
                     self._maxSizeCheck(len(frames) + len(items))
@@ -392,7 +403,7 @@ class FrameSet(Set):
         for idx, frame in enumerate(frames[:-1]):
             next_frame = frames[idx + 1]
             if next_frame - frame != 1:
-                r = xrange(frame + 1, next_frame)
+                r = range(frame + 1, next_frame)
                 # Check if the next update to the result set
                 # will exceed out max frame size.
                 # Prevent memory overflows.
@@ -400,7 +411,7 @@ class FrameSet(Set):
                 result += r
 
         if not result:
-            return ''
+            return u''
 
         return FrameSet.framesToFrameRange(
             result, zfill=zfill, sort=False, compress=False)
@@ -442,7 +453,7 @@ class FrameSet(Set):
             # this is to allow unpickling of "3rd generation" FrameSets,
             # which are immutable and may be empty.
             self.__init__(state[0])
-        elif isinstance(state, basestring):
+        elif isinstance(state, future.utils.string_types):
             # this is to allow unpickling of "2nd generation" FrameSets,
             # which were mutable and could not be empty.
             self.__init__(state)
@@ -500,7 +511,7 @@ class FrameSet(Set):
         Returns:
             str:
         """
-        return '{0}("{1}")'.format(self.__class__.__name__, self.frange)
+        return u'{0}("{1}")'.format(self.__class__.__name__, self.frange)
 
     def __iter__(self):
         """
@@ -915,7 +926,7 @@ class FrameSet(Set):
         Returns:
             :class:`FrameSet`:
         """
-        return FrameSet(str(self))
+        return FrameSet(utils.asString(self))
 
     @classmethod
     def _maxSizeCheck(cls, obj):
@@ -941,8 +952,8 @@ class FrameSet(Set):
             fail = size > constants.MAX_FRAME_SIZE
 
         if fail:
-            raise MaxSizeException('Frame size %s > %s (MAX_FRAME_SIZE)' \
-                    % (size, constants.MAX_FRAME_SIZE))
+            raise MaxSizeException('Frame size %s > %s (MAX_FRAME_SIZE)'
+                                   % (size, constants.MAX_FRAME_SIZE))
 
     @staticmethod
     def isFrameRange(frange):
@@ -958,16 +969,24 @@ class FrameSet(Set):
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        frange = str(frange).translate(None, ''.join(PAD_MAP.keys()))
+        if future.utils.PY2:
+            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+        else:
+            frange = str(frange)
+            for key in PAD_MAP:
+                frange = frange.replace(key, u'')
+
         if not frange:
             return True
-        for part in frange.split(','):
+
+        for part in utils.asString(frange).split(','):
             if not part:
                 continue
             try:
                 FrameSet._parse_frange_part(part)
             except ParseException:
                 return False
+
         return True
 
     @staticmethod
@@ -990,7 +1009,7 @@ class FrameSet(Set):
             result[1] = pad(result[1], zfill)
             if result[4]:
                 result[4] = pad(result[4], zfill)
-            return ''.join((i for i in result if i))
+            return u''.join((i for i in result if i))
         return PAD_RE.sub(_do_pad, frange)
 
     @staticmethod
@@ -1044,15 +1063,15 @@ class FrameSet(Set):
             str:
         """
         if stop is None:
-            return ''
+            return u''
         pad_start = pad(start, zfill)
         pad_stop = pad(stop, zfill)
         if stride is None or start == stop:
-            return '{0}'.format(pad_start)
+            return u'{0}'.format(pad_start)
         elif abs(stride) == 1:
-            return '{0}-{1}'.format(pad_start, pad_stop)
+            return u'{0}-{1}'.format(pad_start, pad_stop)
         else:
-            return '{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
+            return u'{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
 
     @staticmethod
     def framesToFrameRanges(frames, zfill=0):
@@ -1121,9 +1140,9 @@ class FrameSet(Set):
             frames = unique(set(), frames)
         frames = list(frames)
         if not frames:
-            return ''
+            return u''
         if len(frames) == 1:
             return pad(frames[0], zfill)
         if sort:
             frames.sort()
-        return ','.join(FrameSet.framesToFrameRanges(frames, zfill))
+        return u','.join(FrameSet.framesToFrameRanges(frames, zfill))

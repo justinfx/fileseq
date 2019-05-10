@@ -3,11 +3,19 @@
 filesequence - A parsing object representing sequential files for fileseq.
 """
 
+from builtins import next
+from builtins import filter
+from builtins import str
+from builtins import map
+from builtins import object
+
+from future.utils import iteritems
+
 import os
 import re
 import functools
 from glob import iglob
-from itertools import imap, ifilter
+
 from fileseq.exceptions import ParseException, FileSeqException
 from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
@@ -43,7 +51,7 @@ class FileSequence(object):
                 self._frameSet = FrameSet(frames)
             except ValueError:
                 # edge case 1; we've got an invalid pad
-                for placeholder in PAD_MAP.keys():
+                for placeholder in PAD_MAP:
                     if placeholder in sequence:
                         msg = "Failed to parse FileSequence: {0}"
                         raise ParseException(msg.format(sequence))
@@ -54,22 +62,22 @@ class FileSequence(object):
                     # edge case 3: we've got a single versioned file, not a sequence
                     if frames and not self._base.endswith('.'):
                         self._base = self._base + frames
-                        self._pad = ''
+                        self._pad = u''
                     elif not frames:
-                        self._pad = ''
+                        self._pad = u''
                         self._frameSet = None
                     else:
                         self._frameSet = FrameSet(frames)
                         if self._frameSet:
                             self._pad = FileSequence.getPaddingChars(len(frames))
                         else:
-                            self._pad = ''
+                            self._pad = u''
                             self._frameSet = None
                 # edge case 4; we've got a solitary file, not a sequence
                 else:
                     path, self._ext = os.path.splitext(sequence)
                     self._dir, self._base = os.path.split(path)
-                    self._pad = ''
+                    self._pad = u''
 
         if self._dir:
             self.setDirname(self._dir)
@@ -120,14 +128,14 @@ class FileSequence(object):
         """
         # Potentially expensive if inverted range is large
         # and user never asked for it in template
-        inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
+        inverted = (self.invertedFrameRange() or u"") if "{inverted}" in template else u""
 
         return template.format(
             basename=self.basename(),
             extension=self.extension(), start=self.start(),
             end=self.end(), length=len(self),
             padding=self.padding(),
-            range=self.frameRange() or "",
+            range=self.frameRange() or u"",
             inverted=inverted,
             dirname=self.dirname())
 
@@ -141,7 +149,7 @@ class FileSequence(object):
         """
         result = []
         for frange in self.frameRange().split(","):
-            result.append(FileSequence(''.join(
+            result.append(FileSequence(u''.join(
                 (self._dir, self._base, frange, self._pad, self._ext))))
         return result
 
@@ -163,11 +171,12 @@ class FileSequence(object):
         """
         # Make sure the dirname always ends in
         # a path separator character
+        dirname = utils.asString(dirname)
         sep = utils._getPathSep(dirname)
         if not dirname.endswith(sep):
             dirname += sep
 
-        self._dir = utils.asString(dirname)
+        self._dir = dirname
 
     def basename(self):
         """
@@ -245,8 +254,8 @@ class FileSequence(object):
         Args:
             ext (str): the new file extension
         """
-        if ext[0] != ".":
-            ext = "." + ext
+        if ext[0] != u".":
+            ext = u"." + ext
         self._ext = utils.asString(ext)
 
     def setExtention(self, ext):
@@ -270,7 +279,7 @@ class FileSequence(object):
             str:
         """
         if not self._frameSet:
-            return ''
+            return u''
         return self._frameSet.frameRange(self._zfill)
 
     def setFrameRange(self, frange):
@@ -295,7 +304,7 @@ class FileSequence(object):
                 exceeded :const:`fileseq.constants.MAX_FRAME_SIZE`
         """
         if not self._frameSet:
-            return ''
+            return u''
         return self._frameSet.invertedFrameRange(self._zfill)
 
     def start(self):
@@ -351,7 +360,7 @@ class FileSequence(object):
             str:
         """
         try:
-            zframe = str(int(frame)).zfill(self._zfill)
+            zframe = utils.asString(int(frame)).zfill(self._zfill)
         except ValueError:
             zframe = frame
 
@@ -360,9 +369,9 @@ class FileSequence(object):
         # a frame ID
 
         if self._zfill == 0:
-            zframe = ""
+            zframe = u""
 
-        return "".join((self._dir, self._base, zframe, self._ext))
+        return u"".join((self._dir, self._base, zframe, self._ext))
 
     def index(self, idx):
         """
@@ -387,7 +396,7 @@ class FileSequence(object):
         # If there is no frame range, or there is no padding
         # characters, then we only want to represent a single path
         if not self._frameSet or not self._zfill:
-            yield str(self)
+            yield utils.asString(self)
             return
 
         for f in self._frameSet:
@@ -413,7 +422,7 @@ class FileSequence(object):
             :class:`IndexError`: If slice is outside the range of the sequence
         """
         if not self._frameSet:
-            return str(self)
+            return utils.asString(self)
 
         frames = self._frameSet[idx]
 
@@ -446,17 +455,17 @@ class FileSequence(object):
         Returns:
             str:
         """
-        frameSet = str(self._frameSet or "")
-        return "".join((
+        frameSet = utils.asString(self._frameSet or u"")
+        return u"".join((
             self._dir,
             self._base,
             frameSet,
-            self._pad if frameSet else "",
+            self._pad if frameSet else u"",
             self._ext))
 
     def __repr__(self):
         try:
-            return "<FileSequence: '%s'>" % str(self)
+            return u"<FileSequence: '%s'>" % str(self)
         except TypeError:
             return super(FileSequence, self).__repr__()
 
@@ -482,7 +491,7 @@ class FileSequence(object):
         seqs = {}
         _check = DISK_RE.match
 
-        for match in ifilter(None, imap(_check, imap(utils.asString, paths))):
+        for match in filter(None, map(_check, map(utils.asString, paths))):
             dirname, basename, frame, ext = match.groups()
             if not basename and not ext:
                 continue
@@ -491,19 +500,19 @@ class FileSequence(object):
             if frame:
                 seqs[key].add(frame)
 
-        for (dirname, basename, ext), frames in seqs.iteritems():
+        for (dirname, basename, ext), frames in iteritems(seqs):
             # build the FileSequence behind the scenes, rather than dupe work
             seq = FileSequence.__new__(FileSequence)
-            seq._dir = dirname or ''
-            seq._base = basename or ''
-            seq._ext = ext or ''
+            seq._dir = dirname or u''
+            seq._base = basename or u''
+            seq._ext = ext or u''
             if frames:
-                seq._frameSet = FrameSet(set(imap(int, frames))) if frames else None
-                seq._pad = FileSequence.getPaddingChars(min(imap(len, frames)))
+                seq._frameSet = FrameSet(set(map(int, frames))) if frames else None
+                seq._pad = FileSequence.getPaddingChars(min(map(len, frames)))
             else:
                 seq._frameSet = None
-                seq._pad = ''
-            seq.__init__(str(seq))
+                seq._pad = u''
+            seq.__init__(utils.asString(seq))
             yield seq
 
     @staticmethod
@@ -575,16 +584,16 @@ class FileSequence(object):
                 patt += seq.extension()
 
             # Convert braces groups into regex capture groups
-            view = bytearray(patt)
             matches = re.finditer(r'{(.*?)(?:,(.*?))*}', patt)
             for match in reversed(list(matches)):
                 i, j = match.span()
-                view[i:j] = '(%s)' % '|'.join([m.strip() for m in match.groups()])
-            view = view.replace('*', '.*')
-            view = view.replace('?', '.')
-            view += '$'
+                regex = '(%s)' % '|'.join([m.strip() for m in match.groups()])
+                patt = "".join((patt[0:i], regex, patt[j:]))
+            patt = patt.replace('*', '.*')
+            patt = patt.replace('?', '.')
+            patt += '$'
             try:
-                _match_pattern = re.compile(str(view)).match
+                _match_pattern = re.compile(str(patt)).match
             except re.error:
                 msg = 'Invalid file pattern: {}'.format(filepat)
                 raise FileSeqException(msg)
@@ -600,11 +609,11 @@ class FileSequence(object):
 
         # collapse some generators to get us the files that match our regex
         if not include_hidden:
-            files = ifilter(_not_hidden, files)
+            files = filter(_not_hidden, files)
 
         # Filter by files that match the provided file pattern
         if _match_pattern:
-            files = ifilter(_match_pattern, files)
+            files = filter(_match_pattern, files)
 
         # Filter by files that match the frame padding in the file pattern
         if _filter_padding:
@@ -753,11 +762,11 @@ class FileSequence(object):
             str:
         """
         if num == 0:
-            return "@"
+            return u"@"
         if num % 4 == 0:
-            return "#" * (num // 4)
+            return u"#" * (num // 4)
         else:
-            return "@" * num
+            return u"@" * num
 
     @staticmethod
     def getPaddingNum(chars):
@@ -778,12 +787,15 @@ class FileSequence(object):
             return int(match.group(1))
 
         try:
-            return sum([PAD_MAP[char] for char in chars])
+            rval = 0
+            for char in chars:
+                rval += PAD_MAP[char]
+            return rval
         except KeyError:
             msg = "Detected an unsupported padding character: \"{}\"."
             msg += " Supported padding characters: {} or printf syntax padding"
             msg += " %<int>d"
-            raise ValueError(msg.format(char, str(PAD_MAP.keys())))
+            raise ValueError(msg.format(char, utils.asString(list(PAD_MAP))))
 
     @classmethod
     def conformPadding(cls, chars):

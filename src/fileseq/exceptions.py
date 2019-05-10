@@ -13,7 +13,7 @@ class FileSeqException(ValueError):
 
 class MaxSizeException(ValueError):
     """
-	Thrown when a range exceeds allowable size.
+    Thrown when a range exceeds allowable size.
     """
     pass
 
