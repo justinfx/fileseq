@@ -579,7 +579,7 @@ class FileSequence(object):
             seq = cls(filepat)
             patt = seq.basename().replace('.', r'\.')
             if seq.padding():
-                patt += '\d+'
+                patt += r'\d+'
             if seq.extension():
                 patt += seq.extension()
 
