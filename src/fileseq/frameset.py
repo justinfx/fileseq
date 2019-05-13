@@ -9,7 +9,10 @@ import future.utils
 
 import numbers
 
-from collections import Set, Sequence
+try:  # > PY2
+    from collections.abc import Set, Sequence
+except ImportError:  # PY2
+    from collections import Set, Sequence
 
 from fileseq import constants, utils
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
