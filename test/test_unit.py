@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 from builtins import map
-from future.utils import string_types
+from future.utils import string_types, native_str
 
 try:
     import pickle as pickle
@@ -187,6 +187,9 @@ class TestBase(unittest.TestCase):
     def assertEqualPaths(self, a, b):
         return super(TestBase, self).assertEqual(self.toNormpaths(a), self.toNormpaths(b))
 
+    def assertNativeStr(self, a):
+        self.assertIsInstance(a, native_str, '{0!r} != {1!r}'.format(a, native_str))
+
     def toNormpaths(self, collection):
         if isinstance(collection, string_types):
             collection = [collection]
@@ -215,23 +218,46 @@ class _CustomPathString(str):
     def __add__(self, other):
         return self._create(super(_CustomPathString, self).__add__(other))
 
-    def __getslice__(self, i, j):
-        return self._create(super(_CustomPathString, self).__getslice__(i, j))
+    def __getitem__(self, item):
+        return self._create(super(_CustomPathString, self).__getitem__(item))
 
 
 class TestFileSequence(TestBase):
+
+    def testNativeStr(self):
+        seq = FileSequence("/foo/boo.1-5#.exr")
+        self.assertNativeStr(seq.dirname())
+        self.assertNativeStr(seq.basename())
+        self.assertNativeStr(seq.padding())
+        self.assertNativeStr(seq.extension())
+        self.assertNativeStr(seq.extension())
+        self.assertNativeStr(seq.format('{basename}'))
+        self.assertNativeStr(seq.frame(1))
+        self.assertNativeStr(seq.frameRange())
+        self.assertNativeStr(seq.index(1))
+        self.assertNativeStr(seq.invertedFrameRange())
+
+        self.assertNativeStr(FileSequence.conformPadding('#'))
+        self.assertNativeStr(FileSequence.getPaddingChars(4))
 
     def testSeqGettersType1(self):
         seq = FileSequence("/foo/boo.1-5#.exr")
         self.assertEquals(5, len(seq))
         self.assertEquals("/foo/", seq.dirname())
+        self.assertNativeStr(seq.dirname())
         self.assertEquals("boo.", seq.basename())
+        self.assertNativeStr(seq.basename())
         self.assertEquals("#", seq.padding())
+        self.assertNativeStr(seq.padding())
         self.assertEquals(".exr", seq.extension())
+        self.assertNativeStr(seq.extension())
 
         self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertNativeStr(seq.frame(9999))
         self.assertEquals("/foo/boo.0001.exr", seq[0])
+        self.assertNativeStr(seq[0])
         self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+        self.assertNativeStr(seq.index(0))
 
     def testSeqGettersType2(self):
         seq = FileSequence("/foo/boo1-5#.exr")
@@ -292,7 +318,9 @@ class TestFileSequence(TestBase):
     def testFrame(self):
         seq = FileSequence("/foo/bar/bing.#.exr")
         self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
+        self.assertNativeStr(seq.frame(1))
         self.assertEquals("/foo/bar/bing.#.exr", seq.frame("#"))
+        self.assertNativeStr(seq.frame("#"))
 
         seq = FileSequence("/foo/bar/bing.%04d.exr")
         self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
@@ -326,6 +354,9 @@ class TestFileSequence(TestBase):
             actual = fs[case.slice]
             self.assertEqual(case.expected, actual)
 
+            if isinstance(actual, string_types):
+                self.assertNativeStr(actual)
+
         fs = FileSequence('file.1-10#.ext')
         raises = [-20, 20, slice(11, None), slice(-200, -100)]
         for case in raises:
@@ -336,7 +367,9 @@ class TestFileSequence(TestBase):
     def testFormat(self):
         seq = FileSequence("/cheech/chong.1-10,30,40#.exr")
         self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
+        self.assertNativeStr(seq.format())
         self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
+        self.assertNativeStr(seq.format("{inverted}"))
 
         seq = findSequencesOnDisk("broken_seq")[0]
         self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
@@ -830,7 +863,7 @@ class TestFindSequenceOnDisk(TestBase):
             self.assertEqual(actual, expected)
 
 
-class TestPaddingFunctions(unittest.TestCase):
+class TestPaddingFunctions(TestBase):
     """
     Test functions that help deal with padding on file sequences.
     """
@@ -840,12 +873,19 @@ class TestPaddingFunctions(unittest.TestCase):
         Ensure that we're getting back the proper padding characters.
         :return: None
         """
-        self.assertEqual(getPaddingChars(0), '@')
-        self.assertEqual(getPaddingChars(1), '@')
-        self.assertEqual(getPaddingChars(2), '@@')
-        self.assertEqual(getPaddingChars(3), '@@@')
-        self.assertEqual(getPaddingChars(4), '#')
-        self.assertEqual(getPaddingChars(8), '##')
+        cases = [
+            (0, '@'),
+            (1, '@'),
+            (2, '@@'),
+            (3, '@@@'),
+            (4, '#'),
+            (8, '##'),
+        ]
+
+        for case in cases:
+            actual = getPaddingChars(case[0])
+            self.assertEqual(actual, case[1])
+            self.assertNativeStr(actual)
 
     def testGetPaddingNum(self):
         """
@@ -912,25 +952,39 @@ class TestPaddingFunctions(unittest.TestCase):
 
             actual = FileSequence.conformPadding(case.src)
             self.assertEqual(actual, case.expected)
+            self.assertNativeStr(actual)
 
     def testPadFrameRange(self):
-        self.assertEqual(padFrameRange('1', 6), '000001')
-        self.assertEqual(padFrameRange('-1', 6), '-000001')
-        self.assertEqual(padFrameRange('1-100', 6), '000001-000100')
-        self.assertEqual(padFrameRange('-1-100', 6), '-000001-000100')
-        self.assertEqual(padFrameRange('-1--100', 6), '-000001--000100')
-        self.assertEqual(padFrameRange('1--100', 6), '000001--000100')
-        self.assertEqual(padFrameRange('1-100x2', 6), '000001-000100x2')
-        self.assertEqual(padFrameRange('-1-100x2', 6), '-000001-000100x2')
-        self.assertEqual(padFrameRange('-1--100x2', 6), '-000001--000100x2')
-        self.assertEqual(padFrameRange('1--100x2', 6), '000001--000100x2')
-        self.assertEqual(padFrameRange('1--100x2', 5), '00001--00100x2')
-        self.assertEqual(padFrameRange('1--100x2', 4), '0001--0100x2')
-        self.assertEqual(padFrameRange('1--100x2', 3), '001--100x2')
-        self.assertEqual(padFrameRange('1--100x2', 2), '01--100x2')
-        self.assertEqual(padFrameRange('1--100x2', 1), '1--100x2')
-        self.assertEqual(padFrameRange('1--100x2', 0), '1--100x2')
-        self.assertEqual(padFrameRange('1--100x2', -1), '1--100x2')
+        class Case(object):
+            def __init__(self, frange, pad, expected):
+                self.frange = frange
+                self.pad = pad
+                self.expected = expected
+
+        tests = [
+            Case('1', 6, '000001'),
+            Case('-1', 6, '-000001'),
+            Case('1-100', 6, '000001-000100'),
+            Case('-1-100', 6, '-000001-000100'),
+            Case('-1--100', 6, '-000001--000100'),
+            Case('1--100', 6, '000001--000100'),
+            Case('1-100x2', 6, '000001-000100x2'),
+            Case('-1-100x2', 6, '-000001-000100x2'),
+            Case('-1--100x2', 6, '-000001--000100x2'),
+            Case('1--100x2', 6, '000001--000100x2'),
+            Case('1--100x2', 5, '00001--00100x2'),
+            Case('1--100x2', 4, '0001--0100x2'),
+            Case('1--100x2', 3, '001--100x2'),
+            Case('1--100x2', 2, '01--100x2'),
+            Case('1--100x2', 1, '1--100x2'),
+            Case('1--100x2', 0, '1--100x2'),
+            Case('1--100x2', -1, '1--100x2'),
+        ]
+
+        for case in tests:
+            actual = padFrameRange(case.frange, case.pad)
+            self.assertEqual(actual, case.expected)
+            self.assertNativeStr(actual)
 
     def testFilterByPaddingNum(self):
         tests = [

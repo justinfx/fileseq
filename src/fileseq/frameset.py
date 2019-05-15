@@ -2,6 +2,7 @@
 """
 frameset - A set-like object representing a frame range for fileseq.
 """
+from __future__ import absolute_import
 
 from builtins import str
 from builtins import map
@@ -140,7 +141,7 @@ class FrameSet(Set):
         else:
             frange = str(frange)
             for key in PAD_MAP:
-                frange = frange.replace(key, u'')
+                frange = frange.replace(key, '')
             self._frange = utils.asString(frange)
 
         # because we're acting like a set, we need to support the empty set
@@ -414,7 +415,7 @@ class FrameSet(Set):
                 result += r
 
         if not result:
-            return u''
+            return ''
 
         return FrameSet.framesToFrameRange(
             result, zfill=zfill, sort=False, compress=False)
@@ -514,7 +515,7 @@ class FrameSet(Set):
         Returns:
             str:
         """
-        return u'{0}("{1}")'.format(self.__class__.__name__, self.frange)
+        return '{0}("{1}")'.format(self.__class__.__name__, self.frange)
 
     def __iter__(self):
         """
@@ -977,7 +978,7 @@ class FrameSet(Set):
         else:
             frange = str(frange)
             for key in PAD_MAP:
-                frange = frange.replace(key, u'')
+                frange = frange.replace(key, '')
 
         if not frange:
             return True
@@ -1012,7 +1013,7 @@ class FrameSet(Set):
             result[1] = pad(result[1], zfill)
             if result[4]:
                 result[4] = pad(result[4], zfill)
-            return u''.join((i for i in result if i))
+            return ''.join((i for i in result if i))
         return PAD_RE.sub(_do_pad, frange)
 
     @staticmethod
@@ -1066,15 +1067,15 @@ class FrameSet(Set):
             str:
         """
         if stop is None:
-            return u''
+            return ''
         pad_start = pad(start, zfill)
         pad_stop = pad(stop, zfill)
         if stride is None or start == stop:
-            return u'{0}'.format(pad_start)
+            return '{0}'.format(pad_start)
         elif abs(stride) == 1:
-            return u'{0}-{1}'.format(pad_start, pad_stop)
+            return '{0}-{1}'.format(pad_start, pad_stop)
         else:
-            return u'{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
+            return '{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
 
     @staticmethod
     def framesToFrameRanges(frames, zfill=0):
@@ -1143,9 +1144,10 @@ class FrameSet(Set):
             frames = unique(set(), frames)
         frames = list(frames)
         if not frames:
-            return u''
+            return ''
         if len(frames) == 1:
             return pad(frames[0], zfill)
         if sort:
             frames.sort()
-        return u','.join(FrameSet.framesToFrameRanges(frames, zfill))
+        ret = ','.join(FrameSet.framesToFrameRanges(frames, zfill))
+        return future.utils.native_str(ret)

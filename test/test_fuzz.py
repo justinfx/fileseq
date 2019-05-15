@@ -498,7 +498,7 @@ class TestFrameSet(unittest.TestCase):
             r = repr(err)
         self.assertEqual(r, expect, m.format(test, l, expect, r))
         m = u'FrameSet("{0}").frameRange({1}) returns {2}: got {3}'
-        self.assertIsInstance(r, text_type, m.format(test, l, text_type, type(r)))
+        self.assertIsInstance(r, native_str, m.format(test, l, native_str, type(r)))
 
     def _check_invertedFrameRange(self, test, expect):
         """
@@ -520,7 +520,7 @@ class TestFrameSet(unittest.TestCase):
             e = [i for i in range(t[0], t[-1]) if i not in t]
             self.assertEqual(c, e, m.format(test, e, c))
         m = u'FrameSet("{0}").invertedFrameRange() returns {1}: got {2}'
-        self.assertIsInstance(r, string_types, m.format(test, string_types, type(r)))
+        self.assertIsInstance(r, native_str, m.format(test, native_str, type(r)))
 
     def _check_normalize(self, test, expect):
         """
@@ -575,7 +575,7 @@ class TestFrameSet(unittest.TestCase):
         m = u'repr(FrameSet("{0}")) != {1}: got {2}'
         self.assertEqual(repr(f), e, m.format(test, e, repr(f)))
         m = u'repr(FrameSet("{0}")) returns {1}: got {2}'
-        self.assertIsInstance(repr(f), string_types, m.format(test, string_types, type(repr(f))))
+        self.assertIsInstance(repr(f), native_str, m.format(test, native_str, type(repr(f))))
 
     def _check___reversed__(self, test, expect):
         """
@@ -1232,9 +1232,12 @@ class TestFramesToFrameRange(unittest.TestCase):
 
     def _check_frameToRangeEquivalence(self, test, expect):
         f = FrameSet(test)
-        r = FrameSet(framesToFrameRange(expect, sort=False))
+        frange = framesToFrameRange(expect, sort=False)
+        r = FrameSet(frange)
         m = '{0!r} != {1!r}'
         self.assertEqual(f, r, m.format(f, r))
+        m = '{0!r} != {1!r} ; got type {2!r}'
+        self.assertIsInstance(frange, native_str, m.format(frange, native_str, type(frange)))
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFramesToFrameRange dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:

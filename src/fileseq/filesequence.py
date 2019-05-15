@@ -2,6 +2,7 @@
 """
 filesequence - A parsing object representing sequential files for fileseq.
 """
+from __future__ import absolute_import
 
 from builtins import next
 from builtins import filter
@@ -9,6 +10,7 @@ from builtins import str
 from builtins import map
 from builtins import object
 
+import future.utils as futils
 from future.utils import iteritems
 
 import os
@@ -62,22 +64,22 @@ class FileSequence(object):
                     # edge case 3: we've got a single versioned file, not a sequence
                     if frames and not self._base.endswith('.'):
                         self._base = self._base + frames
-                        self._pad = u''
+                        self._pad = ''
                     elif not frames:
-                        self._pad = u''
+                        self._pad = ''
                         self._frameSet = None
                     else:
                         self._frameSet = FrameSet(frames)
                         if self._frameSet:
                             self._pad = FileSequence.getPaddingChars(len(frames))
                         else:
-                            self._pad = u''
+                            self._pad = ''
                             self._frameSet = None
                 # edge case 4; we've got a solitary file, not a sequence
                 else:
                     path, self._ext = os.path.splitext(sequence)
                     self._dir, self._base = os.path.split(path)
-                    self._pad = u''
+                    self._pad = ''
 
         if self._dir:
             self.setDirname(self._dir)
@@ -128,14 +130,14 @@ class FileSequence(object):
         """
         # Potentially expensive if inverted range is large
         # and user never asked for it in template
-        inverted = (self.invertedFrameRange() or u"") if "{inverted}" in template else u""
+        inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
 
         return template.format(
             basename=self.basename(),
             extension=self.extension(), start=self.start(),
             end=self.end(), length=len(self),
             padding=self.padding(),
-            range=self.frameRange() or u"",
+            range=self.frameRange() or "",
             inverted=inverted,
             dirname=self.dirname())
 
@@ -149,7 +151,7 @@ class FileSequence(object):
         """
         result = []
         for frange in self.frameRange().split(","):
-            result.append(FileSequence(u''.join(
+            result.append(FileSequence(''.join(
                 (self._dir, self._base, frange, self._pad, self._ext))))
         return result
 
@@ -174,7 +176,7 @@ class FileSequence(object):
         dirname = utils.asString(dirname)
         sep = utils._getPathSep(dirname)
         if not dirname.endswith(sep):
-            dirname += sep
+            dirname = futils.native_str(dirname) + sep
 
         self._dir = dirname
 
@@ -254,8 +256,8 @@ class FileSequence(object):
         Args:
             ext (str): the new file extension
         """
-        if ext[0] != u".":
-            ext = u"." + ext
+        if ext[0] != ".":
+            ext = "." + ext
         self._ext = utils.asString(ext)
 
     def setExtention(self, ext):
@@ -279,7 +281,7 @@ class FileSequence(object):
             str:
         """
         if not self._frameSet:
-            return u''
+            return ''
         return self._frameSet.frameRange(self._zfill)
 
     def setFrameRange(self, frange):
@@ -304,7 +306,7 @@ class FileSequence(object):
                 exceeded :const:`fileseq.constants.MAX_FRAME_SIZE`
         """
         if not self._frameSet:
-            return u''
+            return ''
         return self._frameSet.invertedFrameRange(self._zfill)
 
     def start(self):
@@ -369,9 +371,9 @@ class FileSequence(object):
         # a frame ID
 
         if self._zfill == 0:
-            zframe = u""
+            zframe = ""
 
-        return u"".join((self._dir, self._base, zframe, self._ext))
+        return futils.native_str("".join((self._dir, self._base, zframe, self._ext)))
 
     def index(self, idx):
         """
@@ -455,17 +457,17 @@ class FileSequence(object):
         Returns:
             str:
         """
-        frameSet = utils.asString(self._frameSet or u"")
-        return u"".join((
+        frameSet = utils.asString(self._frameSet or "")
+        return "".join((
             self._dir,
             self._base,
             frameSet,
-            self._pad if frameSet else u"",
+            self._pad if frameSet else "",
             self._ext))
 
     def __repr__(self):
         try:
-            return u"<FileSequence: '%s'>" % str(self)
+            return "<FileSequence: '%s'>" % str(self)
         except TypeError:
             return super(FileSequence, self).__repr__()
 
@@ -503,15 +505,15 @@ class FileSequence(object):
         for (dirname, basename, ext), frames in iteritems(seqs):
             # build the FileSequence behind the scenes, rather than dupe work
             seq = FileSequence.__new__(FileSequence)
-            seq._dir = dirname or u''
-            seq._base = basename or u''
-            seq._ext = ext or u''
+            seq._dir = dirname or ''
+            seq._base = basename or ''
+            seq._ext = ext or ''
             if frames:
                 seq._frameSet = FrameSet(set(map(int, frames))) if frames else None
                 seq._pad = FileSequence.getPaddingChars(min(map(len, frames)))
             else:
                 seq._frameSet = None
-                seq._pad = u''
+                seq._pad = ''
             seq.__init__(utils.asString(seq))
             yield seq
 
@@ -762,11 +764,11 @@ class FileSequence(object):
             str:
         """
         if num == 0:
-            return u"@"
+            return "@"
         if num % 4 == 0:
-            return u"#" * (num // 4)
+            return "#" * (num // 4)
         else:
-            return u"@" * num
+            return "@" * num
 
     @staticmethod
     def getPaddingNum(chars):

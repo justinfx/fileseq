@@ -2,6 +2,7 @@
 """
 utils - General tools of use to fileseq operations.
 """
+from __future__ import absolute_import
 
 from builtins import bytes
 from builtins import next
@@ -129,7 +130,7 @@ def pad(number, width=0):
     Returns:
         str:
     """
-    return asString(number).zfill(width)
+    return futils.native_str(number).zfill(width)
 
 
 def _getPathSep(path):
@@ -170,7 +171,8 @@ def asString(obj):
     if type(obj) in _STR_TYPES:
         return obj
     elif isinstance(obj, bytes):
-        obj = obj.decode("utf-8")
+        if not futils.PY2:
+            obj = obj.decode("utf-8")
     else:
         obj = futils.text_type(obj)
     return futils.native(obj)
