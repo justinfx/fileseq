@@ -283,6 +283,30 @@ class TestFileSequence(TestBase):
         self.assertEquals("/foo/boo.0001.exr", seq[0])
         self.assertEquals("/foo/boo.0001.exr", seq.index(0))
 
+    def testSeqGettersHoudini(self):
+        seq = FileSequence("/foo/boo.1-5$F.exr")
+        self.assertEquals(5, len(seq))
+        self.assertEquals("/foo/", seq.dirname())
+        self.assertEquals("boo.", seq.basename())
+        self.assertEquals("$F", seq.padding())
+        self.assertEquals(".exr", seq.extension())
+
+        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEquals("/foo/boo.1.exr", seq[0])
+        self.assertEquals("/foo/boo.1.exr", seq.index(0))
+
+    def testSeqGettersHoudiniPadded(self):
+        seq = FileSequence("/foo/boo.1-5$F4.exr")
+        self.assertEquals(5, len(seq))
+        self.assertEquals("/foo/", seq.dirname())
+        self.assertEquals("boo.", seq.basename())
+        self.assertEquals("$F4", seq.padding())
+        self.assertEquals(".exr", seq.extension())
+
+        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEquals("/foo/boo.0001.exr", seq[0])
+        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+
     def testSetDirname(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setDirname("/bing/")
@@ -506,6 +530,11 @@ class TestFileSequence(TestBase):
         self.assertEquals(seq.basename(), "")
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), '%04d')
+
+        seq = FileSequence("/path/to/1-5$F4.exr")
+        self.assertEquals(seq.basename(), "")
+        self.assertEquals(len(seq), 5)
+        self.assertEquals(seq.padding(), "$F4")
 
     def testStringSubclasses(self):
         def sep(p):
@@ -904,16 +933,28 @@ class TestPaddingFunctions(TestBase):
         self.assertEqual(getPaddingNum('%1d'), 1)
         self.assertEqual(getPaddingNum('%04d'), 4)
         self.assertEqual(getPaddingNum('%10d'), 10)
+        self.assertEqual(getPaddingNum('%00d'), 1)
+        self.assertEqual(getPaddingNum('%0d'), 1)
+        self.assertEqual(getPaddingNum('%d'), 1)
 
-        allPossibleChars = [s for s in string.printable if s not in list(PAD_MAP.keys())]
+        self.assertEqual(getPaddingNum('$F'), 1)
+        self.assertEqual(getPaddingNum('$F1'), 1)
+        self.assertEqual(getPaddingNum('$F2'), 2)
+        self.assertEqual(getPaddingNum('$F3'), 3)
+
+        allPossibleChars = [s for s in string.printable if s not in PAD_MAP]
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, char)
             self.assertRaises(ValueError, getPaddingNum, '#{}'.format(char))
             self.assertRaises(ValueError, getPaddingNum, '@{}'.format(char))
 
-        allPossibleChars = [s for s in string.printable if s not in list(PAD_MAP.keys()) and s not in string.digits]
+        allPossibleChars = [s for s in string.printable if s not in PAD_MAP and s not in string.digits]
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, '%{}d'.format(char))
+
+        allPossibleChars = [s for s in string.printable if s not in PAD_MAP and s not in string.digits]
+        for char in allPossibleChars:
+            self.assertRaises(ValueError, getPaddingNum, '$F{}'.format(char))
 
     def testConformPadding(self):
         """
@@ -939,6 +980,13 @@ class TestPaddingFunctions(TestBase):
             Case('%03d', '@@@'),
             Case('%02d', '@@'),
             Case('%01d', '@'),
+            Case('%00d', '@'),
+            Case('%1d', '@'),
+            Case('%d', '@'),
+            Case('$F', '@'),
+            Case('$F1', '@'),
+            Case('$F2', '@@'),
+            Case('$F4', '#'),
             Case('', ''),
             Case('foo', 'foo', error=True),
         ]

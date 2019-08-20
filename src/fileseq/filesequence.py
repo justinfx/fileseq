@@ -19,7 +19,7 @@ import functools
 from glob import iglob
 
 from fileseq.exceptions import ParseException, FileSeqException
-from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE
+from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
 from fileseq import utils
 
@@ -784,9 +784,11 @@ class FileSequence(object):
         Raises:
             ValueError: if unsupported padding character is detected
         """
-        match = PRINTF_SYNTAX_PADDING_RE.match(chars)
+        match = PRINTF_SYNTAX_PADDING_RE.match(chars) or HOUDINI_SYNTAX_PADDING_RE.match(chars)
         if match:
-            return int(match.group(1))
+            paddingNumStr = match.group(1)
+            paddingNum = int(paddingNumStr) if paddingNumStr else 1
+            return max(paddingNum, 1)
 
         try:
             rval = 0
