@@ -16,13 +16,17 @@ PAD_MAP = {"#": 4, "@": 1}
 # Example: /film/shot/renders/bilbo_bty.1-100@.exr
 # Example: /film/shot/renders/bilbo_bty.1-100@@@@#.exr
 # Example: /film/shot/renders/bilbo_bty.1-100%04d.exr
-SPLIT_PATTERN = r"((?:[-\d][-:,xy\d]*)?)([{0}]+|%\d+d)".format(''.join(PAD_MAP))
+SPLIT_PATTERN = r"((?:[-\d][-:,xy\d]*)?)([{0}]+|%(?:\d)*d|\$F(?:\d)*)".format(''.join(PAD_MAP))
 SPLIT_RE = re.compile(SPLIT_PATTERN)
 
 # Regular expression pattern for matching padding against a printf syntax
 # padding string E.g. %04d
-PRINTF_SYNTAX_PADDING_PATTERN = r"%(\d+)d"
+PRINTF_SYNTAX_PADDING_PATTERN = r"^%(\d+)*d\Z"
 PRINTF_SYNTAX_PADDING_RE = re.compile(PRINTF_SYNTAX_PADDING_PATTERN)
+
+# Regular expression pattern for matching padding against houdini syntax
+HOUDINI_SYNTAX_PADDING_PATTERN = r"\$F(\d)*\Z"
+HOUDINI_SYNTAX_PADDING_RE = re.compile(HOUDINI_SYNTAX_PADDING_PATTERN)
 
 # Regular expression pattern for matching file names on disk.
 DISK_PATTERN = r"^((?:.*[/\\])?)(.*?)(-?\d+)?((?:\.\w*[a-zA-Z]\w)*(?:\.[^.]+)?)$"

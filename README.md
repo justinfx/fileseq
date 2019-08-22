@@ -15,6 +15,7 @@ Support for:
 * Negative frame numbers: -10-100
 * Padding: #=4 padded, @=single pad
 * Printf Syntax Padding: %04d=4 padded, %01d=1 padded
+* Houdini Syntax Padding: $F4=4 padding, $F=1 padded
 
 ## FrameSets
 
