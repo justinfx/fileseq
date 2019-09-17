@@ -111,17 +111,7 @@ No:
 fileseq.findSequenceOnDisk('/foo/bar.*.exr')
 ```
 
-## Changes in versions >= 1.0.0
+## Language Ports
 
-From version 1.0.0, a FrameSet allows all the normal Set operations.  It is now an immutable and
-hashable object in its own right, as well.  This means that the order and contents are immutable
-values internally (a tuple and a frozenset, respectively), and that the FrameSet itself can be
-used as a key in a dictionary.
-
-This also means that the null FrameSet (FrameSet('')) is a valid object, and something you should
-expect to receive back from any Set operations that would result in an empty return value.  This
-brings the caveat that the FrameSet.start and FrameSet.end methods on a null FrameSet will raise an
-IndexError if called.
-
-To help avoid confusion, a FrameSet.is_null attribute has been added in 1.0.1, which you can check 
-before calling those methods.
+* Go: https://github.com/justinfx/gofileseq
+* C++: https://github.com/justinfx/gofileseq/tree/master/cpp
