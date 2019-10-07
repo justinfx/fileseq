@@ -30,7 +30,7 @@ setup(name='Fileseq',
       maintainer='Justin Israel',
       maintainer_email='justinisrael@gmail.com',
 
-      url='https://github.com/sqlboy/fileseq',
+      url='https://github.com/justinfx/fileseq',
 
       description=descript,
       long_description=long_description,
