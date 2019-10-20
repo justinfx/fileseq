@@ -1,4 +1,4 @@
-# ![Fileseq](docs/_static/fileseq.png) 
+# ![Fileseq](docs/_static/fileseq_large.png) 
 
 [![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](http://fileseq.readthedocs.io/en/latest/) [![Travis Build Status](https://api.travis-ci.org/justinfx/fileseq.svg)](https://travis-ci.org/justinfx/fileseq) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/87t3pycl3365lnkd?svg=true)](https://ci.appveyor.com/project/justinfx/fileseq)
 
