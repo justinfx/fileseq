@@ -489,6 +489,19 @@ class FileSequence(object):
         extension values will be used to extract the frame value from the paths
         instead of parsing each path from scratch.
 
+        Examples:
+            The ``using`` field can supply a template for extracting the frame
+            component from the paths::
+
+                paths = [
+                    '/dir/file_001.0001.ext',
+                    '/dir/file_002.0001.ext',
+                    '/dir/file_003.0001.ext',
+                ]
+                template = FileSequence('/dir/file_#.0001.ext')
+                seqs = FileSequence.yield_sequences_in_list(paths, using)
+                # [<FileSequence: '/dir/file_1-3@@@.0001.ext'>]
+
         Args:
             paths (list[str]): a list of paths
             using (:obj:`FileSequence`): Optional sequence to use as template
