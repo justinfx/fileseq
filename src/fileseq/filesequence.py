@@ -486,14 +486,20 @@ class FileSequence(object):
         return id(self)
 
     @staticmethod
-    def yield_sequences_in_list(paths):
+    def yield_sequences_in_list(paths, using=None):
         """
         Yield the discrete sequences within paths.  This does not try to
         determine if the files actually exist on disk, it assumes you already
         know that.
 
+        A template :obj:`FileSequence` object can also be provided via the
+        ``using`` parameter. Given this template, the dirname, basename, and
+        extension values will be used to extract the frame value from the paths
+        instead of parsing each path from scratch.
+
         Args:
             paths (list[str]): a list of paths
+            using (:obj:`FileSequence`): Optional sequence to use as template
 
         Yields:
             :obj:`FileSequence`:
@@ -501,14 +507,31 @@ class FileSequence(object):
         seqs = {}
         _check = DISK_RE.match
 
-        for match in filter(None, map(_check, map(utils.asString, paths))):
-            dirname, basename, frame, ext = match.groups()
-            if not basename and not ext:
-                continue
-            key = (dirname, basename, ext)
-            seqs.setdefault(key, set())
-            if frame:
-                seqs[key].add(frame)
+        using_template = isinstance(using, FileSequence)
+
+        if using_template:
+            key = dirname, basename, ext = using.dirname(), using.basename(), using.extension()
+            head = len(dirname + basename)
+            tail = -len(ext)
+            frames = set()
+
+            for path in filter(None, map(utils.asString, paths)):
+                frame = path[head:tail]
+                try:
+                    int(frame)
+                except ValueError:
+                    continue
+                seqs.setdefault(key, frames).add(frame)
+
+        else:
+            for match in filter(None, map(_check, map(utils.asString, paths))):
+                dirname, basename, frame, ext = match.groups()
+                if not basename and not ext:
+                    continue
+                key = (dirname, basename, ext)
+                seqs.setdefault(key, set())
+                if frame:
+                    seqs[key].add(frame)
 
         for (dirname, basename, ext), frames in iteritems(seqs):
             # build the FileSequence behind the scenes, rather than dupe work
@@ -517,7 +540,7 @@ class FileSequence(object):
             seq._base = basename or ''
             seq._ext = ext or ''
             if frames:
-                seq._frameSet = FrameSet(set(map(int, frames))) if frames else None
+                seq._frameSet = FrameSet({int(f) for f in frames}) if frames else None
                 seq._pad = FileSequence.getPaddingChars(min(map(len, frames)))
             else:
                 seq._frameSet = None
@@ -698,7 +721,7 @@ class FileSequence(object):
             globbed = cls._filterByPaddingNum(globbed, seq.zfill())
             pad = cls.conformPadding(pad)
 
-        matches = cls.yield_sequences_in_list(globbed)
+        matches = cls.yield_sequences_in_list(globbed, using=seq)
         for match in matches:
             if match.basename() == basename and match.extension() == ext:
                 if pad and strictPadding:
