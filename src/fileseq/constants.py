@@ -2,6 +2,7 @@
 """
 constants - General constants of use to fileseq operations.
 """
+from __future__ import absolute_import
 
 import re
 
