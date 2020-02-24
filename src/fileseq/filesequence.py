@@ -477,6 +477,14 @@ class FileSequence(object):
     def __ne__(self, other):
         return str(self) != str(other)
 
+    def __hash__(self):
+        # TODO: Technically we should be returning None,
+        # as this class is mutable and cannot reliably be hashed.
+        # Python2 allows it without this definition.
+        # Python3 fails with TypeError: unhashable.
+        # For now, preserving the hashing behaviour in py3.
+        return id(self)
+
     @staticmethod
     def yield_sequences_in_list(paths):
         """
