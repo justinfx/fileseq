@@ -659,7 +659,7 @@ class TestFileSequence(TestBase):
             'seq/file_0007.0001.exr',
         ]
 
-        expects = ["seq/file_3-7x2#.0001.exr"]
+        expects = [os.path.join("seq", "file_3-7x2#.0001.exr")]
 
         template = FileSequence('seq/file_@@.0001.exr')
         actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths, using=template)}
@@ -668,9 +668,9 @@ class TestFileSequence(TestBase):
             self.assertIn(expect, actual)
 
         expects = [
-            "seq/file_0003.1#.exr",
-            "seq/file_0005.1#.exr",
-            "seq/file_0007.1#.exr",
+            os.path.join("seq", "file_0003.1#.exr"),
+            os.path.join("seq", "file_0005.1#.exr"),
+            os.path.join("seq", "file_0007.1#.exr"),
         ]
 
         actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths)}
