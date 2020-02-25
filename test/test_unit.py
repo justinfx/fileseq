@@ -668,9 +668,9 @@ class TestFileSequence(TestBase):
             self.assertIn(expect, actual)
 
         expects = [
-            os.path.join("seq", "file_0003.1#.exr"),
-            os.path.join("seq", "file_0005.1#.exr"),
-            os.path.join("seq", "file_0007.1#.exr"),
+            "seq/file_0003.1#.exr",
+            "seq/file_0005.1#.exr",
+            "seq/file_0007.1#.exr",
         ]
 
         actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths)}
