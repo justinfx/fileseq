@@ -1010,10 +1010,16 @@ class FrameSet(Set):
             Substitutes padded for unpadded frames.
             """
             result = list(match.groups())
-            result[1] = pad(result[1], zfill)
-            if result[4]:
-                result[4] = pad(result[4], zfill)
+
+            neg, start = result[:2]
+            result[:2] = [pad(neg+start, zfill)]
+
+            neg, end = result[2:4]
+            if end:
+                result[2:4] = [pad(neg+end, zfill)]
+
             return ''.join((i for i in result if i))
+            
         return PAD_RE.sub(_do_pad, frange)
 
     @staticmethod
