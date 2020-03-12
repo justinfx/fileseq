@@ -488,15 +488,26 @@ class TestFrameSet(unittest.TestCase):
         if not test and not expect:
             self.assertEqual(f.frameRange(), '')
             return
-        m = u'FrameSet("{0}").frameRange({1}) != "{2}": got "{3}"'
-        p = '((?<![xy:])\d+)'
-        l = max([max([len(i) for i in re.findall(p, str(f))]) + 1, 4])
-        expect = re.sub(p, lambda m: m.group(0).rjust(l, '0'), str(f))
+
+        p1 = r'((?<![xy:-])-?\d+)'
+        l = max([max([len(i) for i in re.findall(p1, str(f))]) + 1, 4])
+
+        p2 = r'(-?\d+)(?:(-)(-?\d+)([xy:]\d+)?)?'
+        def replace(match):
+            start, sep, end, step = match.groups()
+            if start:
+                start = start.zfill(l)
+            if end:
+                end = end.zfill(l)
+            return ''.join(o for o in [start, sep, end, step] if o)
+        expect = re.sub(p2, replace, str(f))
         try:
             r = f.frameRange(l)
         except Exception as err:
             r = repr(err)
+        m = u'FrameSet("{0}").frameRange({1}) != "{2}": got "{3}"'
         self.assertEqual(r, expect, m.format(test, l, expect, r))
+
         m = u'FrameSet("{0}").frameRange({1}) returns {2}: got {3}'
         self.assertIsInstance(r, native_str, m.format(test, l, native_str, type(r)))
 

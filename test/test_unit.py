@@ -176,7 +176,7 @@ class TestFrameSet(unittest.TestCase):
 class TestBase(unittest.TestCase):
     RX_PATHSEP = re.compile(r'[/\\]')
 
-    def assertEquals(self, a, b):
+    def assertEquals(self, a, b, msg=None):
         # Make sure string paths are compared with normalized
         # path separators
         if isinstance(a, string_types) and isinstance(b, string_types):
@@ -184,13 +184,15 @@ class TestBase(unittest.TestCase):
                 a = os.path.normpath(a)
                 b = os.path.normpath(b)
 
-        super(TestBase, self).assertEqual(a, b)
+        super(TestBase, self).assertEqual(a, b, msg=msg)
 
-    def assertEqual(self, a, b):
-        self.assertEquals(a, b)
+    def assertEqual(self, a, b, msg=None):
+        self.assertEquals(a, b, msg=msg)
 
-    def assertEqualPaths(self, a, b):
-        return super(TestBase, self).assertEqual(self.toNormpaths(a), self.toNormpaths(b))
+    def assertEqualPaths(self, a, b, msg=None):
+        return super(TestBase, self).assertEqual(
+            self.toNormpaths(a), self.toNormpaths(b), 
+            msg=msg)
 
     def assertNativeStr(self, a):
         self.assertIsInstance(a, native_str, '{0!r} != {1!r}'.format(a, native_str))
@@ -1042,20 +1044,22 @@ class TestPaddingFunctions(TestBase):
                 self.frange = frange
                 self.pad = pad
                 self.expected = expected
+            def __str__(self):
+                return "input={!r}, pad={}".format(self.frange, self.pad)
 
         tests = [
             Case('1', 6, '000001'),
-            Case('-1', 6, '-000001'),
+            Case('-1', 6, '-00001'),
             Case('1-100', 6, '000001-000100'),
-            Case('-1-100', 6, '-000001-000100'),
-            Case('-1--100', 6, '-000001--000100'),
-            Case('1--100', 6, '000001--000100'),
+            Case('-1-100', 6, '-00001-000100'),
+            Case('-1--100', 6, '-00001--00100'),
+            Case('1--100', 6, '000001--00100'),
             Case('1-100x2', 6, '000001-000100x2'),
-            Case('-1-100x2', 6, '-000001-000100x2'),
-            Case('-1--100x2', 6, '-000001--000100x2'),
-            Case('1--100x2', 6, '000001--000100x2'),
-            Case('1--100x2', 5, '00001--00100x2'),
-            Case('1--100x2', 4, '0001--0100x2'),
+            Case('-1-100x2', 6, '-00001-000100x2'),
+            Case('-1--100x2', 6, '-00001--00100x2'),
+            Case('1--100x2', 6, '000001--00100x2'),
+            Case('1--100x2', 5, '00001--0100x2'),
+            Case('1--100x2', 4, '0001--100x2'),
             Case('1--100x2', 3, '001--100x2'),
             Case('1--100x2', 2, '01--100x2'),
             Case('1--100x2', 1, '1--100x2'),
@@ -1065,7 +1069,7 @@ class TestPaddingFunctions(TestBase):
 
         for case in tests:
             actual = padFrameRange(case.frange, case.pad)
-            self.assertEqual(actual, case.expected)
+            self.assertEqual(actual, case.expected, str(case))
             self.assertNativeStr(actual)
 
     def testFilterByPaddingNum(self):
