@@ -2,7 +2,8 @@
 
 [![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](http://fileseq.readthedocs.io/en/latest/) [![Travis Build Status](https://api.travis-ci.org/justinfx/fileseq.svg)](https://travis-ci.org/justinfx/fileseq) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/87t3pycl3365lnkd?svg=true)](https://ci.appveyor.com/project/justinfx/fileseq)
 
-A Python library for parsing frame ranges and file sequences based on a similar library found in Katana.
+A Python library for parsing frame ranges and file sequences commonly 
+used in VFX and Animation applications.
 
 ## Frame Range Shorthand
 

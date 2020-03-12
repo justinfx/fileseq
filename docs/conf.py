@@ -11,19 +11,16 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
+from __future__ import absolute_import
 import datetime
 import sys
 import os
 
-_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src")
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
 sys.path.insert(0, _ROOT)
 __version__ = '?'
-execfile(os.path.join(_ROOT, "fileseq/__version__.py"))
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+with open(os.path.join(_ROOT, "fileseq/__version__.py")) as version_file:
+    exec(version_file.read())
 
 # -- General configuration ------------------------------------------------
 
@@ -35,9 +32,28 @@ execfile(os.path.join(_ROOT, "fileseq/__version__.py"))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
 ]
+
+intersphinx_mapping = {
+    'python': ('http://www.wetafx.co.nz/Software/python/Python-Docs-3.7.3/', None),
+}
+
+# Add python types to exclude from sphinx check that complains about
+# "reference target not found"
+# https://bugs.python.org/issue11975
+nitpick_ignore = [
+    ('py:class', 'NotImplemented'),
+    ('py:class', 'exceptions.ValueError'),
+    ('py:class', 'future.types.newobject.newobject'),
+    ('py:class', '_abcoll.Set'),
+    ('py:obj', 'collections.Iterable'),
+    ('py:obj', 'generator'),
+]
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

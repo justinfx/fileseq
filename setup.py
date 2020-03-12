@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 import os
 from setuptools import setup, find_packages
 from codecs import open
@@ -13,8 +14,8 @@ with open(os.path.join(here, "src/fileseq/__version__.py")) as version_file:
 with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
     
-descript = 'A Python library for parsing frame ranges and file ' \
-           'sequences based on a similar library found in Katana.'
+descript = 'A Python library for parsing frame ranges and file sequences ' \
+           'commonly used in VFX and Animation applications.'
 
 setup(name='Fileseq',
       version=__version__,
@@ -42,9 +43,10 @@ setup(name='Fileseq',
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6',    
-        'Programming Language :: Python :: 3.7',    
-        'Programming Language :: Python :: 3.8',    
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3',
       ],
 
       keywords='vfx visual effects file sequence frames image',

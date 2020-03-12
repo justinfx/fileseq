@@ -27,7 +27,7 @@ from fileseq.utils import range
 
 class FrameSet(Set):
     """
-    A :class:`FrameSet` is an immutable representation of the ordered, unique
+    A ``FrameSet`` is an immutable representation of the ordered, unique
     set of frames in a given frame range.
 
     The frame range can be expressed in the following ways:
@@ -37,24 +37,24 @@ class FrameSet(Set):
         - 1-100y5 (opposite of above, fills in missing frames)
         - 1-100:4 (same as 1-100x4,1-100x3,1-100x2,1-100)
 
-    A :class:`FrameSet` is effectively an ordered frozenset, with
+    A ``FrameSet`` is effectively an ordered frozenset, with
     FrameSet-returning versions of frozenset methods:
 
         >>> FrameSet('1-5').union(FrameSet('5-10'))
-        FrameSet('1-10')
+        FrameSet("1-10")
         >>> FrameSet('1-5').intersection(FrameSet('5-10'))
-        FrameSet('5')
+        FrameSet("5")
 
     Because a FrameSet is hashable, it can be used as the key to a dictionary:
 
-        >>> {FrameSet('1-20'): 'good'}
+        >>> d = {FrameSet("1-20"): 'good'}
 
     Caveats:
-        1. Because the internal storage of a :class:`FrameSet` contains the discreet
+        1. Because the internal storage of a ``FrameSet`` contains the discreet
            values of the entire range, an exception will be thrown if the range
            exceeds a large reasonable limit, which could lead to huge memory
-           allocations or memory failures. See :const:`fileseq.constants.MAX_FRAME_SIZE`.
-        2. All frozenset operations return a normalized :class:`FrameSet`:
+           allocations or memory failures. See ``fileseq.constants.MAX_FRAME_SIZE``.
+        2. All frozenset operations return a normalized ``FrameSet``:
            internal frames are in numerically increasing order.
         3. Equality is based on the contents and order, NOT the frame range
            string (there are a finite, but potentially
@@ -62,7 +62,7 @@ class FrameSet(Set):
            only a "best guess" can be made).
         4. Human-created frame ranges (ie 1-100x5) will be reduced to the
            actual internal frames (ie 1-96x5).
-        5. The "null" :class:`Frameset` (``FrameSet('')``) is now a valid thing
+        5. The "null" ``Frameset`` (``FrameSet('')``) is now a valid thing
            to create, it is required by set operations, but may cause confusion
            as both its start and end methods will raise IndexError.  The
            :meth:`is_null`
@@ -76,7 +76,7 @@ class FrameSet(Set):
         :class:`.ParseException`: if the frame range
             (or a portion of it) could not be parsed.
         :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
-            `fileseq.constants.MAX_FRAME_SIZE`
+            ``fileseq.constants.MAX_FRAME_SIZE``
     """
 
     __slots__ = ('_frange', '_items', '_order')
@@ -92,7 +92,7 @@ class FrameSet(Set):
             :class:`.ParseException`: if the frame range
                 (or a portion of it) could not be parsed.
             :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
-                `fileseq.constants.MAX_FRAME_SIZE`
+                ``fileseq.constants.MAX_FRAME_SIZE``
         """
         self = super(cls, FrameSet).__new__(cls)
         return self
@@ -390,7 +390,7 @@ class FrameSet(Set):
             >>> FrameSet('1-100x2').invertedFrameRange(5)
             '00002-00098x2'
 
-        If the inverted frame size exceeds `fileseq.constants.MAX_FRAME_SIZE`,
+        If the inverted frame size exceeds ``fileseq.constants.MAX_FRAME_SIZE``,
         a ``MaxSizeException`` will be raised.
 
         Args:
