@@ -37,9 +37,14 @@ class FileSequence(object):
             :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
             ``fileseq.constants.MAX_FRAME_SIZE``
     """
+    DISK_RE = DISK_RE
+    PAD_MAP = PAD_MAP
+    SPLIT_RE = SPLIT_RE
+
     def __init__(self, sequence):
         """Init the class
         """
+        cls = self.__class__
         sequence = utils.asString(sequence)
 
         if not hasattr(self, '_frameSet'):
@@ -48,17 +53,17 @@ class FileSequence(object):
 
             try:
                 # the main case, padding characters in the path.1-100#.exr
-                path, frames, self._pad, self._ext = SPLIT_RE.split(sequence, 1)
+                path, frames, self._pad, self._ext = cls.SPLIT_RE.split(sequence, 1)
                 self._dir, self._base = os.path.split(path)
                 self._frameSet = FrameSet(frames)
             except ValueError:
                 # edge case 1; we've got an invalid pad
-                for placeholder in PAD_MAP:
+                for placeholder in cls.PAD_MAP:
                     if placeholder in sequence:
                         msg = "Failed to parse FileSequence: {0}"
                         raise ParseException(msg.format(sequence))
                 # edge case 2; we've got a single frame of a sequence
-                a_frame = DISK_RE.match(sequence)
+                a_frame = cls.DISK_RE.match(sequence)
                 if a_frame:
                     self._dir, self._base, frames, self._ext = a_frame.groups()
                     # edge case 3: we've got a single versioned file, not a sequence
@@ -71,7 +76,7 @@ class FileSequence(object):
                     else:
                         self._frameSet = FrameSet(frames)
                         if self._frameSet:
-                            self._pad = FileSequence.getPaddingChars(len(frames))
+                            self._pad = self.getPaddingChars(len(frames))
                         else:
                             self._pad = ''
                             self._frameSet = None
@@ -151,7 +156,7 @@ class FileSequence(object):
         """
         result = []
         for frange in self.frameRange().split(","):
-            result.append(FileSequence(''.join(
+            result.append(self.__class__(''.join(
                 (self._dir, self._base, frange, self._pad, self._ext))))
         return result
 
@@ -468,9 +473,9 @@ class FileSequence(object):
 
     def __repr__(self):
         try:
-            return "<FileSequence: '%s'>" % str(self)
+            return "<%s: '%s'>" % (self.__class__.__name__, str(self))
         except TypeError:
-            return super(FileSequence, self).__repr__()
+            return super(self.__class__, self).__repr__()
 
     def __eq__(self, other):
         return str(self) == str(other)
@@ -486,8 +491,8 @@ class FileSequence(object):
         # For now, preserving the hashing behaviour in py3.
         return id(self)
 
-    @staticmethod
-    def yield_sequences_in_list(paths, using=None):
+    @classmethod
+    def yield_sequences_in_list(cls, paths, using=None):
         """
         Yield the discrete sequences within paths.  This does not try to
         determine if the files actually exist on disk, it assumes you already
@@ -519,7 +524,7 @@ class FileSequence(object):
             :obj:`FileSequence`:
         """
         seqs = {}
-        _check = DISK_RE.match
+        _check = cls.DISK_RE.match
 
         using_template = isinstance(using, FileSequence)
 
@@ -549,21 +554,21 @@ class FileSequence(object):
 
         for (dirname, basename, ext), frames in iteritems(seqs):
             # build the FileSequence behind the scenes, rather than dupe work
-            seq = FileSequence.__new__(FileSequence)
+            seq = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
             if frames:
                 seq._frameSet = FrameSet({int(f) for f in frames}) if frames else None
-                seq._pad = FileSequence.getPaddingChars(min(map(len, frames)))
+                seq._pad = cls.getPaddingChars(min(map(len, frames)))
             else:
                 seq._frameSet = None
                 seq._pad = ''
             seq.__init__(utils.asString(seq))
             yield seq
 
-    @staticmethod
-    def findSequencesInList(paths):
+    @classmethod
+    def findSequencesInList(cls, paths):
         """
         Returns the list of discrete sequences within paths.  This does not try
         to determine if the files actually exist on disk, it assumes you
@@ -575,7 +580,7 @@ class FileSequence(object):
         Returns:
             list:
         """
-        return list(FileSequence.yield_sequences_in_list(paths))
+        return list(cls.yield_sequences_in_list(paths))
 
     @classmethod
     def findSequencesOnDisk(cls, pattern, include_hidden=False, strictPadding=False):
@@ -679,7 +684,7 @@ class FileSequence(object):
         files = (_join(dirpath, f) for f in files)
         files = list(files)
 
-        seqs = list(FileSequence.yield_sequences_in_list(files))
+        seqs = list(cls.yield_sequences_in_list(files))
 
         if _filter_padding and seq:
             pad = cls.conformPadding(seq.padding())
@@ -760,7 +765,7 @@ class FileSequence(object):
         Yields:
             str:
         """
-        _check = DISK_RE.match
+        _check = cls.DISK_RE.match
 
         for item in iterable:
             # Add a filter for paths that don't match the frame
@@ -817,8 +822,8 @@ class FileSequence(object):
         else:
             return "@" * num
 
-    @staticmethod
-    def getPaddingNum(chars):
+    @classmethod
+    def getPaddingNum(cls, chars):
         """
         Given a supported group of padding characters, return the amount of padding.
 
@@ -840,13 +845,13 @@ class FileSequence(object):
         try:
             rval = 0
             for char in chars:
-                rval += PAD_MAP[char]
+                rval += cls.PAD_MAP[char]
             return rval
         except KeyError:
             msg = "Detected an unsupported padding character: \"{}\"."
             msg += " Supported padding characters: {} or printf syntax padding"
             msg += " %<int>d"
-            raise ValueError(msg.format(char, utils.asString(list(PAD_MAP))))
+            raise ValueError(msg.format(char, utils.asString(list(cls.PAD_MAP))))
 
     @classmethod
     def conformPadding(cls, chars):
@@ -872,6 +877,6 @@ class FileSequence(object):
             ValueError: If chars contains invalid padding characters
         """
         pad = chars
-        if pad and pad[0] not in PAD_MAP:
+        if pad and pad[0] not in cls.PAD_MAP:
             pad = cls.getPaddingChars(cls.getPaddingNum(pad))
         return pad

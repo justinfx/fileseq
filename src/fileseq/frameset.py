@@ -78,6 +78,9 @@ class FrameSet(Set):
         :class:`fileseq.exceptions.MaxSizeException`: if the range exceeds
             ``fileseq.constants.MAX_FRAME_SIZE``
     """
+    FRANGE_RE = FRANGE_RE
+    PAD_MAP = PAD_MAP
+    PAD_RE = PAD_RE
 
     __slots__ = ('_frange', '_items', '_order')
 
@@ -100,6 +103,8 @@ class FrameSet(Set):
     def __init__(self, frange):
         """Initialize the :class:`FrameSet` object.
         """
+        cls = self.__class__
+
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, future.utils.string_types):
             # if it's apparently a FrameSet already, short-circuit the build
@@ -136,11 +141,11 @@ class FrameSet(Set):
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
         if future.utils.PY2:
-            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+            frange = bytes(frange).translate(None, ''.join(cls.PAD_MAP.keys()))
             self._frange = utils.asString(frange)
         else:
             frange = str(frange)
-            for key in PAD_MAP:
+            for key in cls.PAD_MAP:
                 frange = frange.replace(key, '')
             self._frange = utils.asString(frange)
 
@@ -959,8 +964,8 @@ class FrameSet(Set):
             raise MaxSizeException('Frame size %s > %s (MAX_FRAME_SIZE)'
                                    % (size, constants.MAX_FRAME_SIZE))
 
-    @staticmethod
-    def isFrameRange(frange):
+    @classmethod
+    def isFrameRange(cls, frange):
         """
         Return True if the given string is a frame range. Any padding
         characters, such as '#' and '@' are ignored.
@@ -974,10 +979,10 @@ class FrameSet(Set):
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
         if future.utils.PY2:
-            frange = bytes(frange).translate(None, ''.join(PAD_MAP.keys()))
+            frange = bytes(frange).translate(None, ''.join(cls.PAD_MAP.keys()))
         else:
             frange = str(frange)
-            for key in PAD_MAP:
+            for key in cls.PAD_MAP:
                 frange = frange.replace(key, '')
 
         if not frange:
@@ -993,8 +998,8 @@ class FrameSet(Set):
 
         return True
 
-    @staticmethod
-    def padFrameRange(frange, zfill):
+    @classmethod
+    def padFrameRange(cls, frange, zfill):
         """
         Return the zero-padded version of the frame range string.
 
@@ -1020,10 +1025,10 @@ class FrameSet(Set):
 
             return ''.join((i for i in result if i))
             
-        return PAD_RE.sub(_do_pad, frange)
+        return cls.PAD_RE.sub(_do_pad, frange)
 
-    @staticmethod
-    def _parse_frange_part(frange):
+    @classmethod
+    def _parse_frange_part(cls, frange):
         """
         Internal method: parse a discrete frame range part.
 
@@ -1038,10 +1043,10 @@ class FrameSet(Set):
             :class:`.ParseException`: if the frame range can
                 not be parsed
         """
-        match = FRANGE_RE.match(frange)
+        match = cls.FRANGE_RE.match(frange)
         if not match:
             msg = 'Could not parse "{0}": did not match {1}'
-            raise ParseException(msg.format(frange, FRANGE_RE.pattern))
+            raise ParseException(msg.format(frange, cls.FRANGE_RE.pattern))
         start, end, modifier, chunk = match.groups()
         start = int(start)
         end = int(end) if end is not None else start
