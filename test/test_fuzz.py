@@ -196,35 +196,10 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
-    ("FloatFrames", "1.0-10.5"),
     ("ActualNone", None),
 ]
-
-
-FRAME_SET_FROM_RANGE_SHOULD_SUCCEED = [
-    # individual frames
-    ('Zero', 0, 0, 1, '0'),
-    ('Pos', 1, 1, 1, '1'),
-    # ranges
-    ('PosToPos', 1, 20, 1, '1-20'),
-    ('NegToPos', -1, 1, 1, '-1-1'),
-    ('PosToNeg', 1, -1, 1, '1--1'),
-    ('PosToPosInv', 20, 1, 1, '20-1'),
-    ('NegToPosInv', -20, 1, 1, '-20-1'),
-    ('NegToNegInv', -20, -1, 1, '-20--1'),
-    ('PosToNegInv', 20, -1, 1, '20--1'),
-    ('PosToPosChunk', 1, 20, 5, '1-20x5'),
-    ('NegToPosChunk', -1, 20, 5, '-1-20x5'),
-    ('NegToNegChunk', -1, -20, 5, '-1--20x5'),
-    ('PosToNegChunk', 1, -20, 5, '1--20x5'),
-    ('PosToPosChunkInv', 20, 1, 5, '20-1x5'),
-    ('NegToPosChunkInv', -20, 1, 5, '-20-1x5'),
-    ('NegToNegChunkInv', -20, -1, 5, '-20--1x5'),
-    ('PosToNegChunkInv', 20, -1, 5, '20--1x5'),
-    ('PosToPosNegChunkInv', 20, 1, -1, '20-1x-1'),
-]
-
-
+    
+    
 class TestFrameSet(unittest.TestCase):
     """
     Exercise the TestFrame object.  Due to the sheer number of permutations, we'll add most tests dynamically.
@@ -1279,34 +1254,6 @@ for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
     setattr(
         TestFramesToFrameRange, 'testFramesToRangeEquivalence%s' % name,
         lambda self, t=tst, e=exp: TestFramesToFrameRange._check_frameToRangeEquivalence(self, t, e))
-
-
-class TestFrameSetFromRangeConstructor(unittest.TestCase):
-    """
-    Exercise the TestFrame.from_range() constructor. Due to the sheer number of permutations, we'll add most tests dynamically.
-    """
-
-    def _check_fromRange(self, start, end, step, expect):
-        """
-        Harness to test if the FrameSet.fromRange call works properly.
-        :param expect: the string to use to build the expected FrameSet, which will be normalized for comparison
-        :param start: the start frame
-        :param end: the end frame
-        :return: None
-        """
-        e = FrameSet(expect)
-        r = FrameSet.from_range(start, end, step)
-        m = u'FrameSet.fromRange({0}, {1}) != {2!r}: got {3!r}'
-        self.assertEqual(r, e, m.format(start, end, e, r))
-        m = u'FrameSet.fromRange({0}, {1}) returns {2}: got {3}'
-        self.assertIsInstance(r, FrameSet, m.format(start, end, FrameSet, type(r)))
-
-
-# add tests dynamically
-for name, start, end, step_, exp in FRAME_SET_FROM_RANGE_SHOULD_SUCCEED:
-    setattr(
-        TestFrameSetFromRangeConstructor, 'testFromRange%s' % name,
-        lambda self, s=start, e=end, step=step_, exp=exp: TestFrameSetFromRangeConstructor._check_fromRange(self, s, e, step, exp))
 
 
 if __name__ == '__main__':

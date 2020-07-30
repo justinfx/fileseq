@@ -158,18 +158,79 @@ No:
 .. code-block:: python
 
     findSequenceOnDisk('/foo/bar.*.exr')
+
+* To find subframe sequences you must explcitiy opt-in
+
+.. code-block:: python
+
+    fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 """
 from __future__ import absolute_import
 
 from fileseq.exceptions import ParseException, FileSeqException
 from fileseq.frameset import FrameSet
-from fileseq.filesequence import FileSequence
+from fileseq.filesequence import FileSequence, SubFileSequence
 
 padFrameRange = FrameSet.padFrameRange
 framesToFrameRange = FrameSet.framesToFrameRange
 
 getPaddingChars = FileSequence.getPaddingChars
 getPaddingNum = FileSequence.getPaddingNum
-findSequencesInList = FileSequence.findSequencesInList
-findSequenceOnDisk = FileSequence.findSequenceOnDisk
-findSequencesOnDisk = FileSequence.findSequencesOnDisk
+findSequenceOnDisk = SubFileSequence.findSequenceOnDisk
+
+
+def findSequencesInList(paths, allow_subframes=False):
+    """
+    Returns the list of discrete sequences within paths.  This does not try
+    to determine if the files actually exist on disk, it assumes you
+    already know that.
+
+    Args:
+        paths (list[str]): a list of paths
+        allow_subframes (bool): if True, handle subframes filenames
+
+    Returns:
+        list:
+    """
+    if allow_subframes:
+        cls = SubFileSequence
+    else:
+        cls = FileSequence
+    return cls.findSequencesInList(paths)
+
+
+def findSequencesOnDisk(pattern, include_hidden=False, strictPadding=False, allow_subframes=False):
+    """
+    Yield the sequences found in the given directory.
+
+    Examples::
+
+        FileSequence.findSequencesOnDisk('/path/to/files')
+
+    The `pattern` can also specify glob-like shell wildcards including the following:
+        * ``?``         - 1 wildcard character
+        * ``*``         - 1 or more wildcard character
+        * ``{foo,bar}`` - either 'foo' or 'bar'
+
+    Exact frame ranges are not considered, and padding characters are converted to
+    wildcards (``#`` or ``@``)
+
+    Examples::
+
+        FileSequence.findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
+        FileSequence.findSequencesOnDisk('/path/to/files/imag?_*_{left,right}.@@@.jpg', strictPadding=True)
+
+    Args:
+        pattern (str): directory to scan, or pattern to filter in directory
+        include_hidden (bool): if true, show .hidden files as well
+        strictPadding (bool): if True, ignore files with padding length different from pattern
+        allow_subframes (bool): if True, handle subframes filenames
+
+    Returns:
+        list:
+    """
+    if allow_subframes:
+        cls = SubFileSequence
+    else:
+        cls = FileSequence
+    return cls.findSequencesOnDisk(pattern, include_hidden=include_hidden, strictPadding=strictPadding)

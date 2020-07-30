@@ -15,13 +15,14 @@ Support for:
 * Filled: 1-100y5
 * Staggered: 1-100:3 (1-100x3, 1-100x2, 1-100)
 * Negative frame numbers: -10-100
+* Subframes: 1001-1066x0.25
 * Padding: #=4 padded, @=single pad
 * Printf Syntax Padding: %04d=4 padded, %01d=1 padded
 * Houdini Syntax Padding: $F4=4 padding, $F=1 padded
 
 ## FrameSets
 
-A FrameSet wraps a sequence of frames in a list list container.
+A FrameSet wraps a sequence of frames in a list container.
 
 ### Iterate a FrameSet
 ```python
@@ -64,6 +65,9 @@ fileseq.FileSequence("/foo/bar.1-10#.exr")
 >>> seq = fileseq.FileSequence("/foo/bar.1-10#.exr")
 >>> seq.format(template='{dirname}{basename}{padding}{extension}') 
 "/foo/bar.#.exr"
+>>> seq = fileseq.SubFileSequence("/foo/bar.1-10#.#.exr")
+>>> seq.format(template='{dirname}{basename}{padding}{extension}')
+"/foo/bar.#.#.exr"
 ```
 
 #### Joining:
@@ -111,6 +115,11 @@ fileseq.findSequenceOnDisk('/foo/bar.@@@@@.exr')
 No: 
 ```python
 fileseq.findSequenceOnDisk('/foo/bar.*.exr')
+```
+
+* To find subframe sequences you must explcitiy opt-in
+```python
+fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 ```
 
 ## Language Ports

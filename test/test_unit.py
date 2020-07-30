@@ -12,13 +12,15 @@ with warnings.catch_warnings():
     standard_library.install_aliases()
 
 from builtins import map
-from future.utils import string_types, native_str
+from future.utils import string_types, native_str, integer_types
 
 try:
     import pickle as pickle
 except ImportError:
     import pickle
 
+from decimal import Decimal
+import operator
 import os
 import re
 import string
@@ -28,6 +30,7 @@ import unittest
 
 from fileseq import (FrameSet,
                      FileSequence,
+                     SubFileSequence,
                      findSequencesOnDisk,
                      findSequenceOnDisk,
                      padFrameRange,
@@ -70,24 +73,179 @@ utils._getPathSep = _getCommonPathSep
 
 class TestUtils(unittest.TestCase):
 
-    def testXrange(self):
+    def testXrangeOverflow(self):
         # Test that a platform-specific xrange does not produce OverflowError
         xrng = utils.xrange(1, sys.maxsize)
         self.assertTrue(len(xrng) != 0)
 
+    def testXrange(self):
+        table = [
+            (1, 1, 1),
+            (1, 20, -1),
+            (1, 20, 1),
+            (1, 20, 2),
+            (1, 20, 3),
+            (1, 21, 1),
+            (1, 21, 2),
+            (1, 21, 3),
+            (20, 1, 1),
+            (20, 1, -1),
+            (20, 1, -2),
+            (20, 1, -3),
+            (21, 1, 1),
+            (21, 1, -1),
+            (21, 1, -2),
+            (21, 1, -3)
+        ]
+        for start, stop, step in table:
+            expected = list(range(start, stop, step))
+            actual = utils.xrange2(start, stop, step)
+            self.assertEqual(len(expected),  utils.lenRange(start, stop, step))
+            self.assertEqual(len(expected), len(actual))
+            self.assertEqual(expected, list(actual))
+
 
 class TestFrameSet(unittest.TestCase):
 
-    def testFloatFrameValues(self):
+    def testFrameValues(self):
         table = [
-            ([1, 5.8, 10], [1, 5, 10]),
-            ([1.5, 5, 10.2], [1, 5, 10]),
-            ([1.001, 5, 10.999], [1, 5, 10]),
+            (
+                [Decimal('1'), Decimal('5.8'), Decimal('10')],
+                [Decimal('1'), Decimal('5.8'), Decimal('10')]
+            ),
+            (
+                [1, Decimal('5.8'), 10],
+                [Decimal('1'), Decimal('5.8'), Decimal('10')]
+            ),
+            (
+                ['1', '5.8', '10'],
+                [Decimal('1'), Decimal('5.8'), Decimal('10')]
+            ),
+            (
+                [1, '5', Decimal('10')],
+                [1, 5, 10]
+            ),
+            (
+                [1, '5', '10'],
+                [1, 5, 10]
+            ),
+            (
+                [Decimal('1.5'), Decimal('5'), Decimal('10.2')],
+                [Decimal('1.5'), Decimal('5'), Decimal('10.2')]
+            ),
+            (
+                [Decimal('1.001'), Decimal('5'), Decimal('10.999')],
+                [Decimal('1.001'), Decimal('5'), Decimal('10.999')]
+            ),
+            (
+                [Decimal('-0.25'), Decimal('0'), Decimal('0.25')],
+                [Decimal('-0.25'), Decimal('0'), Decimal('0.25')]
+            ),
+            (
+                [Decimal('1'), Decimal('2'), Decimal('3')],
+                [1, 2, 3]
+            ),
+            (
+                [Decimal('1.0'), Decimal('2'), Decimal('3')],
+                [1, 2, 3]
+            ),
+            (
+                ['1.0', 2, 3],
+                [1, 2, 3]
+            ),
+            (
+                [1.5, 2.5, 3.5],
+                [1.5, 2.5, 3.5]
+            ),
+            (
+                [1.0, 2.0, 3.0],
+                [1, 2, 3]
+            ),
+            (
+                [1, 5.8, 10],
+                [1.0, 5.8, 10.0]
+            ),
+            (
+                [1.5, 5, 10.2],
+                [1.5, 5.0, 10.2]
+            ),
+            (
+                [1.001, 5, 10.999],
+                [1.001, 5.0, 10.999]
+            ),
+            (
+                [0, '0.3333', '0.6667', 1, '1.3333', '1.6667'],
+                [Decimal('0.0000'), Decimal('0.3333'), Decimal('0.6667'),
+                 Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667')]
+            ),
+            (
+                [0, '0.3333', '0.6667', 1, '1.3333', '1.6667', 2],
+                [Decimal('0.0000'), Decimal('0.3333'), Decimal('0.6667'),
+                 Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667'),
+                 Decimal('2.0000')]
+            ),
+            (
+                [0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571',
+                 1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571'],
+                [Decimal('0.0000'), Decimal('0.1429'), Decimal('0.2857'),
+                 Decimal('0.4286'), Decimal('0.5714'), Decimal('0.7143'),
+                 Decimal('0.8571'), Decimal('1.0000'), Decimal('1.1429'),
+                 Decimal('1.2857'), Decimal('1.4286'), Decimal('1.5714'),
+                 Decimal('1.7143'), Decimal('1.8571')]
+            ),
+            (
+                [0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571',
+                 1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571',
+                 2],
+                [Decimal('0.0000'), Decimal('0.1429'), Decimal('0.2857'),
+                 Decimal('0.4286'), Decimal('0.5714'), Decimal('0.7143'),
+                 Decimal('0.8571'), Decimal('1.0000'), Decimal('1.1429'),
+                 Decimal('1.2857'), Decimal('1.4286'), Decimal('1.5714'),
+                 Decimal('1.7143'), Decimal('1.8571'), Decimal('2.0000')]
+            ),
+            (
+                [1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571',
+                 2],
+                [Decimal('1.0000'), Decimal('1.1429'), Decimal('1.2857'),
+                 Decimal('1.4286'), Decimal('1.5714'), Decimal('1.7143'),
+                 Decimal('1.8571'), Decimal('2.0000')]
+            ),
+            (
+                [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)],
+                [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)]
+            ),
+            (
+                [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)],
+                [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)]
+            )
         ]
 
+        neg_table = []
         for src, expected in table:
+            neg_src = []
+            for x in src:
+                if isinstance(x, integer_types + (float, Decimal)):
+                    neg_src.append(-x)
+                elif x.startswith('-'):
+                    neg_src.append(x[1:])
+                else:
+                    neg_src.append('-' + x.lstrip('+'))
+            neg_expected = list(map(operator.neg, expected))
+            neg_table.append((neg_src, neg_expected))
+
+        for src, expected in table + neg_table:
             f = FrameSet(src)
             actual = list(f)
+            self.assertEqual(actual, expected)
+
+            actual = list(FrameSet(f.frange))
+            # floats will be converted to decimal during roundtrip to frange
+            if any(isinstance(x, float) for x in expected):
+                expected = [Decimal(str(x)) for x in expected]
+            # decimals will need to be rounded to match exactly
+            if any(isinstance(x, Decimal) for x in expected):
+                for i, (e, a) in enumerate(zip(expected, actual)):
+                    actual[i] = a.quantize(e)
             self.assertEqual(actual, expected)
 
     def testMaxFrameSize(self):
@@ -147,6 +305,7 @@ class TestFrameSet(unittest.TestCase):
             "1,2,3,4,6,7,8",
             "1,2,3,4,5,0",
             "5,4,3,2,1,6",
+            "1.1,1.2"
         ]
 
         for t in consec:
@@ -165,12 +324,49 @@ class TestFrameSet(unittest.TestCase):
             Case('1-10', slice(5, None), (6, 7, 8, 9, 10)),
             Case('1-10', slice(-3, None), (8, 9, 10)),
             Case('1-10', slice(-6, None, 2), (5, 7, 9)),
+            Case('1-10x0.5', slice(1,3), (Decimal('1.5'), Decimal('2.0'))),
+            Case('1-10x0.5', slice(-3, None), (Decimal('9.0'), Decimal('9.5'), Decimal('10.0')))
         ]
 
         for case in table:
             fs = FrameSet(case.input)
             actual = fs[case.slice]
             self.assertEqual(case.expected, actual)
+
+    def testSubFrames(self):
+        table = [
+            ("1-2x0.25",
+             [Decimal("1.00"), Decimal("1.25"), Decimal("1.50"), Decimal("1.75"),
+             Decimal("2.00")]
+            ),
+            ("1,1.5",
+             [Decimal("1.0"), Decimal("1.5")]
+             ),
+            ("1-2,3-4x0.5",
+             [Decimal("1.0"), Decimal("2.0"), Decimal("3.0"), Decimal("3.5"),
+              Decimal("4.0")]
+            ),
+            ("1-2x0.3",
+             [Decimal("1.0"), Decimal("1.3"), Decimal("1.6"), Decimal("1.9")]
+            ),
+
+            ("1.5,1",
+             [Decimal("1.5"), Decimal("1.0")]
+            ),
+            ("4-3x0.5,2-1",
+             [Decimal("4.0"), Decimal("3.5"), Decimal("3.0"), Decimal("2.0"),
+              Decimal("1.0")]
+            ),
+            ("2-1x0.3",
+             [Decimal("2.0"), Decimal("1.7"), Decimal("1.4"), Decimal("1.1")]
+            ),
+
+        ]
+
+        for frames, expected in table:
+            fs = FrameSet(frames)
+            actual = list(fs)
+            self.assertEqual(expected, actual)
 
 
 class TestBase(unittest.TestCase):
@@ -191,7 +387,7 @@ class TestBase(unittest.TestCase):
 
     def assertEqualPaths(self, a, b, msg=None):
         return super(TestBase, self).assertEqual(
-            self.toNormpaths(a), self.toNormpaths(b), 
+            self.toNormpaths(a), self.toNormpaths(b),
             msg=msg)
 
     def assertNativeStr(self, a):
@@ -497,6 +693,8 @@ class TestFileSequence(TestBase):
         self.assertEquals(fs.start(), 0)
         self.assertEquals(fs.end(), 0)
         self.assertEquals(fs.padding(), '')
+        self.assertEquals(fs.framePadding(), '')
+        self.assertEquals(fs.subframePadding(), '')
         self.assertEquals(fs.extension(), '.exr')
         self.assertEquals(str(fs), "/path/to/file_v2.exr")
 
@@ -505,8 +703,20 @@ class TestFileSequence(TestBase):
         self.assertEquals(fs.start(), 2)
         self.assertEquals(fs.end(), 2)
         self.assertEquals(fs.padding(), '@')
+        self.assertEquals(fs.framePadding(), '@')
+        self.assertEquals(fs.subframePadding(), '')
         self.assertEquals(fs.extension(), '.exr')
         self.assertEquals(str(fs), "/path/to/file.2@.exr")
+
+    def testHasSubFrameNoVersion(self):
+        fs = SubFileSequence("/path/to/file.0.0005.exr")
+        self.assertEquals(fs.start(), Decimal("0.0005"))
+        self.assertEquals(fs.end(), Decimal("0.0005"))
+        self.assertEquals(fs.padding(), '@.#')
+        self.assertEquals(fs.framePadding(), '@')
+        self.assertEquals(fs.subframePadding(), '#')
+        self.assertEquals(fs.extension(), '.exr')
+        self.assertEquals(str(fs), "/path/to/file.0.0005@.#.exr")
 
     def testNoFrameNoVersionNoExt(self):
         fs = FileSequence("/path/to/file")
@@ -812,20 +1022,85 @@ class TestFindSequencesOnDisk(TestBase):
         finally:
             os.path.join = _join
 
+    def testStrictPaddingSubFrameSeq(self):
+        tests = [
+            ("subframe_seq/foo.#.#.jpg", ['subframe_seq/foo.1-3x0.25#.#.jpg']),
+            ("subframe_seq/foo.#.#.exr", ['subframe_seq/foo.1-3x0.25#.#.exr']),
+            ("subframe_seq/foo.@@@@.@@@@.exr", ['subframe_seq/foo.1-3x0.25@@@@.@@@@.exr']),
+            ("subframe_seq/foo.@@@.@@@@.exr", []),
+            ("subframe_seq/foo.@@.@@@@.exr", []),
+            ("subframe_seq/foo.@.@@@@.exr", []),
+            ("subframe_seq/foo.@@@.@@@.exr", []),
+            ("subframe_seq/foo.@@.@@.exr", []),
+            ("subframe_seq/foo.@.@.exr", []),
+            ("subframe_seq/foo.@@@@@.@@@@@.exr", []),
+
+            ("subframe_seq/foz.#.#.exr", ['subframe_seq/foz.1001-1003x0.25#.#.exr']),
+            ("subframe_seq/foz.@@@@.@@@@.exr", ['subframe_seq/foz.1001-1003x0.25@@@@.@@@@.exr']),
+            ("subframe_seq/foz.@@@@.@@@.exr", []),
+            ("subframe_seq/foz.@@@@.@@.exr", []),
+            ("subframe_seq/foz.@@@@.@.exr", []),
+            ("subframe_seq/foz.@@@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@@@.#.exr']),
+            ("subframe_seq/foz.@@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@@.#.exr']),
+            ("subframe_seq/foz.@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@.#.exr']),
+            ("subframe_seq/foz.@.#.exr", ['subframe_seq/foz.1001-1003x0.25@.#.exr']),
+
+            ("subframe_seq/foz.debug.#.#.exr", ['subframe_seq/foz.debug.1001-1002x0.25#.#.exr']),
+
+            ("subframe_seq/baz_{left,right}.#.#.exr", ['subframe_seq/baz_left.1001-1002x0.25#.#.exr', 'subframe_seq/baz_right.1001-1002x0.25#.#.exr']),
+        ]
+
+        for pattern, expected in tests:
+            seqs = findSequencesOnDisk(pattern, strictPadding=True, allow_subframes=True)
+            for seq in seqs:
+                self.assertTrue(isinstance(seq, FileSequence))
+            actual = self.toNormpaths([str(seq) for seq in seqs])
+            expected = self.toNormpaths(expected)
+            self.assertEqual(expected, actual)
+
+    def testFindSequencesOnDiskSubFrames(self):
+        seqs = findSequencesOnDisk("subframe_seq", allow_subframes=True)
+        self.assertEquals(9, len(seqs))
+        known = {
+            'subframe_seq/bar.1#.#.exr',
+            'subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr',
+            'subframe_seq/baz_left.1001-1002x0.25#.#.exr',
+            'subframe_seq/baz_right.1001-1002x0.25#.#.exr',
+            'subframe_seq/foo.1-3x0.25#.#.exr',
+            'subframe_seq/foo.1-3x0.25#.#.jpg',
+            'subframe_seq/foz.1001-1003x0.25#.#.exr',
+            'subframe_seq/foz.debug.1001-1002x0.25#.#.exr',
+            'subframe_seq/guz.1-2x0.25#.@@.exr'
+        }
+        found = set([str(s) for s in seqs])
+        self.assertEqualPaths(known, found)
+
+    def testFindSequencesOnDiskNegativeSubFrames(self):
+        seqs = findSequencesOnDisk("subframe_seqneg", allow_subframes=True)
+        self.assertEquals("subframe_seqneg/bar.-0.5-0.5x0.5#.#.exr", str(seqs[0]))
+        self.assertEquals("subframe_seqneg/bar.-001.5000.exr", seqs[0].frame("-1.5"))
+        self.assertEquals("subframe_seqneg/bar.0001.5000.exr", seqs[0].frame("1.5"))
+        self.assertEquals("subframe_seqneg/bar.0001.5000.exr", seqs[0].frame(1.5))
+        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001.0000")))
+        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001.0")))
+        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal(-1001.0)))
+        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001")))
+        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal(-1001)))
+
 
 class TestFindSequenceOnDisk(TestBase):
 
     def testFindSequenceOnDisk(self):
         tests = [
-            # ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
-            # ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
-            # ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
-            # ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
-            # ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
-            # ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
-            # ("seq/#.exr", "seq/1-3#.exr"),
-            # ("seq/bar1001.exr", "seq/bar1001.exr"),
-            # ("seq/foo_0001.exr", "seq/foo_0001.exr"),
+            ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
+            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+            ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
+            ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
+            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+            ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
+            ("seq/#.exr", "seq/1-3#.exr"),
+            ("seq/bar1001.exr", "seq/bar1001.exr"),
+            ("seq/foo_0001.exr", "seq/foo_0001.exr"),
             ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
         ]
 
@@ -1028,7 +1303,7 @@ class TestPaddingFunctions(TestBase):
         ]
 
         for case in tests:
-            
+
             if case.error:
                 with self.assertRaises(ValueError):
                     FileSequence.conformPadding(case.src)
