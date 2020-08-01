@@ -196,10 +196,35 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
+    ("FloatFrames", "1.0-10.5"),
     ("ActualNone", None),
 ]
-    
-    
+
+
+FRAME_SET_FROM_RANGE_SHOULD_SUCCEED = [
+    # individual frames
+    ('Zero', 0, 0, 1, '0'),
+    ('Pos', 1, 1, 1, '1'),
+    # ranges
+    ('PosToPos', 1, 20, 1, '1-20'),
+    ('NegToPos', -1, 1, 1, '-1-1'),
+    ('PosToNeg', 1, -1, 1, '1--1'),
+    ('PosToPosInv', 20, 1, 1, '20-1'),
+    ('NegToPosInv', -20, 1, 1, '-20-1'),
+    ('NegToNegInv', -20, -1, 1, '-20--1'),
+    ('PosToNegInv', 20, -1, 1, '20--1'),
+    ('PosToPosChunk', 1, 20, 5, '1-20x5'),
+    ('NegToPosChunk', -1, 20, 5, '-1-20x5'),
+    ('NegToNegChunk', -1, -20, 5, '-1--20x5'),
+    ('PosToNegChunk', 1, -20, 5, '1--20x5'),
+    ('PosToPosChunkInv', 20, 1, 5, '20-1x5'),
+    ('NegToPosChunkInv', -20, 1, 5, '-20-1x5'),
+    ('NegToNegChunkInv', -20, -1, 5, '-20--1x5'),
+    ('PosToNegChunkInv', 20, -1, 5, '20--1x5'),
+    ('PosToPosNegChunkInv', 20, 1, -1, '20-1x-1'),
+]
+
+
 class TestFrameSet(unittest.TestCase):
     """
     Exercise the TestFrame object.  Due to the sheer number of permutations, we'll add most tests dynamically.

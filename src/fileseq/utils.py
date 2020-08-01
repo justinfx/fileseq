@@ -234,13 +234,13 @@ def unique(seen, *iterables):
     return (i for i in chain(*iterables) if i not in seen and not _add(i))
 
 
-def pad(number, integral_width=0, decimal_places=None):
+def pad(number, width=0, decimal_places=None):
     """
     Return the zero-padded string of a given number.
 
     Args:
         number (int, float, or decimal.Decimal): the number to pad
-        integral_width (int): width for zero padding the integral component
+        width (int): width for zero padding the integral component
         decimal_places (int): number of decimal places to use in frame range
 
     Returns:
@@ -252,7 +252,7 @@ def pad(number, integral_width=0, decimal_places=None):
     # See _DeriveClipTimeString for formating of templateAssetPath
     # https://github.com/PixarAnimationStudios/USD/blob/master/pxr/usd/usd/clip.cpp
     if decimal_places == 0:
-        return futils.native_str(number).partition(".")[0].zfill(integral_width)
+        return futils.native_str(number).partition(".")[0].zfill(width)
 
     # USD ultimately uses vsnprintf to format floats for templateAssetPath:
     # _DeriveClipTimeString -> TfStringPrintf -> ArchVStringPrintf -> ArchVsnprintf -> vsnprintf
@@ -268,7 +268,7 @@ def pad(number, integral_width=0, decimal_places=None):
     number = futils.native_str(number)
 
     parts = number.split(".", 1)
-    parts[0] = parts[0].zfill(integral_width)
+    parts[0] = parts[0].zfill(width)
     return ".".join(parts)
 
 

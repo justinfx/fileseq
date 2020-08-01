@@ -37,6 +37,7 @@ class FrameSet(Set):
         - 1-100x5 (every fifth frame)
         - 1-100y5 (opposite of above, fills in missing frames)
         - 1-100:4 (same as 1-100x4,1-100x3,1-100x2,1-100)
+        - 1-2x0.333333 (subframes)
 
     A ``FrameSet`` is effectively an ordered frozenset, with
     FrameSet-returning versions of frozenset methods:
@@ -49,6 +50,14 @@ class FrameSet(Set):
     Because a FrameSet is hashable, it can be used as the key to a dictionary:
 
         >>> d = {FrameSet("1-20"): 'good'}
+
+    A FrameSet can be created from an iterable of frame numbers, and will
+    construct an appropriate string representation:
+
+        >>> FrameSet([1,2,3,4,5]).frange
+        '1-5'
+        >>> FrameSet([0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571', 1]).frange
+        '0-1x0.142857'
 
     Caveats:
         1. Because the internal storage of a ``FrameSet`` contains the discreet
@@ -69,8 +78,9 @@ class FrameSet(Set):
            :meth:`is_null` property allows you to guard against this.
 
     Args:
-        frange (str or FrameSet or collections.Iterable): the frame range
-            as a string (ie "1-100x5")
+        frange (str or FrameSet or collections.Iterable of str, int, float, or
+            decimal.Decimal): the frame range as a string (ie "1-100x5") or
+            iterable of frame numbers.
 
     Raises:
         :class:`.ParseException`: if the frame range
@@ -280,6 +290,32 @@ class FrameSet(Set):
             :class:`FrameSet`:
         """
         return FrameSet(sorted(frames) if sort else frames)
+
+    @classmethod
+    def from_range(cls, start, end, step=1):
+        """
+        Build a :class:`FrameSet` from given start and end frames.
+
+        Args:
+            start (int): The first frame of the :class:`FrameSet`.
+            end (int): The last frame of the :class:`FrameSet`.
+            step (int, optional): Range step (default 1).
+
+        Returns:
+            :class:`FrameSet`:
+        """
+        # match range() exception
+        if not isinstance(step, int):
+            raise TypeError("integer step argument expected, got {}."
+                            .format(type(step)))
+        elif step == 0:
+            raise ValueError("step argument must not be zero")
+        elif step == 1:
+            range_str = "{0}-{1}".format(start, end)
+        else:
+            range_str = "{0}-{1}x{2}".format(start, end, step)
+
+        return FrameSet(range_str)
 
     @classmethod
     def _cast_to_frameset(cls, other):
@@ -1137,7 +1173,7 @@ class FrameSet(Set):
             strides (set[decimal.Decimal]): set of increments (maximum 2)
             min_stride (decimal.Decimal): minimum increment that will produce
                 correctly rounded frames
-            max_stride (decimal.Decimal): msximum increment that will produce
+            max_stride (decimal.Decimal): maximum increment that will produce
                 correctly rounded frames
             zfill (int): width for zero padding
 

@@ -433,7 +433,7 @@ class FileSequence(object):
         """
         return self._zfill
 
-    def decimal_places(self):
+    def decimalPlaces(self):
         """
         Returns the number of decimal places to output.
 
@@ -788,7 +788,7 @@ class FileSequence(object):
                 _filter_padding = functools.partial(
                     cls._filterByPaddingNum,
                     zfill=seq.zfill(),
-                    decimal_places=seq.decimal_places(),
+                    decimal_places=seq.decimalPlaces(),
                     get_frame=get_frame
                 )
 
@@ -890,7 +890,7 @@ class FileSequence(object):
                 globbed = cls._filterByPaddingNum(
                     globbed,
                     seq.zfill(),
-                    decimal_places=seq.decimal_places(),
+                    decimal_places=seq.decimalPlaces(),
                     get_frame=get_frame
                 )
                 frame_pad = cls.conformPadding(frame_pad)
@@ -899,7 +899,7 @@ class FileSequence(object):
                 globbed = cls._filterByPaddingNum(
                     globbed,
                     None,
-                    decimal_places=seq.decimal_places(),
+                    decimal_places=seq.decimalPlaces(),
                     get_frame=get_frame
                 )
 
@@ -923,7 +923,7 @@ class FileSequence(object):
     def _globCharsToRegex(filename):
         """
         Translate single character elements of a shell pattern to make suitable
-        for a regular expession pattern
+        for a regular expression pattern
 
         Args:
             filename (str): filename containing shell pattern to convert
