@@ -17,9 +17,6 @@ from itertools import chain, count, islice
 from fileseq import exceptions
 
 
-_quantize_exponent_cache = {}
-
-
 def quantize(number, decimal_places, rounding=decimal.ROUND_HALF_EVEN):
     """
     Round a decimal value to given number of decimal places
@@ -33,11 +30,7 @@ def quantize(number, decimal_places, rounding=decimal.ROUND_HALF_EVEN):
     Returns:
         decimal.Decimal:
     """
-    try:
-        quantize_exponent = _quantize_exponent_cache[decimal_places]
-    except KeyError:
-        quantize_exponent = decimal.Decimal(1).scaleb(-decimal_places)
-        _quantize_exponent_cache[decimal_places] = quantize_exponent
+    quantize_exponent = decimal.Decimal(1).scaleb(-decimal_places)
     return number.quantize(quantize_exponent, rounding=rounding)
 
 
