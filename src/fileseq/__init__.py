@@ -171,7 +171,7 @@ No:
 """
 from __future__ import absolute_import
 
-from fileseq.exceptions import ParseException, FileSeqException
+from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
 from fileseq.frameset import FrameSet
 from fileseq.filesequence import FileSequence, SubFileSequence
 
