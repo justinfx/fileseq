@@ -4,8 +4,11 @@ frameset - A set-like object representing a frame range for fileseq.
 """
 from __future__ import absolute_import
 
-from builtins import str
-from builtins import map
+try: #python 3
+    from builtins import str, map
+except: #python 2
+    from __builtin__ import str, map
+    
 import future.utils
 
 import numbers

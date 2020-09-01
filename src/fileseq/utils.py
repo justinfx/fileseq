@@ -4,10 +4,11 @@ utils - General tools of use to fileseq operations.
 """
 from __future__ import absolute_import
 
-from builtins import bytes
-from builtins import next
-from builtins import range
-from builtins import object
+try: #python 3
+    from builtins import bytes, next, range, object #@UnresolvedImport
+except: #python 2
+    from __builtin__ import bytes, next, range, object
+
 import future.utils as futils
 
 import os
