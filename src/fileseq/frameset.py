@@ -263,6 +263,32 @@ class FrameSet(Set):
         return FrameSet(sorted(frames) if sort else frames)
 
     @classmethod
+    def from_range(cls, start, end, step=1):
+        """
+        Build a :class:`FrameSet` from given start and end frames.
+
+        Args:
+            start (int): The first frame of the :class:`FrameSet`.
+            end (int): The last frame of the :class:`FrameSet`.
+            step (int, optional): Range step (default 1).
+
+        Returns:
+            :class:`FrameSet`:
+        """
+        # match range() exception
+        if not isinstance(step, int):
+            raise TypeError("integer step argument expected, got {}."
+                            .format(type(step)))
+        elif step == 0:
+            raise ValueError("step argument must not be zero")
+        elif step == 1:
+            range_str = "{0}-{1}".format(start, end)
+        else:
+            range_str = "{0}-{1}x{2}".format(start, end, step)
+
+        return FrameSet(range_str)
+
+    @classmethod
     def _cast_to_frameset(cls, other):
         """
         Private method to simplify comparison operations.
