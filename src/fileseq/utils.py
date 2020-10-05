@@ -206,7 +206,16 @@ def normalizeFrames(frames):
         return frames
 
     # Convert all frames to chosen type
-    return [FrameType(frame) for frame in frames]
+    frames = [FrameType(frame) for frame in frames]
+
+    # Ensure all decimal frames have same exponent
+    if FrameType is decimal.Decimal:
+        maximum_decimal_places = max(
+            -frame.as_tuple().exponent for frame in frames
+        )
+        frames = [quantize(frame, maximum_decimal_places) for frame in frames]
+
+    return frames
 
 
 def unique(seen, *iterables):
@@ -243,7 +252,7 @@ def pad(number, width=0, decimal_places=None):
     # Make the common case fast. Truncate to integer value as USD does.
     # https://graphics.pixar.com/usd/docs/api/_usd__page__value_clips.html
     # See _DeriveClipTimeString for formating of templateAssetPath
-    # https://github.com/PixarAnimationStudios/USD/blob/master/pxr/usd/usd/clip.cpp
+    # https://github.com/PixarAnimationStudios/USD/blob/release/pxr/usd/usd/clipSetDefinition.cpp
     if decimal_places == 0:
         return futils.native_str(number).partition(".")[0].zfill(width)
 

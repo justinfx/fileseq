@@ -311,8 +311,11 @@ class FrameSet(Set):
         elif step == 0:
             raise ValueError("step argument must not be zero")
         elif step == 1:
+            start, end = normalizeFrames([start, end])
             range_str = "{0}-{1}".format(start, end)
         else:
+            start, end = normalizeFrames([start, end])
+            step = normalizeFrame(step)
             range_str = "{0}-{1}x{2}".format(start, end, step)
 
         return FrameSet(range_str)
@@ -379,6 +382,18 @@ class FrameSet(Set):
             bool:
         """
         return frame in self
+
+    def hasSubFrames(self):
+        """
+        Check if the :class:`FrameSet` contains any subframes
+
+        Returns:
+            bool:
+
+        """
+        return any(
+            isinstance(item, (float, decimal.Decimal)) for item in self.items
+        )
 
     def start(self):
         """
@@ -1001,12 +1016,16 @@ class FrameSet(Set):
 
     def copy(self):
         """
-        Returns a shallow copy of this :class:`FrameSet`.
+        Create a deep copy of this :class:`FrameSet`.
 
         Returns:
-            :class:`FrameSet`:
+            :class:`.FrameSet`:
         """
-        return FrameSet(asString(self))
+        fs = self.__class__.__new__(self.__class__)
+        fs._frange = self._frange
+        fs._items = self._items
+        fs._order = self._order
+        return fs
 
     @classmethod
     def _maxSizeCheck(cls, obj):
@@ -1158,10 +1177,13 @@ class FrameSet(Set):
         elif abs(stride) == 1:
             return '{0}-{1}'.format(pad_start, pad_stop)
         else:
+            stride = normalizeFrame(stride)
             return '{0}-{1}x{2}'.format(pad_start, pad_stop, stride)
 
     @staticmethod
-    def _build_frange_part_decimal(start, stop, count, strides, min_stride, max_stride, zfill=0):
+    def _build_frange_part_decimal(
+        start, stop, count, stride, min_stride, max_stride, zfill=0
+    ):
         """
         Private method: builds a proper and padded subframe range string from
         decimal values.
@@ -1170,7 +1192,7 @@ class FrameSet(Set):
             start (decimal.Decimal): first frame
             stop (decimal.Decimal): last frame
             count (int): number of frames in range (inclusive)
-            strides (set[decimal.Decimal]): set of increments (maximum 2)
+            stride (decimal.Decimal or None): stride to use if known else None
             min_stride (decimal.Decimal): minimum increment that will produce
                 correctly rounded frames
             max_stride (decimal.Decimal): maximum increment that will produce
@@ -1180,11 +1202,7 @@ class FrameSet(Set):
         Returns:
             str:
         """
-
-        # All strides were the same so use the single stride value
-        if len(strides) == 1:
-            stride = list(strides)[0]
-        else:
+        if stride is None:
             # Use an exact stride value if within allowed limits for
             # range, otherwise use midpoint of stride limits
             stride = (stop - start) / (count - 1)
@@ -1195,7 +1213,7 @@ class FrameSet(Set):
             stride_range = max_stride - min_stride
             stride_range = stride_range.as_tuple()
             leading_zeros = abs(len(stride_range.digits) + stride_range.exponent)
-            stride = abs(quantize(stride, leading_zeros + 1))
+            stride = abs(quantize(stride, leading_zeros + 1)).normalize()
 
         # Adjust end frame if required so correct number of steps is
         # calculated when recreating FrameSet from frange string
@@ -1204,6 +1222,7 @@ class FrameSet(Set):
             delta = decimal.Decimal(1).scaleb(exponent)
             stop += delta.copy_sign(stop)
 
+        start, stop = normalizeFrames([start, stop])
         return FrameSet._build_frange_part(start, stop, stride, zfill=zfill)
 
     @staticmethod
@@ -1282,14 +1301,16 @@ class FrameSet(Set):
                         max_frame = max_frame.next_minus()
 
                     # Update minimum and maximum stride values for overall range
-                    if curr_min_stride is None or new_min_stride > curr_min_stride:
-                        curr_min_stride = new_min_stride
-                    if curr_max_stride is None or new_max_stride < curr_max_stride:
-                        curr_max_stride = new_max_stride
+                    if curr_min_stride is not None:
+                        new_min_stride = max(curr_min_stride, new_min_stride)
+                    if curr_max_stride is not None:
+                        new_max_stride = min(curr_max_stride, new_max_stride)
 
                     # A stride exists that rounds all frame values correctly
-                    if curr_min_stride <= curr_max_stride:
+                    if new_min_stride <= new_max_stride:
                         new_stride = curr_stride
+                        curr_min_stride = new_min_stride
+                        curr_max_stride = new_max_stride
 
             if curr_stride == new_stride:
                 curr_count += 1
@@ -1302,8 +1323,9 @@ class FrameSet(Set):
                 curr_max_stride = None
             else:
                 if isinstance(curr_stride, decimal.Decimal):
+                    stride = curr_strides.pop() if len(curr_strides) == 1 else None
                     yield _build_decimal(curr_start, last_frame, curr_count,
-                        curr_strides, curr_min_stride, curr_max_stride, zfill)
+                        stride, curr_min_stride, curr_max_stride, zfill)
                 else:
                     yield _build(curr_start, last_frame, curr_stride, zfill)
                 curr_stride = None
@@ -1320,8 +1342,9 @@ class FrameSet(Set):
             yield _build(curr_frame, curr_frame, None, zfill)
         else:
             if isinstance(curr_stride, decimal.Decimal):
+                stride = curr_strides.pop() if len(curr_strides) == 1 else None
                 yield _build_decimal(curr_start, curr_frame, curr_count,
-                    curr_strides, curr_min_stride, curr_max_stride, zfill)
+                    stride, curr_min_stride, curr_max_stride, zfill)
             else:
                 yield _build(curr_start, curr_frame, curr_stride, zfill)
 

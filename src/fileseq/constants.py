@@ -10,7 +10,28 @@ import re
 # exception is raised
 MAX_FRAME_SIZE = 10000000
 
-PAD_MAP = {"#": 4, "@": 1}
+PAD_STYLE_HASH1 = object()
+PAD_STYLE_HASH4 = object()
+PAD_STYLE_DEFAULT = PAD_STYLE_HASH4
+
+PAD_MAP = {
+    "#": {PAD_STYLE_HASH1: 1, PAD_STYLE_HASH4: 4},
+    "@": {PAD_STYLE_HASH1: 1, PAD_STYLE_HASH4: 1}
+}
+
+# Component of SPLIT_PATTERN (c.f FRANGE_PATTERN).
+_FRANGE_PART = r"""
+    -?\d+           # start frame
+    (?:             # optional range
+        -           #   range delimiter
+        -?\d+       #   end frame
+        (?:         #   optional stepping
+            [:xy]   #     step format
+            -?\d+   #     step value
+        )?
+    )?
+"""
+_FRANGE_PART = re.compile(_FRANGE_PART, re.X).pattern
 
 # Regular expression for matching a file sequence string.
 # Example: /film/shot/renders/bilbo_bty.1-100#.exr
@@ -19,22 +40,64 @@ PAD_MAP = {"#": 4, "@": 1}
 # Example: /film/shot/renders/bilbo_bty.1-100%04d.exr
 # Example: /film/shot/renders/bilbo_bty.1-100$F4d.exr
 SPLIT_PATTERN = r"""
-    ((?:[-\d][-:,xy\d]*)?)  # range
+    ((?:{0}(?:,{0})*)?)     # range
     (                       # pad format
-        [{0}]+              #   pad map characters
+        [{1}]+              #   pad map characters
         |
         %\d*d               #   printf syntax pad format
         |
         \$F\d*              #   Houdini syntax pad format
     )
-    """.format(''.join(PAD_MAP))
+    """.format(_FRANGE_PART, ''.join(PAD_MAP))
 SPLIT_RE = re.compile(SPLIT_PATTERN, re.X)
+
+# Component of SPLIT_SUB_PATTERN (c.f FRANGE_PATTERN).
+# If both start and stop are present either both or neither should have
+# a fractional component to avoid ambiguity when basename ends in \d\.
+_FRANGE_SUB_PARTS = [
+    _FRANGE_PART,
+    r"""
+    (?:
+        -?\d+                     # start frame
+        (?:                       # optional range
+            -                     #   range delimiter
+            -?\d+                 #   end frame
+            (?:                   #   optional stepping
+                x                 #     step format
+                -?\d+\.\d+        #     step value
+            )?
+        )?
+    )
+    """,r"""
+    (?:
+        -?\d+\.\d+                # start frame
+        (?:                       # optional range
+            -                     #   range delimiter
+            -?\d+\.\d+            #   end frame
+            (?:                   #   optional stepping
+                x                 #     step format
+                -?\d+(?:\.\d+)?   #     step value
+            )?
+        )?
+    )
+"""]
+_FRANGE_SUB_PARTS = [
+    re.compile(part, re.X).pattern for part in _FRANGE_SUB_PARTS
+]
 
 # Regular expression for matching a file sequence string allowing subframes.
 # Example: /film/shot/renders/bilbo_bty.1-100#.#.exr
 # Example: /film/shot/renders/bilbo_bty.1.5-2x0.1#.#.exr
 SPLIT_SUB_PATTERN = r"""
-    ((?:[-\d][-:,xy\.\d]*)?)  # range
+    (                         # range
+        (?:
+            (?:{1}(?:,{1})*)
+            |
+            (?:{2}(?:,{2})*)
+            |
+            (?:{3}(?:,{3})*)
+        )?
+    )
     (                         # pad format
         [{0}]+(?:\.[{0}]+)?   #   pad map characters
         |
@@ -42,7 +105,7 @@ SPLIT_SUB_PATTERN = r"""
         |
         \$F\d*                #   Houdini syntax pad format
     )
-    """.format(''.join(PAD_MAP))
+    """.format(''.join(PAD_MAP), *_FRANGE_SUB_PARTS)
 SPLIT_SUB_RE = re.compile(SPLIT_SUB_PATTERN, re.X)
 
 # Regular expression pattern for matching padding against a printf syntax
@@ -87,13 +150,13 @@ DISK_SUB_RE = re.compile(DISK_SUB_PATTERN, re.X)
 # '1,2', etc.
 FRANGE_PATTERN = r"""
     \A
-    (-?\d+(?:\.\d*)?)         # start frame
+    (-?\d+(?:\.\d+)?)         # start frame
     (?:                       # optional range
         -                     #   range delimiter
-        (-?\d+(?:\.\d*)?)     #   end frame
+        (-?\d+(?:\.\d+)?)     #   end frame
         (?:                   #   optional stepping
-            ([:xy]{1})        #     step format
-            (-?\d+(?:\.\d*)?) #     step value
+            ([:xy])           #     step format
+            (-?\d+(?:\.\d+)?) #     step value
         )?
     )?
     \Z
@@ -102,13 +165,13 @@ FRANGE_RE = re.compile(FRANGE_PATTERN, re.X)
 
 # Regular expression for padding a frame range.
 PAD_PATTERN = r"""
-    (-?)(\d+(?:\.\d*)?)     # start frame
+    (-?)(\d+(?:\.\d+)?)     # start frame
     (?:                     # optional range
         (-)                 #   range delimiter
-        (-?)(\d+(?:\.\d*)?) #   end frame
+        (-?)(\d+(?:\.\d+)?) #   end frame
         (?:                 #   optional stepping
-            ([:xy]{1})      #     step format
-            (\d+(?:\.\d*)?) #     step value
+            ([:xy])         #     step format
+            (\d+(?:\.\d+)?) #     step value
         )?
     )?
     """

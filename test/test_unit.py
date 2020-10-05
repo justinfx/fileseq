@@ -30,7 +30,6 @@ import unittest
 
 from fileseq import (FrameSet,
                      FileSequence,
-                     SubFileSequence,
                      findSequencesOnDisk,
                      findSequenceOnDisk,
                      padFrameRange,
@@ -111,78 +110,96 @@ class TestFrameSet(unittest.TestCase):
         table = [
             (
                 [Decimal('1'), Decimal('5.8'), Decimal('10')],
-                [Decimal('1'), Decimal('5.8'), Decimal('10')]
+                [Decimal('1'), Decimal('5.8'), Decimal('10')],
+                True
             ),
             (
                 [1, Decimal('5.8'), 10],
-                [Decimal('1'), Decimal('5.8'), Decimal('10')]
+                [Decimal('1'), Decimal('5.8'), Decimal('10')],
+                True
             ),
             (
                 ['1', '5.8', '10'],
-                [Decimal('1'), Decimal('5.8'), Decimal('10')]
+                [Decimal('1'), Decimal('5.8'), Decimal('10')],
+                True
             ),
             (
                 [1, '5', Decimal('10')],
-                [1, 5, 10]
+                [1, 5, 10],
+                False
             ),
             (
                 [1, '5', '10'],
-                [1, 5, 10]
+                [1, 5, 10],
+                False
             ),
             (
                 [Decimal('1.5'), Decimal('5'), Decimal('10.2')],
-                [Decimal('1.5'), Decimal('5'), Decimal('10.2')]
+                [Decimal('1.5'), Decimal('5'), Decimal('10.2')],
+                True
             ),
             (
                 [Decimal('1.001'), Decimal('5'), Decimal('10.999')],
-                [Decimal('1.001'), Decimal('5'), Decimal('10.999')]
+                [Decimal('1.001'), Decimal('5'), Decimal('10.999')],
+                True
             ),
             (
                 [Decimal('-0.25'), Decimal('0'), Decimal('0.25')],
-                [Decimal('-0.25'), Decimal('0'), Decimal('0.25')]
+                [Decimal('-0.25'), Decimal('0'), Decimal('0.25')],
+                True
             ),
             (
                 [Decimal('1'), Decimal('2'), Decimal('3')],
-                [1, 2, 3]
+                [1, 2, 3],
+                False
             ),
             (
                 [Decimal('1.0'), Decimal('2'), Decimal('3')],
-                [1, 2, 3]
+                [1, 2, 3],
+                False
             ),
             (
                 ['1.0', 2, 3],
-                [1, 2, 3]
+                [1, 2, 3],
+                False
             ),
             (
                 [1.5, 2.5, 3.5],
-                [1.5, 2.5, 3.5]
+                [1.5, 2.5, 3.5],
+                True
             ),
             (
                 [1.0, 2.0, 3.0],
-                [1, 2, 3]
+                [1, 2, 3],
+                False
             ),
             (
                 [1, 5.8, 10],
-                [1.0, 5.8, 10.0]
+                [1.0, 5.8, 10.0],
+                True
             ),
             (
                 [1.5, 5, 10.2],
-                [1.5, 5.0, 10.2]
+                [1.5, 5.0, 10.2],
+                True
             ),
             (
                 [1.001, 5, 10.999],
-                [1.001, 5.0, 10.999]
+                [1.001, 5.0, 10.999],
+                True
             ),
             (
                 [0, '0.3333', '0.6667', 1, '1.3333', '1.6667'],
                 [Decimal('0.0000'), Decimal('0.3333'), Decimal('0.6667'),
-                 Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667')]
+                 Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667')],
+                True
             ),
             (
                 [0, '0.3333', '0.6667', 1, '1.3333', '1.6667', 2],
                 [Decimal('0.0000'), Decimal('0.3333'), Decimal('0.6667'),
                  Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667'),
-                 Decimal('2.0000')]
+                 Decimal('2.0000')],
+                True
             ),
             (
                 [0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571',
@@ -191,7 +208,8 @@ class TestFrameSet(unittest.TestCase):
                  Decimal('0.4286'), Decimal('0.5714'), Decimal('0.7143'),
                  Decimal('0.8571'), Decimal('1.0000'), Decimal('1.1429'),
                  Decimal('1.2857'), Decimal('1.4286'), Decimal('1.5714'),
-                 Decimal('1.7143'), Decimal('1.8571')]
+                 Decimal('1.7143'), Decimal('1.8571')],
+                True
             ),
             (
                 [0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571',
@@ -201,27 +219,31 @@ class TestFrameSet(unittest.TestCase):
                  Decimal('0.4286'), Decimal('0.5714'), Decimal('0.7143'),
                  Decimal('0.8571'), Decimal('1.0000'), Decimal('1.1429'),
                  Decimal('1.2857'), Decimal('1.4286'), Decimal('1.5714'),
-                 Decimal('1.7143'), Decimal('1.8571'), Decimal('2.0000')]
+                 Decimal('1.7143'), Decimal('1.8571'), Decimal('2.0000')],
+                True
             ),
             (
                 [1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571',
                  2],
                 [Decimal('1.0000'), Decimal('1.1429'), Decimal('1.2857'),
                  Decimal('1.4286'), Decimal('1.5714'), Decimal('1.7143'),
-                 Decimal('1.8571'), Decimal('2.0000')]
+                 Decimal('1.8571'), Decimal('2.0000')],
+                True
             ),
             (
                 [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)],
-                [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)]
+                [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)],
+                True
             ),
             (
                 [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)],
-                [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)]
+                [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)],
+                True
             )
         ]
 
         neg_table = []
-        for src, expected in table:
+        for src, expected, has_subframes in table:
             neg_src = []
             for x in src:
                 if isinstance(x, integer_types + (float, Decimal)):
@@ -231,12 +253,13 @@ class TestFrameSet(unittest.TestCase):
                 else:
                     neg_src.append('-' + x.lstrip('+'))
             neg_expected = list(map(operator.neg, expected))
-            neg_table.append((neg_src, neg_expected))
+            neg_table.append((neg_src, neg_expected, has_subframes))
 
-        for src, expected in table + neg_table:
+        for src, expected, has_subframes in table + neg_table:
             f = FrameSet(src)
             actual = list(f)
             self.assertEqual(actual, expected)
+            self.assertEqual(has_subframes, f.hasSubFrames())
 
             actual = list(FrameSet(f.frange))
             # floats will be converted to decimal during roundtrip to frange
@@ -247,6 +270,7 @@ class TestFrameSet(unittest.TestCase):
                 for i, (e, a) in enumerate(zip(expected, actual)):
                     actual[i] = a.quantize(e)
             self.assertEqual(actual, expected)
+            self.assertEqual(has_subframes, f.hasSubFrames())
 
     def testMaxFrameSize(self):
         _maxSize = constants.MAX_FRAME_SIZE
@@ -689,27 +713,29 @@ class TestFileSequence(TestBase):
         self.assertEquals(len(fs), len(fs2))
 
     def testHasVersionNoFrame(self):
-        fs = FileSequence("/path/to/file_v2.exr")
-        self.assertEquals(fs.start(), 0)
-        self.assertEquals(fs.end(), 0)
-        self.assertEquals(fs.padding(), '')
-        self.assertEquals(fs.framePadding(), '')
-        self.assertEquals(fs.subframePadding(), '')
-        self.assertEquals(fs.extension(), '.exr')
-        self.assertEquals(str(fs), "/path/to/file_v2.exr")
+        for allow_subframes in [False, True]:
+            fs = FileSequence("/path/to/file_v2.exr", allow_subframes=allow_subframes)
+            self.assertEquals(fs.start(), 0)
+            self.assertEquals(fs.end(), 0)
+            self.assertEquals(fs.padding(), '')
+            self.assertEquals(fs.framePadding(), '')
+            self.assertEquals(fs.subframePadding(), '')
+            self.assertEquals(fs.extension(), '.exr')
+            self.assertEquals(str(fs), "/path/to/file_v2.exr")
 
     def testHasFrameNoVersion(self):
-        fs = FileSequence("/path/to/file.2.exr")
-        self.assertEquals(fs.start(), 2)
-        self.assertEquals(fs.end(), 2)
-        self.assertEquals(fs.padding(), '@')
-        self.assertEquals(fs.framePadding(), '@')
-        self.assertEquals(fs.subframePadding(), '')
-        self.assertEquals(fs.extension(), '.exr')
-        self.assertEquals(str(fs), "/path/to/file.2@.exr")
+        for allow_subframes in [False, True]:
+            fs = FileSequence("/path/to/file.2.exr", allow_subframes=allow_subframes)
+            self.assertEquals(fs.start(), 2)
+            self.assertEquals(fs.end(), 2)
+            self.assertEquals(fs.padding(), '@')
+            self.assertEquals(fs.framePadding(), '@')
+            self.assertEquals(fs.subframePadding(), '')
+            self.assertEquals(fs.extension(), '.exr')
+            self.assertEquals(str(fs), "/path/to/file.2@.exr")
 
     def testHasSubFrameNoVersion(self):
-        fs = SubFileSequence("/path/to/file.0.0005.exr")
+        fs = FileSequence("/path/to/file.0.0005.exr", allow_subframes=True)
         self.assertEquals(fs.start(), Decimal("0.0005"))
         self.assertEquals(fs.end(), Decimal("0.0005"))
         self.assertEquals(fs.padding(), '@.#')
@@ -718,24 +744,61 @@ class TestFileSequence(TestBase):
         self.assertEquals(fs.extension(), '.exr')
         self.assertEquals(str(fs), "/path/to/file.0.0005@.#.exr")
 
-    def testNoFrameNoVersionNoExt(self):
-        fs = FileSequence("/path/to/file")
-        self.assertEquals(fs.start(), 0)
-        self.assertEquals(fs.end(), 0)
-        self.assertEquals(fs.padding(), '')
-        self.assertEquals(fs.dirname(), '/path/to/')
-        self.assertEquals(fs.basename(), 'file')
-        self.assertEquals(fs.extension(), '')
-        self.assertEquals(str(fs), "/path/to/file")
+    def testHasFrameResolution(self):
+        for allow_subframes in [False, True]:
+            fs = FileSequence(
+                "/path/to/file.1920x1038.1001-1076#.exr", allow_subframes=allow_subframes
+            )
+            self.assertEquals(fs.start(), 1001)
+            self.assertEquals(fs.end(), 1076)
+            self.assertEquals(fs.padding(), '#')
+            self.assertEquals(fs.framePadding(), '#')
+            self.assertEquals(fs.subframePadding(), '')
+            self.assertEquals(fs.extension(), '.exr')
+            self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1076#.exr")
 
-        fs = FileSequence("file")
-        self.assertEquals(fs.start(), 0)
-        self.assertEquals(fs.end(), 0)
-        self.assertEquals(fs.padding(), '')
-        self.assertEquals(fs.dirname(), '')
-        self.assertEquals(fs.basename(), 'file')
-        self.assertEquals(fs.extension(), '')
-        self.assertEquals(str(fs), "file")
+    def testHasFrameListResolution(self):
+        for allow_subframes in [False, True]:
+            fs = FileSequence(
+                "/path/to/file.1920x1038.1001,1005,1076#.exr", allow_subframes=allow_subframes
+            )
+            self.assertEquals(fs.start(), 1001)
+            self.assertEquals(fs.end(), 1076)
+            self.assertEquals(fs.padding(), '#')
+            self.assertEquals(fs.framePadding(), '#')
+            self.assertEquals(fs.subframePadding(), '')
+            self.assertEquals(fs.extension(), '.exr')
+            self.assertEquals(str(fs), "/path/to/file.1920x1038.1001,1005,1076#.exr")
+
+    def testHasSubFrameResolution(self):
+        fs = FileSequence("/path/to/file.1920x1038.1001-1002x0.25@.#.exr", allow_subframes=True)
+        self.assertEquals(fs.start(), Decimal("1001.0"))
+        self.assertEquals(fs.end(), Decimal("1002.0"))
+        self.assertEquals(fs.padding(), '@.#')
+        self.assertEquals(fs.framePadding(), '@')
+        self.assertEquals(fs.subframePadding(), '#')
+        self.assertEquals(fs.extension(), '.exr')
+        self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1002x0.25@.#.exr")
+
+    def testNoFrameNoVersionNoExt(self):
+        for allow_subframes in [False, True]:
+            fs = FileSequence("/path/to/file", allow_subframes=allow_subframes)
+            self.assertEquals(fs.start(), 0)
+            self.assertEquals(fs.end(), 0)
+            self.assertEquals(fs.padding(), '')
+            self.assertEquals(fs.dirname(), '/path/to/')
+            self.assertEquals(fs.basename(), 'file')
+            self.assertEquals(fs.extension(), '')
+            self.assertEquals(str(fs), "/path/to/file")
+
+            fs = FileSequence("file", allow_subframes=allow_subframes)
+            self.assertEquals(fs.start(), 0)
+            self.assertEquals(fs.end(), 0)
+            self.assertEquals(fs.padding(), '')
+            self.assertEquals(fs.dirname(), '')
+            self.assertEquals(fs.basename(), 'file')
+            self.assertEquals(fs.extension(), '')
+            self.assertEquals(str(fs), "file")
 
     def testEmptyBasename(self):
         seq = FileSequence("/path/to/1-5#.exr")
