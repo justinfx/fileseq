@@ -36,6 +36,7 @@ Support for:
 * Filled: 1-100y5
 * Staggered: 1-100:3 (1-100x3, 1-100x2, 1-100)
 * Negative frame numbers: -10-100
+* Subframes: 1001-1066x0.25
 * Padding: #=4 padded, @=single pad
 * Printf Syntax Padding: %04d=4 padded, %01d=1 padded
 * Houdini Syntax Padding: $F4=4 padding, $F=1 padded
@@ -97,6 +98,9 @@ Format Path for VFX Software
     >>> seq = FileSequence("/foo/bar.1-10#.exr")
     >>> seq.format(template='{dirname}{basename}{padding}{extension}')
     '/foo/bar.#.exr'
+    >>> seq = FileSequence("/foo/bar.1-10#.#.exr", allow_subframes=True)
+    >>> seq.format(template='{dirname}{basename}{padding}{extension}')
+    '/foo/bar.#.#.exr'
 
 *Joining*
 
@@ -158,10 +162,17 @@ No:
 .. code-block:: python
 
     findSequenceOnDisk('/foo/bar.*.exr')
+
+* To find subframe sequences you must explicitly opt-in
+
+.. code-block:: python
+
+    fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 """
 from __future__ import absolute_import
 
-from fileseq.exceptions import ParseException, FileSeqException
+from fileseq.constants import PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4
+from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
 from fileseq.frameset import FrameSet
 from fileseq.filesequence import FileSequence
 
@@ -170,6 +181,6 @@ framesToFrameRange = FrameSet.framesToFrameRange
 
 getPaddingChars = FileSequence.getPaddingChars
 getPaddingNum = FileSequence.getPaddingNum
-findSequencesInList = FileSequence.findSequencesInList
 findSequenceOnDisk = FileSequence.findSequenceOnDisk
 findSequencesOnDisk = FileSequence.findSequencesOnDisk
+findSequencesInList = FileSequence.findSequencesInList

@@ -196,7 +196,6 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
-    ("FloatFrames", "1.0-10.5"),
     ("ActualNone", None),
 ]
 

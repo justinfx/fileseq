@@ -15,11 +15,15 @@ from future.utils import iteritems
 
 import os
 import re
+import decimal
 import functools
 from glob import iglob
 
-from fileseq.exceptions import ParseException, FileSeqException
-from fileseq.constants import PAD_MAP, DISK_RE, SPLIT_RE, PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE
+from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
+from fileseq.constants import \
+    PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4, PAD_MAP, \
+    DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE, \
+    PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
 from fileseq import utils
 
@@ -38,65 +42,98 @@ class FileSequence(object):
             ``fileseq.constants.MAX_FRAME_SIZE``
     """
     DISK_RE = DISK_RE
+    DISK_SUB_RE = DISK_SUB_RE
     PAD_MAP = PAD_MAP
     SPLIT_RE = SPLIT_RE
+    SPLIT_SUB_RE = SPLIT_SUB_RE
 
-    def __init__(self, sequence):
+    def __init__(self, sequence, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False):
         """Init the class
         """
-        cls = self.__class__
         sequence = utils.asString(sequence)
 
         if not hasattr(self, '_frameSet'):
 
             self._frameSet = None
 
+            if allow_subframes:
+                split_re = self.SPLIT_SUB_RE
+                disk_re = self.DISK_SUB_RE
+            else:
+                split_re = self.SPLIT_RE
+                disk_re = self.DISK_RE
+
             try:
                 # the main case, padding characters in the path.1-100#.exr
-                path, frames, self._pad, self._ext = cls.SPLIT_RE.split(sequence, 1)
+                path, frames, self._pad, self._ext = split_re.split(sequence, 1)
+                self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
                 self._dir, self._base = os.path.split(path)
                 self._frameSet = FrameSet(frames)
             except ValueError:
                 # edge case 1; we've got an invalid pad
-                for placeholder in cls.PAD_MAP:
+                for placeholder in self.PAD_MAP:
                     if placeholder in sequence:
                         msg = "Failed to parse FileSequence: {0}"
                         raise ParseException(msg.format(sequence))
                 # edge case 2; we've got a single frame of a sequence
-                a_frame = cls.DISK_RE.match(sequence)
+                a_frame = disk_re.match(sequence)
                 if a_frame:
                     self._dir, self._base, frames, self._ext = a_frame.groups()
                     # edge case 3: we've got a single versioned file, not a sequence
                     if frames and not self._base.endswith('.'):
                         self._base = self._base + frames
                         self._pad = ''
+                        self._frame_pad = ''
+                        self._subframe_pad = ''
                     elif not frames:
                         self._pad = ''
+                        self._frame_pad = ''
+                        self._subframe_pad = ''
                         self._frameSet = None
                     else:
                         self._frameSet = FrameSet(frames)
                         if self._frameSet:
-                            self._pad = self.getPaddingChars(len(frames))
+                            frame_num, _, subframe_num = frames.partition('.')
+                            self._frame_pad = self.getPaddingChars(len(frame_num), pad_style=pad_style)
+                            if subframe_num:
+                                self._subframe_pad = self.getPaddingChars(len(subframe_num), pad_style=pad_style)
+                                self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+                            else:
+                                self._pad = self._frame_pad
+                                self._subframe_pad = ''
                         else:
                             self._pad = ''
+                            self._frame_pad = ''
+                            self._subframe_pad = ''
                             self._frameSet = None
                 # edge case 4; we've got a solitary file, not a sequence
                 else:
                     path, self._ext = os.path.splitext(sequence)
                     self._dir, self._base = os.path.split(path)
                     self._pad = ''
+                    self._frame_pad = ''
+                    self._subframe_pad = ''
 
         if self._dir:
             self.setDirname(self._dir)
 
-        self._zfill = self.__class__.getPaddingNum(self._pad)
+        self._pad_style = pad_style
+        self._zfill = self.getPaddingNum(self._frame_pad, pad_style=pad_style)
+        self._decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=pad_style)
+
+        # Round subframes to match sequence
+        if self._frameSet is not None and self._frameSet.hasSubFrames():
+            self._frameSet = FrameSet([
+                utils.quantize(frame, self._decimal_places)
+                for frame in self._frameSet
+            ])
 
     def copy(self):
         """
         Create a deep copy of this sequence
 
         Returns:
-            :obj:`.FileSequence`:
+            :class:`.FileSequence`:
         """
         fs = self.__class__.__new__(self.__class__)
         fs.__dict__ = self.__dict__.copy()
@@ -111,11 +148,12 @@ class FileSequence(object):
 
         Utilizes the python string format syntax.  Available keys include:
             * basename - the basename of the sequence.
+            * range - the range of the sequence
+            * padding - the detecting amount of padding.
             * extension - the file extension of the sequence.
             * start - the start frame.
             * end - the end frame.
             * length - the length of the frame range.
-            * padding - the detecting amount of padding.
             * inverted - the inverted frame range. (returns "" if none)
             * dirname - the directory name.
 
@@ -203,6 +241,35 @@ class FileSequence(object):
         """
         self._base = utils.asString(base)
 
+    def padStyle(self):
+        """
+        Return the the padding style of the sequence.
+        See fileseq.PAD_STYLE_HASH1 and fileseq.PAD_STYLE_HASH4
+
+        Returns:
+            (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+        """
+        return self._pad_style
+
+    def setPadStyle(self, pad_style):
+        """
+        Set new padding style for the sequence.
+        See fileseq.PAD_STYLE_HASH1 and fileseq.PAD_STYLE_HASH4
+
+        Args:
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style to set
+        """
+        self._pad_style = pad_style
+        self._frame_pad = self.getPaddingChars(self._zfill, pad_style=pad_style)
+        if self._decimal_places:
+            self._subframe_pad = self.getPaddingChars(
+                self._decimal_places, pad_style=self._pad_style
+            )
+            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        else:
+            self._pad = self._frame_pad
+            self._subframe_pad = ''
+
     def padding(self):
         """
         Return the the padding characters in the sequence.
@@ -221,7 +288,58 @@ class FileSequence(object):
             padding (str): sequence padding to set
         """
         self._pad = padding
-        self._zfill = self.__class__.getPaddingNum(self._pad)
+        self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
+        self._zfill = self.getPaddingNum(self._frame_pad, pad_style=self._pad_style)
+        self._decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=self._pad_style)
+
+    def framePadding(self):
+        """
+        Return the the padding characters in the sequence.
+
+        Returns:
+            str: sequence padding
+        """
+        return self._frame_pad
+
+    def setFramePadding(self, padding):
+        """
+        Set new padding characters for the frames of the sequence.
+        i.e. "#" or "@@@" or '%04d', or an empty string to disable range formatting.
+
+        Args:
+            padding (str): sequence padding to set
+        """
+        self._frame_pad = padding
+        if self._subframe_pad:
+            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        else:
+            self._pad = self._frame_pad
+        self._zfill = self.getPaddingNum(self._frame_pad, pad_style=self._pad_style)
+
+    def subframePadding(self):
+        """
+        Return the the padding characters for subframes in the sequence.
+
+        Returns:
+            str: sequence padding
+        """
+        return self._subframe_pad
+
+    def setSubframePadding(self, padding):
+        """
+        Set new padding characters for the subframes in the sequence.
+        i.e. "#" or "@@@", or an empty string to disable range
+        formatting.
+
+        Args:
+            padding (str): sequence padding to set
+        """
+        self._subframe_pad = padding
+        if self._subframe_pad:
+            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        else:
+            self._pad = self._frame_pad
+        self._decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=self._pad_style)
 
     def frameSet(self):
         """
@@ -240,6 +358,12 @@ class FileSequence(object):
         Args:
             frameSet (:class:`.FrameSet`): the new :class:`.FrameSet` object
         """
+        if frameSet is not None and frameSet.hasSubFrames():
+            if all(isinstance(frame, decimal.Decimal) for frame in frameSet):
+                frameSet = FrameSet([
+                    utils.quantize(frame, self._decimal_places)
+                    for frame in frameSet
+                ])
         self._frameSet = frameSet
 
     def extension(self):
@@ -287,7 +411,7 @@ class FileSequence(object):
         """
         if not self._frameSet:
             return ''
-        return self._frameSet.frameRange(self._zfill)
+        return self._frameSet.frameRange(self._zfill, self._decimal_places)
 
     def setFrameRange(self, frange):
         """
@@ -301,7 +425,8 @@ class FileSequence(object):
     def invertedFrameRange(self):
         """
         Returns the inverse string formatted frame range of the sequence.
-        Will return an empty string if the sequence has no frame pattern.
+        Will return an empty string if the sequence has no frame pattern,
+        or the frame range includes subframes.
 
         Returns:
             str:
@@ -310,7 +435,7 @@ class FileSequence(object):
             :class:`fileseq.exceptions.MaxSizeException`: If new inverted range
                 exceeded ``fileseq.constants.MAX_FRAME_SIZE``
         """
-        if not self._frameSet:
+        if not self._frameSet or self._frameSet.hasSubFrames():
             return ''
         return self._frameSet.invertedFrameRange(self._zfill)
 
@@ -347,11 +472,20 @@ class FileSequence(object):
         """
         return self._zfill
 
+    def decimalPlaces(self):
+        """
+        Returns the number of decimal places to output.
+
+        Returns:
+            int or None:
+        """
+        return self._decimal_places
+
     def frame(self, frame):
         """
-        Return a path go the given frame in the sequence.  Integer or string
-        digits are treated as a frame number and padding is applied, all other
-        values are passed though.
+        Return a path for the given frame in the sequence.  Numeric values or
+        numeric strings are treated as a frame number and padding is applied,
+        all other values are passed though.
 
         Examples:
             >>> seq = FileSequence('/foo/bar.1-10#.exr')
@@ -361,23 +495,29 @@ class FileSequence(object):
             '/foo/bar.#.exr'
 
         Args:
-            frame (int or str): the desired frame number or a char to pass
-                through (ie. #)
+            frame (int, float, decimal.Decimal or str): the desired frame number
+                or a char to pass through (ie. #)
 
         Returns:
             str:
         """
-        try:
-            zframe = utils.asString(int(frame)).zfill(self._zfill)
-        except ValueError:
-            zframe = frame
-
-        # There may have been no placeholder for frame IDs in
-        # the sequence, in which case we don't want to insert
-        # a frame ID
-
         if self._zfill == 0:
+            # There may have been no placeholder for frame IDs in
+            # the sequence, in which case we don't want to insert
+            # a frame ID
             zframe = ""
+        else:
+            zframe = None
+            if not isinstance(frame, futils.integer_types + (float, decimal.Decimal)):
+                try:
+                    frame = int(frame)
+                except ValueError:
+                    try:
+                        frame = decimal.Decimal(frame)
+                    except decimal.DecimalException:
+                        zframe = frame
+            if zframe is None:
+                zframe = utils.pad(frame, self._zfill, self._decimal_places)
 
         return futils.native_str("".join((self._dir, self._base, zframe, self._ext)))
 
@@ -430,7 +570,7 @@ class FileSequence(object):
             :class:`IndexError`: If slice is outside the range of the sequence
         """
         if not self._frameSet:
-            return utils.asString(self)
+            return futils.native_str(self)
 
         frames = self._frameSet[idx]
 
@@ -492,7 +632,9 @@ class FileSequence(object):
         return id(self)
 
     @classmethod
-    def yield_sequences_in_list(cls, paths, using=None):
+    def yield_sequences_in_list(
+        cls, paths, using=None, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False
+    ):
         """
         Yield the discrete sequences within paths.  This does not try to
         determine if the files actually exist on disk, it assumes you already
@@ -519,27 +661,37 @@ class FileSequence(object):
         Args:
             paths (list[str]): a list of paths
             using (:obj:`FileSequence`): Optional sequence to use as template
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            allow_subframes (bool): if True, handle subframe filenames
 
         Yields:
             :obj:`FileSequence`:
         """
         seqs = {}
-        _check = cls.DISK_RE.match
+        if allow_subframes:
+            _check = cls.DISK_SUB_RE.match
+        else:
+            _check = cls.DISK_RE.match
 
         using_template = isinstance(using, FileSequence)
 
         if using_template:
-            key = dirname, basename, ext = using.dirname(), using.basename(), using.extension()
+            dirname, basename, ext = using.dirname(), using.basename(), using.extension()
             head = len(dirname + basename)
             tail = -len(ext)
             frames = set()
 
             for path in filter(None, map(utils.asString, paths)):
                 frame = path[head:tail]
+                frame, _, subframe = frame.partition(".")
+                key = (dirname, basename, ext, len(subframe))
                 try:
                     int(frame)
                 except ValueError:
-                    continue
+                    try:
+                        decimal.Decimal(frame)
+                    except decimal.DecimalException:
+                        continue
                 seqs.setdefault(key, frames).add(frame)
 
         else:
@@ -547,28 +699,50 @@ class FileSequence(object):
                 dirname, basename, frame, ext = match.groups()
                 if not basename and not ext:
                     continue
-                key = (dirname, basename, ext)
+                if frame:
+                    _, _, subframe = frame.partition(".")
+                    key = (dirname, basename, ext, len(subframe))
+                else:
+                    key = (dirname, basename, ext, 0)
                 seqs.setdefault(key, set())
                 if frame:
                     seqs[key].add(frame)
 
-        for (dirname, basename, ext), frames in iteritems(seqs):
+        for (dirname, basename, ext, decimal_places), frames in iteritems(seqs):
             # build the FileSequence behind the scenes, rather than dupe work
             seq = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
+            seq._pad_style = pad_style
             if frames:
-                seq._frameSet = FrameSet({int(f) for f in frames}) if frames else None
-                seq._pad = cls.getPaddingChars(min(map(len, frames)))
+                seq._frameSet = FrameSet(frames)
+
+                frame_lengths = set()
+                for frame in frames:
+                    frame_num, _, _ = frame.partition(".")
+                    frame_lengths.add(len(frame_num))
+
+                seq._frame_pad = cls.getPaddingChars(min(frame_lengths), pad_style=pad_style)
+                if decimal_places:
+                    seq._subframe_pad = cls.getPaddingChars(decimal_places, pad_style=pad_style)
+                else:
+                    seq._subframe_pad = ''
             else:
                 seq._frameSet = None
-                seq._pad = ''
+                seq._frame_pad = ''
+                seq._subframe_pad = ''
+
+            if seq._subframe_pad:
+                seq._pad = '.'.join([seq._frame_pad, seq._subframe_pad])
+            else:
+                seq._pad = seq._frame_pad
+
             seq.__init__(utils.asString(seq))
             yield seq
 
     @classmethod
-    def findSequencesInList(cls, paths):
+    def findSequencesInList(cls, paths, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False):
         """
         Returns the list of discrete sequences within paths.  This does not try
         to determine if the files actually exist on disk, it assumes you
@@ -576,14 +750,21 @@ class FileSequence(object):
 
         Args:
             paths (list[str]): a list of paths
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
             list:
         """
-        return list(cls.yield_sequences_in_list(paths))
+        return list(
+            cls.yield_sequences_in_list(paths, pad_style=pad_style, allow_subframes=allow_subframes)
+        )
 
     @classmethod
-    def findSequencesOnDisk(cls, pattern, include_hidden=False, strictPadding=False):
+    def findSequencesOnDisk(
+        cls, pattern, include_hidden=False, strictPadding=False, pad_style=PAD_STYLE_DEFAULT,
+        allow_subframes=False
+    ):
         """
         Yield the sequences found in the given directory.
 
@@ -608,6 +789,8 @@ class FileSequence(object):
             pattern (str): directory to scan, or pattern to filter in directory
             include_hidden (bool): if true, show .hidden files as well
             strictPadding (bool): if True, ignore files with padding length different from pattern
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
             list:
@@ -630,30 +813,40 @@ class FileSequence(object):
                 return []
 
             # Start building a regex for filtering files
-            seq = cls(filepat)
-            patt = seq.basename().replace('.', r'\.')
+            seq = cls(filepat, pad_style=pad_style, allow_subframes=allow_subframes)
+            patt = r'\A'
+            patt += cls._globCharsToRegex(seq.basename())
             if seq.padding():
-                patt += r'\d+'
+                patt += '('
+                if seq.framePadding():
+                    patt += r'\d+'
+                    if seq.subframePadding():
+                        patt += r'\.\d+'
+                patt += ')'
             if seq.extension():
-                patt += seq.extension()
+                patt += cls._globCharsToRegex(seq.extension())
 
             # Convert braces groups into regex capture groups
             matches = re.finditer(r'{(.*?)(?:,(.*?))*}', patt)
             for match in reversed(list(matches)):
                 i, j = match.span()
-                regex = '(%s)' % '|'.join([m.strip() for m in match.groups()])
+                regex = '(?:%s)' % '|'.join([m.strip() for m in match.groups()])
                 patt = "".join((patt[0:i], regex, patt[j:]))
-            patt = patt.replace('*', '.*')
-            patt = patt.replace('?', '.')
-            patt += '$'
+            patt += r'\Z'
             try:
-                _match_pattern = re.compile(str(patt)).match
+                _match_pattern = re.compile(patt).match
             except re.error:
                 msg = 'Invalid file pattern: {}'.format(filepat)
                 raise FileSeqException(msg)
 
             if seq.padding() and strictPadding:
-                _filter_padding = functools.partial(cls._filterByPaddingNum, num=seq.zfill())
+                get_frame = lambda f: _match_pattern(f).group(1)
+                _filter_padding = functools.partial(
+                    cls._filterByPaddingNum,
+                    zfill=seq.zfill(),
+                    decimal_places=seq.decimalPlaces(),
+                    get_frame=get_frame
+                )
 
         # Get just the immediate files under the dir.
         # Avoids testing the os.listdir() for files as
@@ -681,22 +874,25 @@ class FileSequence(object):
         if not dirpath.endswith(sep):
             dirpath += sep
 
-        files = (_join(dirpath, f) for f in files)
-        files = list(files)
+        files = [_join(dirpath, f) for f in files]
 
-        seqs = list(cls.yield_sequences_in_list(files))
+        seqs = list(
+            cls.yield_sequences_in_list(files, pad_style=pad_style, allow_subframes=allow_subframes)
+        )
 
         if _filter_padding and seq:
-            pad = cls.conformPadding(seq.padding())
+            frame_pad = cls.conformPadding(seq.framePadding(), pad_style=pad_style)
+            subframe_pad = cls.conformPadding(seq.subframePadding(), pad_style=pad_style)
             # strict padding should preserve the original padding
             # characters in the found sequences.
             for s in seqs:
-                s.setPadding(pad)
+                s.setFramePadding(frame_pad)
+                s.setSubframePadding(subframe_pad)
 
         return seqs
 
     @classmethod
-    def findSequenceOnDisk(cls, pattern, strictPadding=False):
+    def findSequenceOnDisk(cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT):
         """
         Search for a specific sequence on disk.
 
@@ -718,6 +914,7 @@ class FileSequence(object):
         Args:
             pattern (str): the sequence pattern being searched for
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
 
         Returns:
             str:
@@ -725,7 +922,7 @@ class FileSequence(object):
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
         """
-        seq = cls(pattern)
+        seq = cls(pattern, allow_subframes=True, pad_style=pad_style)
 
         if seq.frameRange() == '' and seq.padding() == '':
             if os.path.isfile(pattern):
@@ -733,102 +930,174 @@ class FileSequence(object):
 
         patt = seq.format('{dirname}{basename}*{extension}')
 
-        ext = seq.extension()
+        dirname = seq.dirname()
         basename = seq.basename()
+        ext = seq.extension()
         pad = seq.padding()
+        frame_pad = seq.framePadding()
+        subframe_pad = seq.subframePadding()
 
         globbed = iglob(patt)
-        if pad and strictPadding:
-            globbed = cls._filterByPaddingNum(globbed, seq.zfill())
-            pad = cls.conformPadding(pad)
+        if pad:
+            patt = r'\A'
+            if dirname:
+                patt = r'.*[/\\]'
+            patt += re.escape(basename) + '(.*)' + re.escape(ext) + r'\Z'
+            get_frame = lambda f: re.match(patt, f).group(1)
 
-        matches = cls.yield_sequences_in_list(globbed, using=seq)
-        for match in matches:
+            if strictPadding:
+                globbed = cls._filterByPaddingNum(
+                    globbed,
+                    seq.zfill(),
+                    decimal_places=seq.decimalPlaces(),
+                    get_frame=get_frame
+                )
+                frame_pad = cls.conformPadding(frame_pad, pad_style=pad_style)
+                subframe_pad = cls.conformPadding(subframe_pad, pad_style=pad_style)
+            else:
+                globbed = cls._filterByPaddingNum(
+                    globbed,
+                    None,
+                    decimal_places=seq.decimalPlaces(),
+                    get_frame=get_frame
+                )
+
+        sequences = []
+        allow_subframes = bool(seq.decimalPlaces())
+        for match in cls.yield_sequences_in_list(
+            globbed, using=seq, pad_style=pad_style, allow_subframes=allow_subframes
+        ):
             if match.basename() == basename and match.extension() == ext:
                 if pad and strictPadding:
-                    match.setPadding(pad)
-                return match
+                    match.setFramePadding(frame_pad)
+                    match.setSubframePadding(subframe_pad)
+                sequences.append(match)
 
-        msg = 'no sequence found on disk matching {0}'
+        if len(sequences) == 1:
+            return sequences[0]
+        elif not sequences:
+            msg = 'no sequence found on disk matching {0}'
+        else:
+            msg = 'multiple sequences found on disk matching {0}'
         raise FileSeqException(msg.format(pattern))
 
-    @classmethod
-    def _filterByPaddingNum(cls, iterable, num):
+    @staticmethod
+    def _globCharsToRegex(filename):
         """
-        Yield only path elements from iterable which have a frame
-        padding that matches the given target padding number
+        Translate single character elements of a shell pattern to make suitable
+        for a regular expression pattern
+
+        Args:
+            filename (str): filename containing shell pattern to convert
+
+        Returns:
+            str:
+        """
+        filename = filename.replace('.', r'\.')
+        filename = filename.replace('*', '.*')
+        filename = filename.replace('?', '.')
+        return filename
+
+    @classmethod
+    def _filterByPaddingNum(cls, iterable, zfill, decimal_places=0, get_frame=None):
+        """
+        Yield only path elements from iterable which have a frame padding that
+        matches the given target padding numbers. If zfill is None only the
+        subframe length is matched against decimal places. If provided get_frame
+        should be a callable taking one argument that will extract the frame
+        number from a filename.
 
         Args:
             iterable (collections.Iterable):
-            num (int):
+            zfill (int or None):
+            decimal_places (int):
+            get_frame (callable):
 
         Yields:
             str:
         """
-        _check = cls.DISK_RE.match
+        if decimal_places == 0:
+            _check = cls.DISK_RE.match
+        else:
+            _check = cls.DISK_SUB_RE.match
 
         for item in iterable:
             # Add a filter for paths that don't match the frame
             # padding of a given number
             matches = _check(item)
             if not matches:
-                if num <= 0:
+                if zfill is None or zfill <= 0:
                     # Not a sequence pattern, but we were asked
                     # to match on a zero padding
                     yield item
 
                 continue
 
+            # Ensure DISK_RE matches before calling optional get_frame function
             frame = matches.group(3) or ''
+            if frame and get_frame is not None:
+                frame = get_frame(item) or ''
 
             if not frame:
-                if num <= 0:
+                if zfill is None or zfill <= 0:
                     # No frame value was parsed, but we were asked
                     # to match on a zero padding
                     yield item
                 continue
 
             # We have a frame number
+            frame, _, subframe = frame.partition(".")
+            if len(subframe) != decimal_places:
+                continue
+
+            if zfill is None:
+                yield item
+                continue
 
             if frame[0] == '0' or frame[:2] == '-0':
-                if len(frame) == num:
+                if len(frame) == zfill:
                     # A frame leading with '0' is explicitly
                     # padded and can only be a match if its exactly
                     # the target padding number
                     yield item
                 continue
 
-            if len(frame) >= num:
+            if len(frame) >= zfill:
                 # A frame that does not lead with '0' can match
                 # a padding width >= to the target padding number
                 yield item
                 continue
 
     @staticmethod
-    def getPaddingChars(num):
+    def getPaddingChars(num, pad_style=PAD_STYLE_DEFAULT):
         """
         Given a particular amount of padding, return the proper padding characters.
 
         Args:
-            num (int):
+            num (int): required width of string with padding
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
 
         Returns:
             str:
         """
-        if num == 0:
-            return "@"
-        if num % 4 == 0:
-            return "#" * (num // 4)
-        else:
-            return "@" * num
+        if pad_style is PAD_STYLE_HASH1:
+            return "#" * max(1, num)
+        elif pad_style is PAD_STYLE_HASH4:
+            if num == 0:
+                return "@"
+            if num % 4 == 0:
+                return "#" * (num // 4)
+            else:
+                return "@" * num
 
     @classmethod
-    def getPaddingNum(cls, chars):
+    def getPaddingNum(cls, chars, pad_style=PAD_STYLE_DEFAULT):
         """
         Given a supported group of padding characters, return the amount of padding.
 
         Args:
             chars (str): a supported group of padding characters
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
 
         Returns:
             int:
@@ -836,6 +1105,9 @@ class FileSequence(object):
         Raises:
             ValueError: if unsupported padding character is detected
         """
+        if not chars:
+            return 0
+
         match = PRINTF_SYNTAX_PADDING_RE.match(chars) or HOUDINI_SYNTAX_PADDING_RE.match(chars)
         if match:
             paddingNumStr = match.group(1)
@@ -845,7 +1117,7 @@ class FileSequence(object):
         try:
             rval = 0
             for char in chars:
-                rval += cls.PAD_MAP[char]
+                rval += cls.PAD_MAP[char][pad_style]
             return rval
         except KeyError:
             msg = "Detected an unsupported padding character: \"{}\"."
@@ -854,7 +1126,7 @@ class FileSequence(object):
             raise ValueError(msg.format(char, utils.asString(list(cls.PAD_MAP))))
 
     @classmethod
-    def conformPadding(cls, chars):
+    def conformPadding(cls, chars, pad_style=PAD_STYLE_DEFAULT):
         """
         Ensure alternate input padding formats are conformed
         to formats defined in PAD_MAP
@@ -869,6 +1141,7 @@ class FileSequence(object):
 
         Args:
             chars (str): input padding chars
+            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
 
         Returns:
             str: conformed padding chars
@@ -878,5 +1151,6 @@ class FileSequence(object):
         """
         pad = chars
         if pad and pad[0] not in cls.PAD_MAP:
-            pad = cls.getPaddingChars(cls.getPaddingNum(pad))
+            num = cls.getPaddingNum(pad, pad_style=pad_style)
+            pad = cls.getPaddingChars(num, pad_style=pad_style)
         return pad
