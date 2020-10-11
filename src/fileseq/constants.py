@@ -19,6 +19,13 @@ PAD_MAP = {
     "@": {PAD_STYLE_HASH1: 1, PAD_STYLE_HASH4: 1}
 }
 
+# Map width back to preferred padding character. Every pad style must have an
+# entry for width 1, which will also be the default pad character
+REVERSE_PAD_MAP = {
+    PAD_STYLE_HASH1: {1: "#"},
+    PAD_STYLE_HASH4: {1: "@", 4: "#"}
+}
+
 # Component of SPLIT_PATTERN (c.f FRANGE_PATTERN).
 _FRANGE_PART = r"""
     -?\d+           # start frame
