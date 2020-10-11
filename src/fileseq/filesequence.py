@@ -246,20 +246,20 @@ class FileSequence(object):
     def padStyle(self):
         """
         Return the the padding style of the sequence.
-        See fileseq.PAD_STYLE_HASH1 and fileseq.PAD_STYLE_HASH4
+        See fileseq.constants.PAD_STYLE_HASH1 and fileseq.constants.PAD_STYLE_HASH4
 
         Returns:
-            (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
         """
         return self._pad_style
 
     def setPadStyle(self, pad_style):
         """
         Set new padding style for the sequence.
-        See fileseq.PAD_STYLE_HASH1 and fileseq.PAD_STYLE_HASH4
+        See fileseq.constants.PAD_STYLE_HASH1 and fileseq.constants.PAD_STYLE_HASH4
 
         Args:
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style to set
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style to set
         """
         self._pad_style = pad_style
         self._frame_pad = self.getPaddingChars(self._zfill, pad_style=pad_style)
@@ -663,7 +663,7 @@ class FileSequence(object):
         Args:
             paths (list[str]): a list of paths
             using (:obj:`FileSequence`): Optional sequence to use as template
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
 
         Yields:
@@ -752,7 +752,7 @@ class FileSequence(object):
 
         Args:
             paths (list[str]): a list of paths
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
@@ -791,7 +791,7 @@ class FileSequence(object):
             pattern (str): directory to scan, or pattern to filter in directory
             include_hidden (bool): if true, show .hidden files as well
             strictPadding (bool): if True, ignore files with padding length different from pattern
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
@@ -916,7 +916,7 @@ class FileSequence(object):
         Args:
             pattern (str): the sequence pattern being searched for
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
 
         Returns:
             str:
@@ -1077,7 +1077,7 @@ class FileSequence(object):
 
         Args:
             num (int): required width of string with padding
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
 
         Returns:
             str:
@@ -1100,7 +1100,7 @@ class FileSequence(object):
 
         Args:
             chars (str): a supported group of padding characters
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
 
         Returns:
             int:
@@ -1144,7 +1144,7 @@ class FileSequence(object):
 
         Args:
             chars (str): input padding chars
-            pad_style (PAD_STYLE_DEFAULT or PAD_STYLE_HASH1 or PAD_STYLE_HASH4): padding style
+            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
 
         Returns:
             str: conformed padding chars
