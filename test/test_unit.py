@@ -15,7 +15,7 @@ from builtins import map
 from future.utils import string_types, native_str, integer_types
 
 try:
-    import pickle as pickle
+    import cPickle as pickle
 except ImportError:
     import pickle
 
@@ -45,6 +45,13 @@ TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 SRC_DIR = os.path.join(TEST_DIR, "../src")
 sys.path.insert(0, SRC_DIR)
 os.chdir(TEST_DIR)
+
+
+# For testing compatibility with pickle values from older version of fileseq
+PICKLE_TEST_SEQ = "/path/to/file.1-100x2#.exr"
+OLD_PICKLE_MAP = {
+    '1.10.0': b'\x80\x02cfileseq.filesequence\nFileSequence\nq\x01)\x81q\x02}q\x03(U\x04_extq\x04U\x04.exrU\t_frameSetq\x05cfileseq.frameset\nFrameSet\nq\x06)\x81q\x07U\x071-100x2q\x08\x85bU\x04_dirq\tU\t/path/to/U\x04_padq\nU\x01#U\x05_baseq\x0bU\x05file.U\x06_zfillq\x0cK\x04ub.'
+}
 
 
 def _getCommonPathSep(path):
@@ -705,12 +712,22 @@ class TestFileSequence(TestBase):
         fs2 = pickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
+        self.assertEquals(list(fs), list(fs2))
 
         fs = FileSequence("/path/to/file.1-100x2%04d.exr")
         s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
         fs2 = pickle.loads(s)
         self.assertEquals(str(fs), str(fs2))
         self.assertEquals(len(fs), len(fs2))
+        self.assertEquals(list(fs), list(fs2))
+
+    def testSerializationCompatablity(self):
+        fs = FileSequence(PICKLE_TEST_SEQ)
+        for version, s in OLD_PICKLE_MAP.items():
+            fs2 = pickle.loads(s)
+            self.assertEquals(str(fs), str(fs2))
+            self.assertEquals(len(fs), len(fs2))
+            self.assertEquals(list(fs), list(fs2))
 
     def testHasVersionNoFrame(self):
         for allow_subframes in [False, True]:
