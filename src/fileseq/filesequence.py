@@ -535,6 +535,20 @@ class FileSequence(object):
         """
         return self.__getitem__(idx)
 
+    def __setstate__(self, state):
+        """
+        Allows for de-serialization from a pickled :class:`FileSequence`.
+
+        Args:
+            state (dict): Pickle dictionary producted by default pickle implementation
+        """
+        for name, value in state.items():
+            self.__dict__[name] = value
+        self.__dict__.setdefault('_pad_style', PAD_STYLE_DEFAULT)
+        self.__dict__.setdefault('_frame_pad', self._pad)
+        self.__dict__.setdefault('_subframe_pad', '')
+        self.__dict__.setdefault('_decimal_places', 0)
+
     def __iter__(self):
         """
         Allow iteration over the path or paths this :class:`FileSequence`
