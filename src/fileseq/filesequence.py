@@ -21,7 +21,8 @@ from glob import iglob
 
 from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
 from fileseq.constants import \
-    PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4, PAD_MAP, \
+    PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4, \
+    PAD_MAP, REVERSE_PAD_MAP, \
     DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE, \
     PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
@@ -44,6 +45,7 @@ class FileSequence(object):
     DISK_RE = DISK_RE
     DISK_SUB_RE = DISK_SUB_RE
     PAD_MAP = PAD_MAP
+    REVERSE_PAD_MAP = REVERSE_PAD_MAP
     SPLIT_RE = SPLIT_RE
     SPLIT_SUB_RE = SPLIT_SUB_RE
 
@@ -1068,8 +1070,8 @@ class FileSequence(object):
                 yield item
                 continue
 
-    @staticmethod
-    def getPaddingChars(num, pad_style=PAD_STYLE_DEFAULT):
+    @classmethod
+    def getPaddingChars(cls, num, pad_style=PAD_STYLE_DEFAULT):
         """
         Given a particular amount of padding, return the proper padding characters.
 
@@ -1080,15 +1082,16 @@ class FileSequence(object):
         Returns:
             str:
         """
-        if pad_style is PAD_STYLE_HASH1:
-            return "#" * max(1, num)
-        elif pad_style is PAD_STYLE_HASH4:
-            if num == 0:
-                return "@"
-            if num % 4 == 0:
-                return "#" * (num // 4)
-            else:
-                return "@" * num
+        num = max(1, num)
+        reverse_pad_map = cls.REVERSE_PAD_MAP[pad_style]
+
+        # Find the widest padding character that can be used alone
+        for width in sorted(reverse_pad_map, reverse=True):
+            if num % width == 0:
+                return reverse_pad_map[width] * (num // width)
+
+        # Should never reach here as all styles should have an entry for width 1
+        raise FileSeqException('REVERSE_PAD_MAP missing pad character for width 1')
 
     @classmethod
     def getPaddingNum(cls, chars, pad_style=PAD_STYLE_DEFAULT):

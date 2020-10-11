@@ -16,8 +16,8 @@ Support for:
 * Staggered: 1-100:3 (1-100x3, 1-100x2, 1-100)
 * Negative frame numbers: -10-100
 * Subframes: 1001-1066x0.25, 1001.5-1066.0x0.5
-* Padding: #=4 padded, @=single pad
-* Alternate padding: #=1 padded, @=single pad
+* Padding: #=4 padded, @=1 padded
+* Alternate padding: #=1 padded, @=1 padded
 * Printf Syntax Padding: %04d=4 padded, %01d=1 padded
 * Houdini Syntax Padding: $F4=4 padding, $F=1 padded
 
