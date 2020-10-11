@@ -51,7 +51,11 @@ nitpick_ignore = [
     ('py:class', 'future.types.newobject.newobject'),
     ('py:class', '_abcoll.Set'),
     ('py:obj', 'collections.Iterable'),
+    ('py:class', 'collections.Iterable'),
     ('py:obj', 'generator'),
+    ('py:class', 'generator'),
+    ('py:class', 'generator'),
+    ('py:class', 'frange'),
 ]
 
 
