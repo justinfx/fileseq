@@ -699,8 +699,6 @@ class FileSequence(object):
 
             for path in filter(None, map(utils.asString, paths)):
                 frame = path[head:tail]
-                frame, _, subframe = frame.partition(".")
-                key = (dirname, basename, ext, len(subframe))
                 try:
                     int(frame)
                 except ValueError:
@@ -708,6 +706,8 @@ class FileSequence(object):
                         decimal.Decimal(frame)
                     except decimal.DecimalException:
                         continue
+                _, _, subframe = frame.partition(".")
+                key = (dirname, basename, ext, len(subframe))
                 seqs.setdefault(key, frames).add(frame)
 
         else:
@@ -908,7 +908,9 @@ class FileSequence(object):
         return seqs
 
     @classmethod
-    def findSequenceOnDisk(cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT):
+    def findSequenceOnDisk(
+        cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False
+    ):
         """
         Search for a specific sequence on disk.
 
@@ -931,6 +933,7 @@ class FileSequence(object):
             pattern (str): the sequence pattern being searched for
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
             pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
+            allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
             str:
@@ -938,7 +941,7 @@ class FileSequence(object):
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
         """
-        seq = cls(pattern, allow_subframes=True, pad_style=pad_style)
+        seq = cls(pattern, allow_subframes=allow_subframes, pad_style=pad_style)
 
         if seq.frameRange() == '' and seq.padding() == '':
             if os.path.isfile(pattern):
