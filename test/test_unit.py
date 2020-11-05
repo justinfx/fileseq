@@ -1039,7 +1039,7 @@ class TestFindSequencesOnDisk(TestBase):
         seqs = findSequencesOnDisk("seqneg")
         self.assertEquals(1, len(seqs))
 
-    def testFindSequenceOnDiskNegative(self):
+    def testFindSequencesOnDiskNegative(self):
         seqs = findSequencesOnDisk("seqneg")
         self.assertEquals("seqneg/bar.-1-1#.exr", str(seqs[0]))
         self.assertEquals("seqneg/bar.-001.exr", seqs[0].frame(-1))
@@ -1176,16 +1176,33 @@ class TestFindSequenceOnDisk(TestBase):
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
             ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
-            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
             ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
             ("seq/#.exr", "seq/1-3#.exr"),
             ("seq/bar1001.exr", "seq/bar1001.exr"),
             ("seq/foo_0001.exr", "seq/foo_0001.exr"),
             ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
+            ("subframe_seq/baz.#.0000.exr", "subframe_seq/baz.1-4#.0000.exr"),
+            ("subframe_seq/baz.0001.#.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
+            ("subframe_seq/baz.0001.0000.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
         ]
 
         for pattern, expected in tests:
             seq = findSequenceOnDisk(pattern, strictPadding=False)
+            self.assertTrue(isinstance(seq, FileSequence))
+            actual = str(seq)
+            self.assertEqual(actual, expected)
+
+    def testFindSequenceOnDiskSubFrames(self):
+        tests = [
+            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+            ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
+            ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
+            ("subframe_seq/baz.#.#.exr", "subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr"),
+            ("subframe_seq/baz.0000.0000.exr", "subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr"),
+        ]
+
+        for pattern, expected in tests:
+            seq = findSequenceOnDisk(pattern, strictPadding=False, allow_subframes=True)
             self.assertTrue(isinstance(seq, FileSequence))
             actual = str(seq)
             self.assertEqual(actual, expected)
