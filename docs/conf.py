@@ -54,7 +54,6 @@ nitpick_ignore = [
     ('py:class', 'collections.Iterable'),
     ('py:obj', 'generator'),
     ('py:class', 'generator'),
-    ('py:class', 'generator'),
     ('py:class', 'frange'),
 ]
 
