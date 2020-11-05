@@ -1192,6 +1192,17 @@ class TestFindSequenceOnDisk(TestBase):
             actual = str(seq)
             self.assertEqual(actual, expected)
 
+    def testFindSequenceOnDiskNoMatch(self):
+        tests = [
+            "subframe_seq/baz.#.exr",
+            "subframe_seq/baz.1000.exr",
+        ]
+
+        for pattern in tests:
+            with self.assertRaises(FileSeqException) as cm:
+                findSequenceOnDisk(pattern, strictPadding=False)
+            self.assertEqual(str(cm.exception), 'no sequence found on disk matching ' + pattern)
+
     def testFindSequenceOnDiskSubFrames(self):
         tests = [
             ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
