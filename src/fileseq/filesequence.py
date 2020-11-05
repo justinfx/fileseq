@@ -702,6 +702,8 @@ class FileSequence(object):
                 try:
                     int(frame)
                 except ValueError:
+                    if not allow_subframes:
+                        continue
                     try:
                         decimal.Decimal(frame)
                     except decimal.DecimalException:
