@@ -28,6 +28,7 @@ import sys
 from collections import namedtuple
 import unittest
 
+import fileseq
 from fileseq import (FrameSet,
                      FileSequence,
                      findSequencesOnDisk,
@@ -114,101 +115,102 @@ class TestUtils(unittest.TestCase):
 class TestFrameSet(unittest.TestCase):
 
     def testFrameValues(self):
+        class Case:
+            def __init__(self, src, expected=None, has_subframes=False, err=None):
+                self.src = src
+                self.expected = expected
+                self.has_subframes = has_subframes
+                self.err = err
+
         table = [
-            (
+            Case(
                 [Decimal('1'), Decimal('5.8'), Decimal('10')],
                 [Decimal('1'), Decimal('5.8'), Decimal('10')],
                 True
             ),
-            (
+            Case(
                 [1, Decimal('5.8'), 10],
                 [Decimal('1'), Decimal('5.8'), Decimal('10')],
                 True
             ),
-            (
+            Case(
                 ['1', '5.8', '10'],
                 [Decimal('1'), Decimal('5.8'), Decimal('10')],
                 True
             ),
-            (
+            Case(
                 [1, '5', Decimal('10')],
                 [1, 5, 10],
-                False
             ),
-            (
+            Case(
                 [1, '5', '10'],
                 [1, 5, 10],
-                False
             ),
-            (
+            Case(
                 [Decimal('1.5'), Decimal('5'), Decimal('10.2')],
                 [Decimal('1.5'), Decimal('5'), Decimal('10.2')],
                 True
             ),
-            (
+            Case(
                 [Decimal('1.001'), Decimal('5'), Decimal('10.999')],
                 [Decimal('1.001'), Decimal('5'), Decimal('10.999')],
                 True
             ),
-            (
+            Case(
                 [Decimal('-0.25'), Decimal('0'), Decimal('0.25')],
                 [Decimal('-0.25'), Decimal('0'), Decimal('0.25')],
                 True
             ),
-            (
+            Case(
                 [Decimal('1'), Decimal('2'), Decimal('3')],
                 [1, 2, 3],
-                False
             ),
-            (
+            Case(
                 [Decimal('1.0'), Decimal('2'), Decimal('3')],
                 [1, 2, 3],
-                False
             ),
-            (
+            Case(
                 ['1.0', 2, 3],
                 [1, 2, 3],
-                False
             ),
-            (
+            Case(
                 [1.5, 2.5, 3.5],
                 [1.5, 2.5, 3.5],
                 True
             ),
-            (
+            Case(
                 [1.0, 2.0, 3.0],
                 [1, 2, 3],
-                False
             ),
-            (
+            Case(
                 [1, 5.8, 10],
                 [1.0, 5.8, 10.0],
                 True
             ),
-            (
+            Case(
                 [1.5, 5, 10.2],
                 [1.5, 5.0, 10.2],
                 True
             ),
-            (
+            Case(
                 [1.001, 5, 10.999],
                 [1.001, 5.0, 10.999],
                 True
             ),
-            (
+            Case(
                 [0, '0.3333', '0.6667', 1, '1.3333', '1.6667'],
                 [Decimal('0.0000'), Decimal('0.3333'), Decimal('0.6667'),
                  Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667')],
                 True
             ),
-            (
+            Case(
                 [0, '0.3333', '0.6667', 1, '1.3333', '1.6667', 2],
                 [Decimal('0.0000'), Decimal('0.3333'), Decimal('0.6667'),
                  Decimal('1.0000'), Decimal('1.3333'), Decimal('1.6667'),
                  Decimal('2.0000')],
                 True
             ),
-            (
+            Case(
                 [0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571',
                  1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571'],
                 [Decimal('0.0000'), Decimal('0.1429'), Decimal('0.2857'),
@@ -218,7 +220,7 @@ class TestFrameSet(unittest.TestCase):
                  Decimal('1.7143'), Decimal('1.8571')],
                 True
             ),
-            (
+            Case(
                 [0, '0.1429', '0.2857', '0.4286', '0.5714', '0.7143', '0.8571',
                  1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571',
                  2],
@@ -229,7 +231,7 @@ class TestFrameSet(unittest.TestCase):
                  Decimal('1.7143'), Decimal('1.8571'), Decimal('2.0000')],
                 True
             ),
-            (
+            Case(
                 [1, '1.1429', '1.2857', '1.4286', '1.5714', '1.7143', '1.8571',
                  2],
                 [Decimal('1.0000'), Decimal('1.1429'), Decimal('1.2857'),
@@ -237,36 +239,46 @@ class TestFrameSet(unittest.TestCase):
                  Decimal('1.8571'), Decimal('2.0000')],
                 True
             ),
-            (
+            Case(
                 [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)],
                 [utils.quantize(Decimal(x) / Decimal(3), 5) for x in range(301)],
                 True
             ),
-            (
+            Case(
                 [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)],
                 [utils.quantize(Decimal(x) / Decimal(14), 5) for x in range(701)],
                 True
-            )
+            ),
+            Case('abc', None, err=fileseq.ParseException),
+            Case('a-z', None, err=fileseq.ParseException),
+            Case(['a', 'b'], None, err=fileseq.ParseException),
+            Case([1, 'b'], None, err=fileseq.ParseException),
         ]
 
         neg_table = []
-        for src, expected, has_subframes in table:
+        for case in table:
+            if case.err is not None:
+                continue
             neg_src = []
-            for x in src:
+            for x in case.src:
                 if isinstance(x, integer_types + (float, Decimal)):
                     neg_src.append(-x)
                 elif x.startswith('-'):
                     neg_src.append(x[1:])
                 else:
                     neg_src.append('-' + x.lstrip('+'))
-            neg_expected = list(map(operator.neg, expected))
-            neg_table.append((neg_src, neg_expected, has_subframes))
+            neg_expected = list(map(operator.neg, case.expected))
+            neg_table.append(Case(neg_src, neg_expected, case.has_subframes))
 
-        for src, expected, has_subframes in table + neg_table:
-            f = FrameSet(src)
+        for case in table + neg_table:
+            expected = case.expected
+            if case.err is not None:
+                self.assertRaises(case.err, FrameSet, case.src)
+                continue
+            f = FrameSet(case.src)
             actual = list(f)
             self.assertEqual(actual, expected)
-            self.assertEqual(has_subframes, f.hasSubFrames())
+            self.assertEqual(case.has_subframes, f.hasSubFrames())
 
             actual = list(FrameSet(f.frange))
             # floats will be converted to decimal during roundtrip to frange
@@ -277,7 +289,7 @@ class TestFrameSet(unittest.TestCase):
                 for i, (e, a) in enumerate(zip(expected, actual)):
                     actual[i] = a.quantize(e)
             self.assertEqual(actual, expected)
-            self.assertEqual(has_subframes, f.hasSubFrames())
+            self.assertEqual(case.has_subframes, f.hasSubFrames())
 
     def testMaxFrameSize(self):
         _maxSize = constants.MAX_FRAME_SIZE

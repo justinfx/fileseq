@@ -196,6 +196,9 @@ FRAME_SET_SHOULD_FAIL = [
     ("RangeWNegChunk", "1-20x-5"),
     ("RangeWNegFill", "1-20y-5"),
     ("RangeWNegStagger", "1-20:-5"),
+    ("NonNumericChar", "a"),
+    ("NonNumericRange", "a-z"),
+    ("NonNumericSeq", ["a", "z"]),
     ("ActualNone", None),
 ]
 

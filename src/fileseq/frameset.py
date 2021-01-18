@@ -113,6 +113,11 @@ class FrameSet(Set):
     def __init__(self, frange):
         """Initialize the :class:`FrameSet` object.
         """
+        def catch_parse_err(fn, *a, **kw):
+            try:
+                return fn(*a, **kw)
+            except (TypeError, ValueError) as e:
+                futils.raise_from(ParseException('FrameSet args parsing error'), e)
 
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, futils.string_types):
@@ -124,28 +129,28 @@ class FrameSet(Set):
             # if it's inherently disordered, sort and build
             elif isinstance(frange, Set):
                 self._maxSizeCheck(frange)
-                self._items = frozenset(normalizeFrames(frange))
+                self._items = frozenset(catch_parse_err(normalizeFrames, frange))
                 self._order = tuple(sorted(self._items))
-                self._frange = self.framesToFrameRange(
-                    self._order, sort=False, compress=False)
+                self._frange = catch_parse_err(
+                    self.framesToFrameRange, self._order, sort=False, compress=False)
                 return
             # if it's ordered, find unique and build
             elif isinstance(frange, Sequence):
                 self._maxSizeCheck(frange)
                 items = set()
-                order = unique(items, normalizeFrames(frange))
+                order = unique(items, catch_parse_err(normalizeFrames, frange))
                 self._order = tuple(order)
                 self._items = frozenset(items)
-                self._frange = self.framesToFrameRange(
-                    self._order, sort=False, compress=False)
+                self._frange = catch_parse_err(
+                    self.framesToFrameRange, self._order, sort=False, compress=False)
                 return
             # if it's an individual number build directly
             elif isinstance(frange, futils.integer_types + (float, decimal.Decimal)):
                 frame = normalizeFrame(frange)
                 self._order = (frame, )
                 self._items = frozenset([frame])
-                self._frange = self.framesToFrameRange(
-                    self._order, sort=False, compress=False)
+                self._frange = catch_parse_err(
+                    self.framesToFrameRange, self._order, sort=False, compress=False)
             # in all other cases, cast to a string
             else:
                 try:
