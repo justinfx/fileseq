@@ -117,7 +117,7 @@ class FrameSet(Set):
             try:
                 return fn(*a, **kw)
             except (TypeError, ValueError) as e:
-                futils.raise_from(ParseException('FrameSet args parsing error'), e)
+                futils.raise_from(ParseException('FrameSet args parsing error: {}'.format(e)), e)
 
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, futils.string_types):
