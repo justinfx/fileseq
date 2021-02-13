@@ -756,7 +756,7 @@ class FileSequence(object):
             else:
                 seq._pad = seq._frame_pad
 
-            seq.__init__(utils.asString(seq))
+            seq.__init__(utils.asString(seq), pad_style=pad_style, allow_subframes=allow_subframes)
             yield seq
 
     @classmethod
