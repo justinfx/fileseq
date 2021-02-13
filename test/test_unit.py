@@ -982,6 +982,25 @@ class TestFileSequence(TestBase):
         for expect in expects:
             self.assertIn(expect, actual)
 
+    def test_yield_sequences_in_list_pad_style(self):
+        paths = [
+            'seq/file.0001.exr',
+            'seq/file.0002.exr',
+            'seq/file.0003.exr',
+        ]
+
+        expect = 'seq/file.1-3#.exr'
+        actual = list(FileSequence.yield_sequences_in_list(paths, pad_style=fileseq.PAD_STYLE_HASH4))[0]
+        self.assertEqual(expect, str(actual))
+        self.assertEqual(fileseq.PAD_STYLE_HASH4, actual.padStyle())
+        self.assertEqual(4, actual.zfill())
+
+        expect = 'seq/file.1-3####.exr'
+        actual = list(FileSequence.yield_sequences_in_list(paths, pad_style=fileseq.PAD_STYLE_HASH1))[0]
+        self.assertEqual(expect, str(actual))
+        self.assertEqual(fileseq.PAD_STYLE_HASH1, actual.padStyle())
+        self.assertEqual(4, actual.zfill())
+
     def testIgnoreFrameSetStrings(self):
         for char in "xy:,".split():
             fs = FileSequence("/path/to/file{0}1-1x1#.exr".format(char))
