@@ -10,8 +10,13 @@ import re
 # exception is raised
 MAX_FRAME_SIZE = 10000000
 
-PAD_STYLE_HASH1 = object()
-PAD_STYLE_HASH4 = object()
+
+class _PadStyle(object):
+    def __init__(self, name): self.__name = name
+    def __repr__(self): return '<PAD_STYLE: {}>'.format(self.__name)
+
+PAD_STYLE_HASH1 = _PadStyle("HASH1")
+PAD_STYLE_HASH4 = _PadStyle("HASH4")
 PAD_STYLE_DEFAULT = PAD_STYLE_HASH4
 
 PAD_MAP = {
