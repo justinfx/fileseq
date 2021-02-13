@@ -741,7 +741,7 @@ class FileSequence(object):
             else:
                 seq._pad = seq._frame_pad
 
-            seq.__init__(utils.asString(seq))
+            seq.__init__(utils.asString(seq), pad_style=pad_style, allow_subframes=allow_subframes)
 
         def get_frame_width(frame_str):
             frame_num, _, _ = frame_str.partition(".")
