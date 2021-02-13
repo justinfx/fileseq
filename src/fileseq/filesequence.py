@@ -18,6 +18,7 @@ import re
 import decimal
 import functools
 from glob import iglob
+import operator
 
 from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
 from fileseq.constants import \
@@ -726,38 +727,88 @@ class FileSequence(object):
                 if frame:
                     seqs[key].add(frame)
 
-        for (dirname, basename, ext, decimal_places), frames in iteritems(seqs):
-            # build the FileSequence behind the scenes, rather than dupe work
+        def start_new_seq():
             seq = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
             seq._pad_style = pad_style
-            if frames:
-                seq._frameSet = FrameSet(frames)
+            return seq
 
-                frame_lengths = set()
-                for frame in frames:
-                    frame_num, _, _ = frame.partition(".")
-                    frame_lengths.add(len(frame_num))
-
-                seq._frame_pad = cls.getPaddingChars(min(frame_lengths), pad_style=pad_style)
-                if decimal_places:
-                    seq._subframe_pad = cls.getPaddingChars(decimal_places, pad_style=pad_style)
-                else:
-                    seq._subframe_pad = ''
-            else:
-                seq._frameSet = None
-                seq._frame_pad = ''
-                seq._subframe_pad = ''
-
+        def finish_new_seq(seq):
             if seq._subframe_pad:
                 seq._pad = '.'.join([seq._frame_pad, seq._subframe_pad])
             else:
                 seq._pad = seq._frame_pad
 
             seq.__init__(utils.asString(seq))
-            yield seq
+
+        def get_frame_width(frame_str):
+            frame_num, _, _ = frame_str.partition(".")
+            return len(frame_num)
+
+        def get_frame_minwidth(frame_str):
+            # find the smallest padding width for a frame string
+            frame_num, _, _ = frame_str.partition(".")
+            size = len(frame_num)
+            num = int(frame_num)
+            num_size = len(str(num))
+            if size == num_size:
+                return 1
+            return size
+
+        def frames_to_seq(frames, pad_length, decimal_places):
+            seq = start_new_seq()
+            seq._frameSet = FrameSet(sorted(decimal.Decimal(f) for f in frames))
+            seq._frame_pad = cls.getPaddingChars(pad_length, pad_style=pad_style)
+            if decimal_places:
+                seq._subframe_pad = cls.getPaddingChars(decimal_places, pad_style=pad_style)
+            else:
+                seq._subframe_pad = ''
+            finish_new_seq(seq)
+            return seq
+
+        for (dirname, basename, ext, decimal_places), frames in iteritems(seqs):
+            # Short-circuit logic if we do not have multiple frames, since we
+            # only need to build and return a single simple sequence
+            if not frames:
+                seq = start_new_seq()
+                seq._frameSet = None
+                seq._frame_pad = ''
+                seq._subframe_pad = ''
+                finish_new_seq(seq)
+                yield seq
+                continue
+
+            # If we have multiple frames, then we need to check them for different
+            # padding and possibly yield more than one sequence.
+
+            # sort the frame list by their string padding width
+            sorted_frames = sorted(((get_frame_width(f), f) for f in frames), key=operator.itemgetter(0))
+
+            current_frames = []
+            current_width = None
+
+            for width, frame in sorted_frames:
+                # initialize on first item
+                if current_width is None:
+                    current_width = width
+
+                if width != current_width and get_frame_minwidth(frame) > current_width:
+                    # We have a new padding length.
+                    # Commit the current sequence, and then start a new one.
+                    yield frames_to_seq(current_frames, current_width, decimal_places)
+
+                    # Start tracking the next group of frames using the new length
+                    current_frames = [frame]
+                    current_width = width
+                    continue
+
+                current_frames.append(frame)
+
+            # Commit the remaining frames as a sequence
+            if current_frames:
+                yield frames_to_seq(current_frames, current_width, decimal_places)
 
     @classmethod
     def findSequencesInList(cls, paths, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False):
