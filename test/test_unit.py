@@ -918,6 +918,12 @@ class TestFileSequence(TestBase):
             '8frames.08.jpg',
             '8frames.10.jpg',
             '8frames.11.jpg',
+
+            # Issue 94: ensure original padding is observed
+            'mixed_pad/file.004.jpg',
+            'mixed_pad/file.08.jpg',
+            'mixed_pad/file.009.jpg',
+            'mixed_pad/file.015.jpg',
         ]
 
         expected = {
@@ -943,6 +949,10 @@ class TestFileSequence(TestBase):
             'path/1-3#.jpg',
             '2frames.1-2@@.jpg',
             '8frames.1-2,5,7-8,10-11@@.jpg',
+
+            # Issue 94: ensure original padding is observed
+            'mixed_pad/file.8@@.jpg',
+            'mixed_pad/file.4,9,15@@@.jpg',
         }
 
         sub = self.RX_PATHSEP.sub
@@ -979,6 +989,35 @@ class TestFileSequence(TestBase):
 
         actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths)}
 
+        for expect in expects:
+            self.assertIn(expect, actual)
+
+    def test_yield_sequences_in_list_multi_pad(self):
+        paths = [
+            'mixed_pad/file.004.jpg',
+            'mixed_pad/file.08.jpg',
+            'mixed_pad/file.009.jpg',
+            'mixed_pad/file.0013.jpg',
+            'mixed_pad/file.015.jpg',
+            'mixed_pad/file.0015.jpg',
+            'mixed_pad/file.0014.jpg',
+        ]
+
+        expects = [
+            'mixed_pad/file.8##.jpg',
+            'mixed_pad/file.4,9,15###.jpg',
+            'mixed_pad/file.13-15####.jpg',
+        ]
+        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths, pad_style=constants.PAD_STYLE_HASH1)}
+        for expect in expects:
+            self.assertIn(expect, actual)
+
+        expects = [
+            'mixed_pad/file.8@@.jpg',
+            'mixed_pad/file.4,9,15@@@.jpg',
+            'mixed_pad/file.13-15#.jpg',
+        ]
+        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths, pad_style=constants.PAD_STYLE_HASH4)}
         for expect in expects:
             self.assertIn(expect, actual)
 
