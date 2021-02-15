@@ -732,7 +732,6 @@ class FileSequence(object):
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
-            seq._pad_style = pad_style
             return seq
 
         def finish_new_seq(seq):
