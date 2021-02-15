@@ -732,7 +732,6 @@ class FileSequence(object):
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
-            seq._pad_style = pad_style
             if frames:
                 seq._frameSet = FrameSet(frames)
 
