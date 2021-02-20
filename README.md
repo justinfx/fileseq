@@ -1,6 +1,6 @@
 # <img src="docs/_static/fileseq_large.png" width="30%" height="30%" title="Fileseq" alt="Fileseq">
 
-[![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](http://fileseq.readthedocs.io/en/latest/) [![Travis Build Status](https://api.travis-ci.org/justinfx/fileseq.svg)](https://travis-ci.org/justinfx/fileseq) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/87t3pycl3365lnkd?svg=true)](https://ci.appveyor.com/project/justinfx/fileseq)
+[![Documentation Status](https://readthedocs.org/projects/fileseq/badge/?version=latest)](http://fileseq.readthedocs.io/en/latest/) [![Build status](https://github.com/justinfx/fileseq/actions/workflows/ci.yml/badge.svg)](https://github.com/justinfx/fileseq/actions/workflows/ci.yml)
 
 A Python library for parsing frame ranges and file sequences commonly 
 used in VFX and Animation applications.
