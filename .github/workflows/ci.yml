@@ -63,7 +63,7 @@ jobs:
           python ./test/test_fuzz.py
 
   deploy:
-    if: "github.event.release.published"
+    if: github.event_name == 'release' && github.event.action == 'published'
     needs: test
     runs-on: ubuntu-latest
     steps:
