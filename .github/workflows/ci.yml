@@ -86,6 +86,7 @@ jobs:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_SECRET }}
         run: |
-          echo "__version__ = '${{ steps.get_version.outputs.VERSION }}'" > src/fileseq/__version__.py
+          VERSION=$(echo ${{ steps.get_version.outputs.VERSION }} | sed 's/^v//')
+          echo "__version__ = '${VERSION}'" > src/fileseq/__version__.py
           python setup.py sdist bdist_wheel
           twine upload dist/*
