@@ -30,6 +30,7 @@ from fileseq.frameset import FrameSet
 from fileseq import utils
 
 
+@futils.python_2_unicode_compatible
 class FileSequence(object):
     """:class:`FileSequence` represents an ordered sequence of files.
 

@@ -26,6 +26,7 @@ from fileseq.utils import asString, xfrange, unique, pad, quantize, normalizeFra
 from fileseq.utils import range
 
 
+@futils.python_2_unicode_compatible
 class FrameSet(Set):
     """
     A ``FrameSet`` is an immutable representation of the ordered, unique
