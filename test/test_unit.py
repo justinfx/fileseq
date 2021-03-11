@@ -12,7 +12,7 @@ with warnings.catch_warnings():
     standard_library.install_aliases()
 
 from builtins import map
-from future.utils import string_types, native_str, integer_types
+from future.utils import string_types, native_str, integer_types, text_type
 
 try:
     import cPickle as pickle
@@ -410,6 +410,13 @@ class TestFrameSet(unittest.TestCase):
             fs = FrameSet(frames)
             actual = list(fs)
             self.assertEqual(expected, actual)
+
+    def testStrUnicode(self):
+        """https://github.com/justinfx/fileseq/issues/99"""
+        ret = FrameSet(u'1-10')
+        _ = str(ret)
+        _ = text_type(ret)
+        val = repr(ret)
 
 
 class TestBase(unittest.TestCase):
@@ -1048,6 +1055,15 @@ class TestFileSequence(TestBase):
             self.assertEquals(fs.end(), 1)
             self.assertEquals(fs.padding(), '#')
             self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
+
+    def testStrUnicode(self):
+        """https://github.com/justinfx/fileseq/issues/99"""
+        ret = FileSequence(u'file_カ_Z.01.txt')
+        # make sure none of these raise a unicode exception
+        _ = str(ret)
+        _ = text_type(ret)
+        _ = repr(ret)
+        _ = ret.format()
 
 
 class TestFindSequencesOnDisk(TestBase):
