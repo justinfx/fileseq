@@ -30,6 +30,7 @@ from fileseq.frameset import FrameSet
 from fileseq import utils
 
 
+@futils.python_2_unicode_compatible
 class FileSequence(object):
     """:class:`FileSequence` represents an ordered sequence of files.
 
@@ -76,7 +77,7 @@ class FileSequence(object):
                 # edge case 1; we've got an invalid pad
                 for placeholder in self.PAD_MAP:
                     if placeholder in sequence:
-                        msg = "Failed to parse FileSequence: {0}"
+                        msg = "Failed to parse FileSequence: {!r}"
                         raise ParseException(msg.format(sequence))
                 # edge case 2; we've got a single frame of a sequence
                 a_frame = disk_re.match(sequence)
@@ -174,6 +175,12 @@ class FileSequence(object):
             :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
             `fileseq.constants.MAX_FRAME_SIZE``
         """
+        try:
+            return self._format(template)
+        except UnicodeEncodeError:
+            return self._format(futils.text_type(template))
+
+    def _format(self, template):
         # Potentially expensive if inverted range is large
         # and user never asked for it in template
         inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
@@ -630,7 +637,7 @@ class FileSequence(object):
 
     def __repr__(self):
         try:
-            return "<%s: '%s'>" % (self.__class__.__name__, str(self))
+            return "<%s: %r>" % (self.__class__.__name__, str(self))
         except TypeError:
             return super(self.__class__, self).__repr__()
 
@@ -904,7 +911,7 @@ class FileSequence(object):
             try:
                 _match_pattern = re.compile(patt).match
             except re.error:
-                msg = 'Invalid file pattern: {}'.format(filepat)
+                msg = 'Invalid file pattern: {!r}'.format(filepat)
                 raise FileSeqException(msg)
 
             if seq.padding() and strictPadding:
