@@ -30,7 +30,6 @@ from fileseq.frameset import FrameSet
 from fileseq import utils
 
 
-@futils.python_2_unicode_compatible
 class FileSequence(object):
     """:class:`FileSequence` represents an ordered sequence of files.
 
@@ -628,16 +627,24 @@ class FileSequence(object):
             str:
         """
         frameSet = utils.asString(self._frameSet or "")
-        return "".join((
+        parts = [
             self._dir,
             self._base,
             frameSet,
             self._pad if frameSet else "",
-            self._ext))
+            self._ext,
+        ]
+
+        if futils.PY2:
+            for i, part in enumerate(parts):
+                if isinstance(part, futils.text_type):
+                    parts[i] = futils.native(part.encode(utils.FILESYSTEM_ENCODING))
+
+        return "".join(parts)
 
     def __repr__(self):
         try:
-            return "<%s: %r>" % (self.__class__.__name__, str(self))
+            return "<%s: %r>" % (self.__class__.__name__, self.__str__())
         except TypeError:
             return super(self.__class__, self).__repr__()
 

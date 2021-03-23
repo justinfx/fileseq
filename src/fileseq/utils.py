@@ -11,10 +11,14 @@ from builtins import object
 import future.utils as futils
 
 import decimal
-import os
 from itertools import chain, count, islice
+import os
+import sys
 
 from fileseq import exceptions
+
+
+FILESYSTEM_ENCODING = sys.getfilesystemencoding() or 'utf-8'
 
 
 def quantize(number, decimal_places, rounding=decimal.ROUND_HALF_EVEN):
@@ -309,11 +313,16 @@ def asString(obj):
     Returns:
         str or unicode:
     """
-    if type(obj) in _STR_TYPES:
+    typ = type(obj)
+    # explicit type check as faster path
+    if typ in _STR_TYPES:
+        if not futils.PY2 and typ is futils.binary_type:
+            obj = os.fsdecode(obj)
         return obj
+    # derived type check
     elif isinstance(obj, bytes):
         if not futils.PY2:
-            obj = obj.decode("utf-8")
+            obj = obj.decode(FILESYSTEM_ENCODING)
     else:
         obj = futils.text_type(obj)
     return futils.native(obj)
