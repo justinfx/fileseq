@@ -1073,8 +1073,15 @@ class TestFileSequence(TestBase):
 
         check(FileSequence(utf8))
         check(FileSequence(utf8.encode(utils.FILESYSTEM_ENCODING)))
-        check(FileSequence(latin1))
         check(FileSequence(latin1_to_utf8))
+        try:
+            check(FileSequence(latin1))
+        except UnicodeDecodeError:
+            # Windows os.fsdecode() uses 'strict' error handling
+            # instead of 'surrogateescape'. So just assume bytes
+            # decoding error is expected for this case.
+            if os.name != 'nt':
+                raise
 
 
 class TestFindSequencesOnDisk(TestBase):
