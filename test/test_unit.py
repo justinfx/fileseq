@@ -12,7 +12,7 @@ with warnings.catch_warnings():
     standard_library.install_aliases()
 
 from builtins import map
-from future.utils import string_types, native_str, integer_types, text_type
+from future.utils import string_types, native_str, integer_types, text_type, PY2
 
 try:
     import cPickle as pickle
@@ -1057,13 +1057,31 @@ class TestFileSequence(TestBase):
             self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
 
     def testStrUnicode(self):
-        """https://github.com/justinfx/fileseq/issues/99"""
-        ret = FileSequence(u'file_カ_Z.01.txt')
-        # make sure none of these raise a unicode exception
-        _ = str(ret)
-        _ = text_type(ret)
-        _ = repr(ret)
-        _ = ret.format()
+        """
+        https://github.com/justinfx/fileseq/issues/99
+        https://github.com/justinfx/fileseq/issues/100
+        """
+        def check(seq):
+            # make sure none of these raise a unicode exception
+            s = str(seq)
+            _ = repr(seq)
+            _ = seq.format()
+
+        utf8 = u'file_カ_Z.01.txt'
+        latin1 = b'/proj/kenny/fil\xe9'
+        latin1_to_utf8 = latin1.decode('latin1').encode(utils.FILESYSTEM_ENCODING)
+
+        check(FileSequence(utf8))
+        check(FileSequence(utf8.encode(utils.FILESYSTEM_ENCODING)))
+        check(FileSequence(latin1_to_utf8))
+        try:
+            check(FileSequence(latin1))
+        except UnicodeDecodeError:
+            # Windows os.fsdecode() uses 'strict' error handling
+            # instead of 'surrogateescape'. So just assume bytes
+            # decoding error is expected for this case.
+            if os.name != 'nt':
+                raise
 
 
 class TestFindSequencesOnDisk(TestBase):
