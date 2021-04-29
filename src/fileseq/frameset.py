@@ -259,7 +259,7 @@ class FrameSet(Set):
         Read-only access to the frame range used to create this :class:`FrameSet`.
 
         Returns:
-            frozenset:
+            str:
         """
         return self._frange
 
