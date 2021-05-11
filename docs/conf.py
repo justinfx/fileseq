@@ -39,7 +39,7 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    'python': ('http://www.wetafx.co.nz/Software/python/Python-Docs-3.7.3/', None),
+    'python': ('https://docs.python.org/3.7/', None),
 }
 
 # Add python types to exclude from sphinx check that complains about
