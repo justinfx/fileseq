@@ -20,6 +20,7 @@ except ImportError:
     import pickle
 
 from decimal import Decimal
+import json
 import operator
 import os
 import re
@@ -747,6 +748,19 @@ class TestFileSequence(TestBase):
             self.assertEquals(str(fs), str(fs2))
             self.assertEquals(len(fs), len(fs2))
             self.assertEquals(list(fs), list(fs2))
+
+    def testSerializationJSON(self):
+        fs = FileSequence("/path/to/file.1-100x0.25#.@@.exr",
+                          pad_style=constants.PAD_STYLE_HASH1,
+                          allow_subframes=True)
+        s = json.dumps(fs.to_dict())
+        fs2 = FileSequence.from_dict(json.loads(s))
+        self.assertEquals(str(fs), str(fs2))
+        self.assertEquals(len(fs), len(fs2))
+        self.assertEquals(list(fs), list(fs2))
+        self.assertEquals(fs.frameSet(), fs2.frameSet())
+        self.assertEquals(fs.padStyle(), fs2.padStyle())
+        self.assertEquals(fs.__dict__, fs2.__dict__)
 
     def testHasVersionNoFrame(self):
         for allow_subframes in [False, True]:
