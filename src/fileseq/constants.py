@@ -12,8 +12,23 @@ MAX_FRAME_SIZE = 10000000
 
 
 class _PadStyle(object):
-    def __init__(self, name): self.__name = name
-    def __repr__(self): return '<PAD_STYLE: {}>'.format(self.__name)
+    def __init__(self, name):
+        self.__name = name
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __repr__(self):
+        return '<PAD_STYLE: {}>'.format(self.__name)
+
+    def __str__(self):
+        return self.__name
+
+    def __eq__(self, other):
+        if not isinstance(other, _PadStyle):
+            return False
+        return str(self) == str(other)
+
 
 PAD_STYLE_HASH1 = _PadStyle("HASH1")
 PAD_STYLE_HASH4 = _PadStyle("HASH4")
