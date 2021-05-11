@@ -27,7 +27,7 @@ from fileseq.constants import \
     DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE, \
     PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE
 from fileseq.frameset import FrameSet
-from fileseq import utils
+from fileseq import constants, utils
 
 
 class FileSequence(object):
@@ -547,7 +547,7 @@ class FileSequence(object):
         Allows for de-serialization from a pickled :class:`FileSequence`.
 
         Args:
-            state (dict): Pickle dictionary producted by default pickle implementation
+            state (dict): Pickle dictionary produced by default pickle implementation
         """
         for name, value in state.items():
             self.__dict__[name] = value
@@ -555,6 +555,43 @@ class FileSequence(object):
         self.__dict__.setdefault('_frame_pad', self._pad)
         self.__dict__.setdefault('_subframe_pad', '')
         self.__dict__.setdefault('_decimal_places', 0)
+
+    def to_dict(self):
+        """
+        Convert sequence object into a state dict that is suitable for
+        further serialization, such as to JSON
+
+        Returns:
+            dict: state of the current sequence object
+        """
+        state = self.__dict__.copy()
+        state['_pad_style'] = str(self._pad_style)
+        state['_frameSet'] = self._frameSet.__getstate__()
+        return state
+
+    @classmethod
+    def from_dict(cls, state):
+        """
+        Constructor to create a new sequence object from a state
+        that was previously returned by :meth:`FileSequence.to_dict`
+
+        Args:
+            state (dict): state returned from :meth:`FileSequence.to_dict`
+
+        Returns:
+            :obj:`FileSequence`
+        """
+        state = state.copy()
+        frameSet = FrameSet.__new__(FrameSet)
+        frameSet.__setstate__(tuple(state['_frameSet']))
+        padStyle = constants._PadStyle(state['_pad_style'])
+        if padStyle not in REVERSE_PAD_MAP:
+            raise ValueError("bad pad style constant value %r" % padStyle)
+        state['_pad_style'] = padStyle
+        state['_frameSet'] = frameSet
+        fs = cls.__new__(cls)
+        fs.__setstate__(state)
+        return fs
 
     def __iter__(self):
         """
