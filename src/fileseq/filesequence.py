@@ -1039,7 +1039,7 @@ class FileSequence(object):
             allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
-            str:
+            FileSequence:
 
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
