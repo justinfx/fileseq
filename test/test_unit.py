@@ -112,6 +112,17 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(len(expected), len(actual))
             self.assertEqual(expected, list(actual))
 
+    def testAsString(self):
+        expect = "my string"
+        custom = _CustomPathString(expect)
+        self.assertEqual(expect, custom)
+
+        # https://github.com/justinfx/fileseq/issues/106
+        actual = utils.asString(custom)
+        self.assertEqual(expect, actual)
+        self.assertIsInstance(actual, str)
+        self.assertNotIsInstance(actual, _CustomPathString)
+
 
 class TestFrameSet(unittest.TestCase):
 

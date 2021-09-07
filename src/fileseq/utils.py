@@ -321,7 +321,9 @@ def asString(obj):
         return obj
     # derived type check
     elif isinstance(obj, bytes):
-        if not futils.PY2:
+        if futils.PY2:
+            obj = bytes(obj)
+        else:
             obj = obj.decode(FILESYSTEM_ENCODING)
     else:
         obj = futils.text_type(obj)
