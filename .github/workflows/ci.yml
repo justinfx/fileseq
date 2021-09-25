@@ -45,7 +45,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest pylint
+          python -m pip install flake8 pytest pylint
       - name: Install
         run: |
           python setup.py install
@@ -53,6 +53,9 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           flake8 ./src --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Py3 syntax
+        if: ${{ matrix.python == '2.7' }}
+        run: |
           # check py3 syntax
           python -m pylint -E --py3k -r n ./src
       - name: Unittests
