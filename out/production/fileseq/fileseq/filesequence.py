@@ -1065,9 +1065,7 @@ class FileSequence(object):
             if dirname:
                 patt = r'.*[/\\]'
             patt += re.escape(basename) + '(.*)' + re.escape(ext) + r'\Z'
-
-            def get_frame(f):
-                return re.match(patt, f, re.I).group(1)
+            get_frame = lambda f: re.match(patt, f).group(1)
 
             if strictPadding:
                 globbed = cls._filterByPaddingNum(
