@@ -10,15 +10,17 @@ from builtins import str
 from builtins import map
 from builtins import object
 
-import future.utils as futils
-from future.utils import iteritems
-
+import decimal
+import fnmatch
+import functools
+import operator
 import os
 import re
-import decimal
-import functools
+import sys
 from glob import iglob
-import operator
+
+import future.utils as futils
+from future.utils import iteritems
 
 from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
 from fileseq.constants import \
@@ -899,6 +901,9 @@ class FileSequence(object):
         Exact frame ranges are not considered, and padding characters are converted to
         wildcards (``#`` or ``@``)
 
+        Case-sensitive matching follows POSIX behavior, even on Windows platforms.
+        "file.1.png" and "file.2.PNG" result in two different sequences.
+
         Examples::
 
             FileSequence.findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
@@ -1012,13 +1017,17 @@ class FileSequence(object):
 
     @classmethod
     def findSequenceOnDisk(
-        cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False
-    ):
+            cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT,
+            allow_subframes=False, force_posix_case=True):
         """
         Search for a specific sequence on disk.
 
         The padding characters used in the `pattern` are used to filter the
         frame values of the files on disk (if `strictPadding` is True).
+
+        Case-sensitive matching follows POSIX behavior, even on Windows platforms.
+        "file.1.png" and "file.2.PNG" result in two different sequences.
+        This behavior can be disabled on Windows by setting `force_posix_case=False`.
 
         Examples:
             Find sequence matching basename and extension, and a wildcard for
@@ -1042,6 +1051,7 @@ class FileSequence(object):
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
                 pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
+            force_posix_case (bool): force posix-style case-sensitive matching on Windows filesystems
 
         Returns:
             FileSequence: A single matching file sequence existing on disk
@@ -1065,6 +1075,16 @@ class FileSequence(object):
         subframe_pad = seq.subframePadding()
 
         globbed = iglob(patt)
+
+        if force_posix_case and sys.platform == 'win32':
+            # windows: treat pattern matches as case-sensitive to align
+            # with posix behavior
+            has_pathsep = constants.RX_PATHSEP.search
+            normpath = os.path.normpath
+            patt = normpath(patt) if has_pathsep(patt) else patt
+            case_match = re.compile(fnmatch.translate(patt)).match
+            globbed = ((normpath(p) if has_pathsep(p) else p) for p in globbed if case_match(p))
+
         if pad:
             patt = r'\A'
             if dirname:

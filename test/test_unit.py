@@ -432,7 +432,7 @@ class TestFrameSet(unittest.TestCase):
 
 
 class TestBase(unittest.TestCase):
-    RX_PATHSEP = re.compile(r'[/\\]')
+    RX_PATHSEP = constants.RX_PATHSEP
 
     def assertEquals(self, a, b, msg=None):
         # Make sure string paths are compared with normalized
@@ -1308,6 +1308,23 @@ class TestFindSequencesOnDisk(TestBase):
         self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001")))
         self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal(-1001)))
 
+    def testCaseSensitive(self):
+        """Issue 107 - testing case-sensitive matching between windows/linux"""
+        # posix platforms are case-sensitive
+        tests = [
+            ('mixed_case/file_foo_*.ext', ['mixed_case/file_foo_1-3@@@.ext']),
+            ('mixed_case/file_FOO_*.ext', ['mixed_case/file_FOO_4-6@@@.ext']),
+            ('mixed_case/file_*_*.ext', ['mixed_case/file_foo_1-3@@@.ext', 'mixed_case/file_FOO_4-6@@@.ext']),
+        ]
+
+        for pattern, expected in tests:
+            actual = findSequencesOnDisk(pattern)
+            self.assertEqual(len(expected), len(actual))
+
+            actual = self.toNormpaths([str(s) for s in actual])
+            expected = self.toNormpaths(expected)
+            self.assertEqual(expected, actual)
+
 
 class TestFindSequenceOnDisk(TestBase):
 
@@ -1453,18 +1470,11 @@ class TestFindSequenceOnDisk(TestBase):
 
     def testCaseSensitive(self):
         """Issue 107 - testing case-sensitive matching between windows/linux"""
-        if sys.platform == "win32":
-            # windows is case-insensitive
-            tests = [
-                ('mixed_case/file_foo_#.ext', 'mixed_case/file_foo_1-6@@@.ext'),
-                ('mixed_case/file_FOO_#.ext', 'mixed_case/file_FOO_1-6@@@.ext'),
-            ]
-        else:
-            # posix platforms are case-sensitive
-            tests = [
-                ('mixed_case/file_foo_#.ext', 'mixed_case/file_foo_1-3@@@.ext'),
-                ('mixed_case/file_FOO_#.ext', 'mixed_case/file_FOO_4-6@@@.ext'),
-            ]
+        # posix platforms are case-sensitive
+        tests = [
+            ('mixed_case/file_foo_#.ext', 'mixed_case/file_foo_1-3@@@.ext'),
+            ('mixed_case/file_FOO_#.ext', 'mixed_case/file_FOO_4-6@@@.ext'),
+        ]
 
         for pattern, expected in tests:
             seq = findSequenceOnDisk(pattern)
