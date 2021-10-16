@@ -1023,23 +1023,28 @@ class FileSequence(object):
         Examples:
             Find sequence matching basename and extension, and a wildcard for
             any frame.
-            returns bar.1.exr bar.10.exr, bar.100.exr, bar.1000.exr, inclusive
+            returns bar.1.exr bar.10.exr, bar.100.exr, bar.1000.exr, inclusive:
 
-            ``FileSequence.findSequenceOnDisk("seq/bar@@@@.exr")``
+                ``FileSequence.findSequenceOnDisk("seq/bar@@@@.exr")``
 
             Find exactly 4-padded sequence, i.e. seq/bar1-100#.exr
             returns only frames bar1000.exr through bar9999.exr
 
-            ``FileSequence.findSequenceOnDisk("seq/bar#.exr", strictPadding=True)``
+                ``FileSequence.findSequenceOnDisk("seq/bar#.exr", strictPadding=True)``
+
+        Note:
+            Unlike `findSequencesOnDisk`, general wildcard characters ("*", "?") are not
+            supported and result in undefined behavior. Only the frame component of the paths may
+            be replaced with padding characters to serve as a limited wildcard.
 
         Args:
             pattern (str): the sequence pattern being searched for
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
-            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
+                pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
 
         Returns:
-            FileSequence:
+            FileSequence: A single matching file sequence existing on disk
 
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
