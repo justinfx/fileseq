@@ -203,5 +203,3 @@ PAD_PATTERN = r"""
     )?
     """
 PAD_RE = re.compile(PAD_PATTERN, re.X)
-
-RX_PATHSEP = re.compile(r'[/\\]')

@@ -1079,11 +1079,10 @@ class FileSequence(object):
         if force_posix_case and sys.platform == 'win32':
             # windows: treat pattern matches as case-sensitive to align
             # with posix behavior
-            has_pathsep = constants.RX_PATHSEP.search
             normpath = os.path.normpath
-            patt = normpath(patt) if has_pathsep(patt) else patt
+            patt = normpath(patt)
             case_match = re.compile(fnmatch.translate(patt)).match
-            globbed = ((normpath(p) if has_pathsep(p) else p) for p in globbed if case_match(p))
+            globbed = (normpath(p) for p in globbed if case_match(p))
 
         if pad:
             patt = r'\A'

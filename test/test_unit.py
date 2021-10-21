@@ -432,15 +432,14 @@ class TestFrameSet(unittest.TestCase):
 
 
 class TestBase(unittest.TestCase):
-    RX_PATHSEP = constants.RX_PATHSEP
+    RX_PATHSEP = re.compile(r'[/\\]')
 
     def assertEquals(self, a, b, msg=None):
         # Make sure string paths are compared with normalized
         # path separators
         if isinstance(a, string_types) and isinstance(b, string_types):
-            if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b):
-                a = os.path.normpath(a)
-                b = os.path.normpath(b)
+            a = os.path.normpath(a)
+            b = os.path.normpath(b)
 
         super(TestBase, self).assertEqual(a, b, msg=msg)
 
@@ -458,8 +457,7 @@ class TestBase(unittest.TestCase):
     def toNormpaths(self, collection):
         if isinstance(collection, string_types):
             collection = [collection]
-        match = self.RX_PATHSEP.search
-        return sorted((os.path.normpath(p) if match(p) else p) for p in collection)
+        return sorted(os.path.normpath(p) for p in collection)
 
 
 class _CustomPathString(str):
