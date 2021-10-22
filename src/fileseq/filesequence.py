@@ -1018,7 +1018,7 @@ class FileSequence(object):
     @classmethod
     def findSequenceOnDisk(
             cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT,
-            allow_subframes=False, force_posix_case=True):
+            allow_subframes=False, force_case_sensitive=True):
         """
         Search for a specific sequence on disk.
 
@@ -1049,9 +1049,9 @@ class FileSequence(object):
         Args:
             pattern (str): the sequence pattern being searched for
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
-                pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
+            pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
-            force_posix_case (bool): force posix-style case-sensitive matching on Windows filesystems
+            force_case_sensitive (bool): force posix-style case-sensitive matching on Windows filesystems
 
         Returns:
             FileSequence: A single matching file sequence existing on disk
@@ -1076,7 +1076,7 @@ class FileSequence(object):
 
         globbed = iglob(patt)
 
-        if force_posix_case and sys.platform == 'win32':
+        if force_case_sensitive and sys.platform == 'win32':
             # windows: treat pattern matches as case-sensitive to align
             # with posix behavior
             normpath = os.path.normpath
