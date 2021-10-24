@@ -1080,14 +1080,13 @@ class FileSequence(object):
             # apply normpath in either case, as glob on windows could lead to
             # mixed path separators:  path/foo\\bar.ext
             normpath = os.path.normpath
+            globbed = (normpath(p) for p in globbed)
             if force_case_sensitive:
                 # windows: treat pattern matches as case-sensitive to align
                 # with posix behavior
                 patt = normpath(patt)
                 case_match = re.compile(fnmatch.translate(patt)).match
-                globbed = (normpath(p) for p in globbed if case_match(p))
-            else:
-                globbed = (normpath(p) for p in globbed)
+                globbed = (p for p in globbed if case_match(p))
 
         if pad:
             patt = r'\A'

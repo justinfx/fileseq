@@ -956,12 +956,12 @@ class TestFileSequence(TestBase):
             'mixed_pad/file.015.jpg',
 
             # Issue 107: mixed case
-            'mixed_case/file_foo_001.ext',
-            'mixed_case/file_foo_002.ext',
-            'mixed_case/file_foo_003.ext',
-            'mixed_case/file_FOO_004.ext',
-            'mixed_case/file_FOO_005.ext',
-            'mixed_case/file_FOO_006.ext',
+            'mixed_case/sub/file_foo_001.ext',
+            'mixed_case/sub/file_foo_002.ext',
+            'mixed_case/sub/file_foo_003.ext',
+            'mixed_case/sub/file_FOO_004.ext',
+            'mixed_case/sub/file_FOO_005.ext',
+            'mixed_case/sub/file_FOO_006.ext',
         ]
 
         expected = {
@@ -993,8 +993,8 @@ class TestFileSequence(TestBase):
             'mixed_pad/file.4,9,15@@@.jpg',
 
             # Issue 107: mixed case
-            'mixed_case/file_foo_1-3@@@.ext',
-            'mixed_case/file_FOO_4-6@@@.ext',
+            'mixed_case/sub/file_foo_1-3@@@.ext',
+            'mixed_case/sub/file_FOO_4-6@@@.ext',
         }
 
         sub = self.RX_PATHSEP.sub
@@ -1310,9 +1310,9 @@ class TestFindSequencesOnDisk(TestBase):
         """Issue 107 - testing case-sensitive matching between windows/linux"""
         # posix platforms are case-sensitive
         tests = [
-            ('mixed_case/file_foo_*.ext', ['mixed_case/file_foo_1-3@@@.ext']),
-            ('mixed_case/file_FOO_*.ext', ['mixed_case/file_FOO_4-6@@@.ext']),
-            ('mixed_case/file_*_*.ext', ['mixed_case/file_foo_1-3@@@.ext', 'mixed_case/file_FOO_4-6@@@.ext']),
+            ('mixed_case/sub/file_foo_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext']),
+            ('mixed_case/sub/file_FOO_*.ext', ['mixed_case/sub/file_FOO_4-6@@@.ext']),
+            ('mixed_case/sub/file_*_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext']),
         ]
 
         for pattern, expected in tests:
@@ -1469,17 +1469,27 @@ class TestFindSequenceOnDisk(TestBase):
     def testCaseSensitive(self):
         """Issue 107 - testing case-sensitive matching between windows/linux"""
         # posix platforms are case-sensitive
-        tests = [
-            ('mixed_case/file_foo_#.ext', 'mixed_case/file_foo_1-3@@@.ext'),
-            ('mixed_case/file_FOO_#.ext', 'mixed_case/file_FOO_4-6@@@.ext'),
-        ]
+        if sys.platform == 'win32':
+            tests = [
+                ('mixed_case\\sub\\file_foo_#.ext', 'mixed_case\\sub\\file_foo_1-3@@@.ext'),
+                ('mixed_case\\sub\\file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
+                ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
+                ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                ('mixed_case/sub\\file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                ('mixed_case\\sub/file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
+            ]
+        else:
+            tests = [
+                ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
+                ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+            ]
 
         for pattern, expected in tests:
             seq = findSequenceOnDisk(pattern)
-            self.assertTrue(isinstance(seq, FileSequence))
+            unittest.TestCase.assertTrue(self, isinstance(seq, FileSequence))
 
             actual = str(seq)
-            self.assertEqual(expected, actual)
+            unittest.TestCase.assertEqual(self, expected, actual)
 
 
 class TestPaddingFunctions(TestBase):
