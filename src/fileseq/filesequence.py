@@ -10,15 +10,17 @@ from builtins import str
 from builtins import map
 from builtins import object
 
-import future.utils as futils
-from future.utils import iteritems
-
+import decimal
+import fnmatch
+import functools
+import operator
 import os
 import re
-import decimal
-import functools
+import sys
 from glob import iglob
-import operator
+
+import future.utils as futils
+from future.utils import iteritems
 
 from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
 from fileseq.constants import \
@@ -899,6 +901,9 @@ class FileSequence(object):
         Exact frame ranges are not considered, and padding characters are converted to
         wildcards (``#`` or ``@``)
 
+        Case-sensitive matching follows POSIX behavior, even on Windows platforms.
+        "file.1.png" and "file.2.PNG" result in two different sequences.
+
         Examples::
 
             FileSequence.findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
@@ -1012,34 +1017,44 @@ class FileSequence(object):
 
     @classmethod
     def findSequenceOnDisk(
-        cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False
-    ):
+            cls, pattern, strictPadding=False, pad_style=PAD_STYLE_DEFAULT,
+            allow_subframes=False, force_case_sensitive=True):
         """
         Search for a specific sequence on disk.
 
         The padding characters used in the `pattern` are used to filter the
         frame values of the files on disk (if `strictPadding` is True).
 
+        Case-sensitive matching follows POSIX behavior, even on Windows platforms.
+        "file.1.png" and "file.2.PNG" result in two different sequences.
+        This behavior can be disabled on Windows by setting `force_case_sensitive=False`.
+
         Examples:
             Find sequence matching basename and extension, and a wildcard for
             any frame.
-            returns bar.1.exr bar.10.exr, bar.100.exr, bar.1000.exr, inclusive
+            returns bar.1.exr bar.10.exr, bar.100.exr, bar.1000.exr, inclusive:
 
-            ``FileSequence.findSequenceOnDisk("seq/bar@@@@.exr")``
+                ``FileSequence.findSequenceOnDisk("seq/bar@@@@.exr")``
 
             Find exactly 4-padded sequence, i.e. seq/bar1-100#.exr
             returns only frames bar1000.exr through bar9999.exr
 
-            ``FileSequence.findSequenceOnDisk("seq/bar#.exr", strictPadding=True)``
+                ``FileSequence.findSequenceOnDisk("seq/bar#.exr", strictPadding=True)``
+
+        Note:
+            Unlike `findSequencesOnDisk`, general wildcard characters ("*", "?") are not
+            supported and result in undefined behavior. Only the frame component of the paths may
+            be replaced with padding characters to serve as a limited wildcard.
 
         Args:
             pattern (str): the sequence pattern being searched for
             strictPadding (bool): if True, ignore files with padding length different from `pattern`
-            pad_style (`.PAD_STYLE_DEFAULT` or `.PAD_STYLE_HASH1` or `.PAD_STYLE_HASH4`): padding style
+            pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
+            force_case_sensitive (bool): force posix-style case-sensitive matching on Windows filesystems
 
         Returns:
-            FileSequence:
+            FileSequence: A single matching file sequence existing on disk
 
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
@@ -1060,12 +1075,27 @@ class FileSequence(object):
         subframe_pad = seq.subframePadding()
 
         globbed = iglob(patt)
+
+        if sys.platform == 'win32':
+            # apply normpath in either case, as glob on windows could lead to
+            # mixed path separators:  path/foo\\bar.ext
+            normpath = os.path.normpath
+            globbed = (normpath(p) for p in globbed)
+            if force_case_sensitive:
+                # windows: treat pattern matches as case-sensitive to align
+                # with posix behavior
+                patt = normpath(patt)
+                case_match = re.compile(fnmatch.translate(patt)).match
+                globbed = (p for p in globbed if case_match(p))
+
         if pad:
             patt = r'\A'
             if dirname:
                 patt = r'.*[/\\]'
             patt += re.escape(basename) + '(.*)' + re.escape(ext) + r'\Z'
-            get_frame = lambda f: re.match(patt, f).group(1)
+
+            def get_frame(f):
+                return re.match(patt, f, re.I).group(1)
 
             if strictPadding:
                 globbed = cls._filterByPaddingNum(

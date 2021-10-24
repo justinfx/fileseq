@@ -438,9 +438,8 @@ class TestBase(unittest.TestCase):
         # Make sure string paths are compared with normalized
         # path separators
         if isinstance(a, string_types) and isinstance(b, string_types):
-            if self.RX_PATHSEP.search(a) and self.RX_PATHSEP.search(b):
-                a = os.path.normpath(a)
-                b = os.path.normpath(b)
+            a = os.path.normpath(a)
+            b = os.path.normpath(b)
 
         super(TestBase, self).assertEqual(a, b, msg=msg)
 
@@ -458,8 +457,7 @@ class TestBase(unittest.TestCase):
     def toNormpaths(self, collection):
         if isinstance(collection, string_types):
             collection = [collection]
-        match = self.RX_PATHSEP.search
-        return sorted((os.path.normpath(p) if match(p) else p) for p in collection)
+        return sorted(os.path.normpath(p) for p in collection)
 
 
 class _CustomPathString(str):
@@ -956,6 +954,14 @@ class TestFileSequence(TestBase):
             'mixed_pad/file.08.jpg',
             'mixed_pad/file.009.jpg',
             'mixed_pad/file.015.jpg',
+
+            # Issue 107: mixed case
+            'mixed_case/sub/file_foo_001.ext',
+            'mixed_case/sub/file_foo_002.ext',
+            'mixed_case/sub/file_foo_003.ext',
+            'mixed_case/sub/file_FOO_004.ext',
+            'mixed_case/sub/file_FOO_005.ext',
+            'mixed_case/sub/file_FOO_006.ext',
         ]
 
         expected = {
@@ -985,6 +991,10 @@ class TestFileSequence(TestBase):
             # Issue 94: ensure original padding is observed
             'mixed_pad/file.8@@.jpg',
             'mixed_pad/file.4,9,15@@@.jpg',
+
+            # Issue 107: mixed case
+            'mixed_case/sub/file_foo_1-3@@@.ext',
+            'mixed_case/sub/file_FOO_4-6@@@.ext',
         }
 
         sub = self.RX_PATHSEP.sub
@@ -1296,6 +1306,23 @@ class TestFindSequencesOnDisk(TestBase):
         self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001")))
         self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal(-1001)))
 
+    def testCaseSensitive(self):
+        """Issue 107 - testing case-sensitive matching between windows/linux"""
+        # posix platforms are case-sensitive
+        tests = [
+            ('mixed_case/sub/file_foo_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext']),
+            ('mixed_case/sub/file_FOO_*.ext', ['mixed_case/sub/file_FOO_4-6@@@.ext']),
+            ('mixed_case/sub/file_*_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext']),
+        ]
+
+        for pattern, expected in tests:
+            actual = findSequencesOnDisk(pattern)
+            self.assertEqual(len(expected), len(actual))
+
+            actual = self.toNormpaths([str(s) for s in actual])
+            expected = self.toNormpaths(expected)
+            self.assertEqual(expected, actual)
+
 
 class TestFindSequenceOnDisk(TestBase):
 
@@ -1438,6 +1465,31 @@ class TestFindSequenceOnDisk(TestBase):
 
             actual = str(seq)
             self.assertEqual(actual, expected)
+
+    def testCaseSensitive(self):
+        """Issue 107 - testing case-sensitive matching between windows/linux"""
+        # posix platforms are case-sensitive
+        if sys.platform == 'win32':
+            tests = [
+                ('mixed_case\\sub\\file_foo_#.ext', 'mixed_case\\sub\\file_foo_1-3@@@.ext'),
+                ('mixed_case\\sub\\file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
+                ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
+                ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                ('mixed_case/sub\\file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                ('mixed_case\\sub/file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
+            ]
+        else:
+            tests = [
+                ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
+                ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+            ]
+
+        for pattern, expected in tests:
+            seq = findSequenceOnDisk(pattern)
+            unittest.TestCase.assertTrue(self, isinstance(seq, FileSequence))
+
+            actual = str(seq)
+            unittest.TestCase.assertEqual(self, expected, actual)
 
 
 class TestPaddingFunctions(TestBase):
