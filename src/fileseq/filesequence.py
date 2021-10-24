@@ -1027,7 +1027,7 @@ class FileSequence(object):
 
         Case-sensitive matching follows POSIX behavior, even on Windows platforms.
         "file.1.png" and "file.2.PNG" result in two different sequences.
-        This behavior can be disabled on Windows by setting `force_posix_case=False`.
+        This behavior can be disabled on Windows by setting `force_case_sensitive=False`.
 
         Examples:
             Find sequence matching basename and extension, and a wildcard for
