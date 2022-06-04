@@ -152,6 +152,14 @@ fileseq.findSequenceOnDisk('/foo/bar.*.exr')
 fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 ```
 
+## Limitations
+
+While there may be many custom types of sequence patterns that could be considered a valid pipeline format, this library has 
+taken an opinionated stance on acceptable sequence formats. This is done to keep parsing rules manageable and to not 
+over-complicate the logic. The parsing rules can and have been expanded in some ways over time, such as adding support
+for new padding format patterns like printf "%04d" and houdini "$F". But other rules remain the same, such as expecting
+a frame number component to be found just before the file extension component.
+
 ## Language Ports
 
 * Go: https://github.com/justinfx/gofileseq
