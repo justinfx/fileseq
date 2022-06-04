@@ -592,6 +592,24 @@ class TestFileSequence(TestBase):
         seq.setPadding("%02d")
         self.assertEquals("/foo/bong.01.exr", seq[0])
 
+        expect = "/foo/bong.1-5#.exr"
+        seq = FileSequence(expect)
+        with self.assertRaises(ValueError):
+            seq.setPadding("bad")
+        self.assertEquals(expect, str(seq))
+
+        expect = "/foo/bong.1-5#.10-20@@.exr"
+        seq = FileSequence(expect)
+        with self.assertRaises(ValueError):
+            seq.setFramePadding("bad")
+        self.assertEquals(expect, str(seq))
+
+        expect = "/foo/bong.1-5#.10-20@@.exr"
+        seq = FileSequence(expect)
+        with self.assertRaises(ValueError):
+            seq.setSubframePadding("bad")
+        self.assertEquals(expect, str(seq))
+
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameSet(FrameSet("10-20"))

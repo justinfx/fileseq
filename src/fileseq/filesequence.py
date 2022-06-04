@@ -270,16 +270,19 @@ class FileSequence(object):
         Args:
             pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style to set
         """
-        self._pad_style = pad_style
-        self._frame_pad = self.getPaddingChars(self._zfill, pad_style=pad_style)
-        if self._decimal_places:
-            self._subframe_pad = self.getPaddingChars(
-                self._decimal_places, pad_style=self._pad_style
-            )
-            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        decimal_places = self._decimal_places
+        frame_pad = self.getPaddingChars(self._zfill, pad_style=pad_style)
+        if decimal_places:
+            subframe_pad = self.getPaddingChars(decimal_places, pad_style=pad_style)
+            pad = '.'.join([frame_pad, subframe_pad])
         else:
-            self._pad = self._frame_pad
-            self._subframe_pad = ''
+            subframe_pad = ''
+            pad = frame_pad
+
+        self._pad_style = pad_style
+        self._pad = pad
+        self._frame_pad = frame_pad
+        self._subframe_pad = subframe_pad
 
     def padding(self):
         """
@@ -297,11 +300,22 @@ class FileSequence(object):
 
         Args:
             padding (str): sequence padding to set
+
+        Raises:
+            ValueError: if unrecognized padding characters are provided
         """
+        pad_style = self._pad_style
+
+        frame_pad, _, subframe_pad = padding.partition('.')
+        zfill = self.getPaddingNum(frame_pad, pad_style=pad_style)
+        decimal_places = self.getPaddingNum(subframe_pad, pad_style=pad_style)
+
+        # Set all fields atomically after parsing valid padding characters
         self._pad = padding
-        self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
-        self._zfill = self.getPaddingNum(self._frame_pad, pad_style=self._pad_style)
-        self._decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=self._pad_style)
+        self._frame_pad = frame_pad
+        self._subframe_pad = subframe_pad
+        self._zfill = zfill
+        self._decimal_places = decimal_places
 
     def framePadding(self):
         """
@@ -319,13 +333,23 @@ class FileSequence(object):
 
         Args:
             padding (str): sequence padding to set
+
+        Raises:
+            ValueError: if unrecognized padding characters are provided
         """
-        self._frame_pad = padding
-        if self._subframe_pad:
-            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        subframe_pad = self._subframe_pad
+        pad_style = self._pad_style
+
+        if subframe_pad:
+            pad = '.'.join([padding, subframe_pad])
         else:
-            self._pad = self._frame_pad
-        self._zfill = self.getPaddingNum(self._frame_pad, pad_style=self._pad_style)
+            pad = padding
+        zfill = self.getPaddingNum(padding, pad_style=pad_style)
+
+        # Set all fields atomically after parsing valid padding characters
+        self._frame_pad = padding
+        self._pad = pad
+        self._zfill = zfill
 
     def subframePadding(self):
         """
@@ -344,13 +368,24 @@ class FileSequence(object):
 
         Args:
             padding (str): sequence padding to set
+
+        Raises:
+            ValueError: if unrecognized padding characters are provided
         """
-        self._subframe_pad = padding
-        if self._subframe_pad:
-            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        frame_pad = self._frame_pad
+        subframe_pad = padding
+        pad_style = self._pad_style
+
+        if subframe_pad:
+            pad = '.'.join([frame_pad, subframe_pad])
         else:
-            self._pad = self._frame_pad
-        self._decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=self._pad_style)
+            pad = frame_pad
+        decimal_places = self.getPaddingNum(subframe_pad, pad_style=pad_style)
+
+        # Set all fields atomically after parsing valid padding characters
+        self._subframe_pad = subframe_pad
+        self._pad = pad
+        self._decimal_places = decimal_places
 
     def frameSet(self):
         """
