@@ -20,6 +20,8 @@ Support for:
 * Alternate padding: #=1 padded, @=1 padded
 * Printf Syntax Padding: %04d=4 padded, %01d=1 padded
 * Houdini Syntax Padding: $F4=4 padding, $F=1 padded
+* Udim Syntax Padding: <UDIM> or %(UDIM)d, always 4 padded
+
 
 ## FrameSets
 
@@ -157,7 +159,7 @@ fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 While there may be many custom types of sequence patterns that could be considered a valid pipeline format, this library has 
 taken an opinionated stance on acceptable sequence formats. This is done to keep parsing rules manageable and to not 
 over-complicate the logic. The parsing rules can and have been expanded in some ways over time, such as adding support
-for new padding format patterns like printf "%04d" and houdini "$F". But other rules remain the same, such as expecting
+for new padding format patterns like printf "%04d", houdini "$F" and "<UDIM>". But other rules remain the same, such as expecting
 a frame number component to be found just before the file extension component.
 
 ## Language Ports

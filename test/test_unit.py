@@ -570,6 +570,30 @@ class TestFileSequence(TestBase):
         self.assertEquals("/foo/boo.0001.exr", seq[0])
         self.assertEquals("/foo/boo.0001.exr", seq.index(0))
 
+    def testSeqGettersUdim(self):
+        seq = FileSequence("/foo/boo.1-5<UDIM>.exr")
+        self.assertEquals(5, len(seq))
+        self.assertEquals("/foo/", seq.dirname())
+        self.assertEquals("boo.", seq.basename())
+        self.assertEquals("<UDIM>", seq.padding())
+        self.assertEquals(".exr", seq.extension())
+
+        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEquals("/foo/boo.0001.exr", seq[0])
+        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+
+    def testSeqGettersUdimD(self):
+        seq = FileSequence("/foo/boo.1-5%(UDIM)d.exr")
+        self.assertEquals(5, len(seq))
+        self.assertEquals("/foo/", seq.dirname())
+        self.assertEquals("boo.", seq.basename())
+        self.assertEquals("%(UDIM)d", seq.padding())
+        self.assertEquals(".exr", seq.extension())
+
+        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
+        self.assertEquals("/foo/boo.0001.exr", seq[0])
+        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
+
     def testSetDirname(self):
         seq = FileSequence("/foo/bong.1-5@.exr")
         seq.setDirname("/bing/")
@@ -892,6 +916,11 @@ class TestFileSequence(TestBase):
         self.assertEquals(seq.basename(), "")
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), "$F4")
+
+        seq = FileSequence("/path/to/1-5<UDIM>.exr")
+        self.assertEquals(seq.basename(), "")
+        self.assertEquals(len(seq), 5)
+        self.assertEquals(seq.padding(), "<UDIM>")
 
     def testStringSubclasses(self):
         def sep(p):
@@ -1560,6 +1589,9 @@ class TestPaddingFunctions(TestBase):
         self.assertEqual(getPaddingNum('$F2'), 2)
         self.assertEqual(getPaddingNum('$F3'), 3)
 
+        self.assertEqual(getPaddingNum('<UDIM>'), 4)
+        self.assertEqual(getPaddingNum('%(UDIM)d'), 4)
+
         allPossibleChars = [s for s in string.printable if s not in PAD_MAP]
         for char in allPossibleChars:
             self.assertRaises(ValueError, getPaddingNum, char)
@@ -1605,6 +1637,8 @@ class TestPaddingFunctions(TestBase):
             Case('$F1', '@'),
             Case('$F2', '@@'),
             Case('$F4', '#'),
+            Case('<UDIM>', '#'),
+            Case('%(UDIM)d', '#'),
             Case('', ''),
             Case('foo', 'foo', error=True),
         ]
