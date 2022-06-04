@@ -65,7 +65,8 @@ _FRANGE_PART = re.compile(_FRANGE_PART, re.X).pattern
 # Example: /film/shot/renders/bilbo_bty.1-100@.exr
 # Example: /film/shot/renders/bilbo_bty.1-100@@@@#.exr
 # Example: /film/shot/renders/bilbo_bty.1-100%04d.exr
-# Example: /film/shot/renders/bilbo_bty.1-100$F4d.exr
+# Example: /film/shot/renders/bilbo_bty.1-100$F4.exr
+# Example: /film/shot/renders/bilbo_bty.1-100<UDIM>.exr
 SPLIT_PATTERN = r"""
     ((?:{0}(?:,{0})*)?)     # range
     (                       # pad format
@@ -74,6 +75,8 @@ SPLIT_PATTERN = r"""
         %\d*d               #   printf syntax pad format
         |
         \$F\d*              #   Houdini syntax pad format
+        |
+        <UDIM>|%\(UDIM\)d   #   UDIM Syntax pad format
     )
     """.format(_FRANGE_PART, ''.join(PAD_MAP))
 SPLIT_RE = re.compile(SPLIT_PATTERN, re.X)
@@ -131,6 +134,8 @@ SPLIT_SUB_PATTERN = r"""
         %\d*d                 #   printf syntax pad format
         |
         \$F\d*                #   Houdini syntax pad format
+        |
+        <UDIM>|%\(UDIM\)d     #   UDIM Syntax pad format
     )
     """.format(''.join(PAD_MAP), *_FRANGE_SUB_PARTS)
 SPLIT_SUB_RE = re.compile(SPLIT_SUB_PATTERN, re.X)

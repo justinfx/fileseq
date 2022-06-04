@@ -1368,6 +1368,9 @@ class FileSequence(object):
         if not chars:
             return 0
 
+        if chars in ['<UDIM>', '%(UDIM)d']:
+            return 4
+
         match = PRINTF_SYNTAX_PADDING_RE.match(chars) or HOUDINI_SYNTAX_PADDING_RE.match(chars)
         if match:
             paddingNumStr = match.group(1)
