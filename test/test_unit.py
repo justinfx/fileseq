@@ -1509,6 +1509,74 @@ class TestFindSequenceOnDisk(TestBase):
             actual = str(seq)
             unittest.TestCase.assertEqual(self, expected, actual)
 
+    def testPreservePadding(self):
+        class Case(object):
+            def __init__(self, pat, expected, strict=False):
+                self.pat = pat
+                self.expected = expected
+                self.strict = strict
+            def __repr__(self):
+                return "Case(pat={!r}, expect={!r}, strict={})".format(self.pat, self.expected, self.strict)
+
+        strict_tests = [
+            Case("seq/big.@.ext", "seq/big.1000-1003@.ext", strict=True),
+            Case("seq/big.@@.ext", "seq/big.1000-1003@@.ext", strict=True),
+            Case("seq/big.@@@.ext", "seq/big.1000-1003@@@.ext", strict=True),
+            Case("seq/big.#.ext", "seq/big.999-1003#.ext", strict=True),
+            Case("seq/big.#@.ext", None, strict=True),
+            Case("seq/foo.#.exr", "seq/foo.1-5#.exr", strict=True),
+            Case("seq/foo.@.exr", None, strict=True),
+
+            Case("seq/big.%02d.ext", "seq/big.1000-1003%02d.ext", strict=True),
+            Case("seq/big.%04d.ext", "seq/big.999-1003%04d.ext", strict=True),
+            Case("seq/big.%08d.ext", None, strict=True),
+            Case("seq/foo.%04d.exr", "seq/foo.1-5%04d.exr", strict=True),
+            Case("seq/foo.%02d.exr", None, strict=True),
+
+            Case("seq/big.$F.ext", "seq/big.1000-1003$F.ext", strict=True),
+            Case("seq/big.$F4.ext", "seq/big.999-1003$F4.ext", strict=True),
+            Case("seq/big.$F8.ext", None, strict=True),
+            Case("seq/foo.$F4.exr", "seq/foo.1-5$F4.exr", strict=True),
+            Case("seq/foo.$F.exr", None, strict=True),
+        ]
+
+        nonstrict_tests = [
+            Case("seq/foo.@.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.@@.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.@@@.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.#.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.#@.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/bar#@.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+
+            Case("seq/foo.%04d.exr", "seq/foo.1-5%04d.exr", strict=False),
+            Case("seq/foo.%02d.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.%08d.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/bar%03d.exr", "seq/bar1000-1002,1004-1006%03d.exr", strict=False),
+            Case("seq/bar%04d.exr", "seq/bar1000-1002,1004-1006%04d.exr", strict=False),
+            Case("seq/bar%05d.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+
+            Case("seq/foo.$F4.exr", "seq/foo.1-5$F4.exr", strict=False),
+            Case("seq/foo.$F.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.$F3.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/foo.$F8.exr", "seq/foo.1-5#.exr", strict=False),
+            Case("seq/bar$F.exr", "seq/bar1000-1002,1004-1006$F.exr", strict=False),
+            Case("seq/bar$F3.exr", "seq/bar1000-1002,1004-1006$F3.exr", strict=False),
+            Case("seq/bar$F4.exr", "seq/bar1000-1002,1004-1006$F4.exr", strict=False),
+            Case("seq/bar$F5.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+        ]
+
+        for case in strict_tests + nonstrict_tests:
+            if case.expected is None:
+                with self.assertRaises(FileSeqException, msg=case):
+                    findSequenceOnDisk(case.pat, strictPadding=case.strict, preserve_padding=True)
+                continue
+
+            seq = findSequenceOnDisk(case.pat, strictPadding=case.strict, preserve_padding=True)
+            self.assertTrue(isinstance(seq, FileSequence), msg=case)
+
+            actual = str(seq)
+            self.assertEqual(case.expected, actual, msg=case)
+
 
 class TestPaddingFunctions(TestBase):
     """
@@ -1655,15 +1723,27 @@ class TestPaddingFunctions(TestBase):
             self.assertNativeStr(actual)
 
     def testFilterByPaddingNum(self):
+        class Case(object):
+            def __init__(self, paths, pad, expected, has_padded):
+                self.paths = paths
+                self.pad = pad
+                self.expected = expected
+                self.has_padded = has_padded
+            def __repr__(self):
+                return "Case(paths={!r}, pad={}, has_padded={})".format(self.paths, self.pad, self.has_padded)
+
         tests = [
-            (['file.1.ext'], 1, ['file.1.ext']),
-            (['file.1.ext'], 2, []),
+            Case(['file.1.ext'], 1, ['file.1.ext'], has_padded=False),
+            Case(['file.1.ext'], 2, [], has_padded=False),
+            Case(['file.100.ext', 'file.002.ext'], 3, ['file.100.ext', 'file.002.ext'], has_padded=True),
+            Case(['file.100.ext', 'file.002.ext'], 1, ['file.100.ext'], has_padded=False),
         ]
 
         for test in tests:
-            source, pad, expected = test
-            actual = list(FileSequence._filterByPaddingNum(source, pad))
-            self.assertEqual(actual, expected)
+            filter_ctx = FileSequence._FilterByPaddingNum()
+            actual = list(filter_ctx(test.paths, test.pad))
+            self.assertEqual(test.expected, actual)
+            self.assertEqual(test.has_padded, filter_ctx.has_padded_frames)
 
 
 if __name__ == '__main__':
