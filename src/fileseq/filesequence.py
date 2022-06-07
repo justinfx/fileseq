@@ -27,7 +27,8 @@ from fileseq.constants import \
     PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4, \
     PAD_MAP, REVERSE_PAD_MAP, \
     DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE, \
-    PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE
+    PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE, \
+    UDIM_PADDING_PATTERNS
 from fileseq.frameset import FrameSet
 from fileseq import constants, utils
 
@@ -1296,7 +1297,7 @@ class FileSequence(object):
         if not chars:
             return 0
 
-        if chars in ['<UDIM>', '%(UDIM)d']:
+        if chars in UDIM_PADDING_PATTERNS:
             return 4
 
         match = PRINTF_SYNTAX_PADDING_RE.match(chars) or HOUDINI_SYNTAX_PADDING_RE.match(chars)
@@ -1312,7 +1313,7 @@ class FileSequence(object):
             return rval
         except KeyError:
             msg = "Detected an unsupported padding character: \"{}\"."
-            msg += " Supported padding characters: {} or printf syntax padding"
+            msg += " Supported padding characters: {}, printf, houdini or UDIM syntax padding"
             msg += " %<int>d"
             raise ValueError(msg.format(char, utils.asString(list(cls.PAD_MAP))))
 
