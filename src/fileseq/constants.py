@@ -149,6 +149,9 @@ PRINTF_SYNTAX_PADDING_RE = re.compile(PRINTF_SYNTAX_PADDING_PATTERN)
 HOUDINI_SYNTAX_PADDING_PATTERN = r"\A\$F(\d*)\Z"
 HOUDINI_SYNTAX_PADDING_RE = re.compile(HOUDINI_SYNTAX_PADDING_PATTERN)
 
+# Legal patterns for UDIM style padding
+UDIM_PADDING_PATTERNS = ['<UDIM>', '%(UDIM)d']
+
 # Regular expression pattern for matching file names on disk.
 DISK_PATTERN = r"""
     \A
