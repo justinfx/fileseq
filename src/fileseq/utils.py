@@ -164,6 +164,83 @@ def xfrange(start, stop, step=1, maxSize=-1):
         return (start + i * step for i in range(size))
 
 
+def batchFrames(start, stop, batch_size):
+    """
+    Returns a generator that yields batches of frames from start to stop, inclusive.
+    Each batch value is a ``range`` generator object, also providing start, stop, and
+    step properties.
+    The last batch frame length may be smaller if the batches cannot be divided evenly.
+
+    start value is allowed to be greater than stop value, to generate decreasing frame
+    values.
+
+    Args:
+        start (int): start frame value
+        stop (int): stop frame value
+        batch_size (int): max size of each batch
+
+    Yields:
+        range(sub_start, sub_stop)
+    """
+    if batch_size <= 0:
+        return
+
+    for i in xfrange(start, stop, batch_size):
+        if start <= stop:
+            sub_stop = min(i - 1 + batch_size, stop)
+        else:
+            sub_stop = max(i + 1 - batch_size, stop)
+        yield xfrange(i, sub_stop)
+
+
+def batchIterable(it, batch_size):
+    """
+    Returns a generator that yields batches of items returned by the given iterable.
+    The last batch frame length may be smaller if the batches cannot be divided evenly.
+
+    Args:
+        it (iterable): An iterable from which to yield batches of values
+        batch_size (int): max size of each batch
+
+    Yields:
+        iterable: a subset of batched items
+    """
+    if batch_size <= 0:
+        return
+
+    try:
+        length = len(it)
+    except TypeError:
+        for b in _batchGenerator(it, batch_size):
+            yield b
+        return
+
+    for start in xrange(0, length, batch_size):
+        yield islice(it, start, start + batch_size)
+
+
+def _batchGenerator(gen, batch_size):
+    """
+    A batching generator function that handles a generator
+    type, where the length isn't known.
+
+    Args:
+        gen: generator object
+        batch_size (int): max size of each batch
+
+    Yields:
+        iterable: a subset of batched items
+    """
+    batch = []
+    for item in gen:
+        batch.append(item)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
 def normalizeFrame(frame):
     """
     Convert a frame number to the most appropriate type - the most compact type
