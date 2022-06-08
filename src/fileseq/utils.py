@@ -68,7 +68,7 @@ class xrange2(object):
     for checking the length of the range.
     """
 
-    __slots__ = ['_len', '_islice']
+    __slots__ = ['_len', '_islice', '_start', '_stop', '_step']
 
     def __init__(self, start, stop=None, step=1):
         if stop is None:
@@ -76,6 +76,15 @@ class xrange2(object):
 
         self._len = lenRange(start, stop, step)
         self._islice = islice(count(start, step), self._len)
+        self._start = start
+        self._stop = stop
+        self._step = step
+
+    def __repr__(self):
+        if self._step == 1:
+            return 'range({}, {})'.format(self._start, self._stop)
+        else:
+            return 'range({}, {}, {})'.format(self._start, self._stop, self._step)
 
     def __len__(self):
         return self._len
@@ -85,6 +94,18 @@ class xrange2(object):
 
     def __iter__(self):
         return self._islice.__iter__()
+
+    @property
+    def start(self):
+        return self._start
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @property
+    def step(self):
+        return self._step
 
 
 # Issue #44
