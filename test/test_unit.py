@@ -123,6 +123,87 @@ class TestUtils(unittest.TestCase):
         self.assertIsInstance(actual, str)
         self.assertNotIsInstance(actual, _CustomPathString)
 
+    def testBatchFrames(self):
+        Case = namedtuple('Case', ['start', 'stop', 'batches', 'expect'])
+        table = [
+            Case(1,  5, -1, []),
+            Case(1,  5,  0, []),
+            Case(1,  5,  1, [[1], [2], [3], [4], [5]]),
+            Case(1,  5,  2, [[1,2], [3,4], [5]]),
+            Case(1,  5,  3, [[1,2,3], [4,5]]),
+            Case(1,  5,  4, [[1,2,3,4], [5]]),
+            Case(1,  5,  5, [[1,2,3,4,5]]),
+            Case(1,  5,  9, [[1,2,3,4,5]]),
+            Case(2, 13,  3, [[2,3,4], [5,6,7], [8,9,10], [11,12,13]]),
+            Case(2, 13,  4, [[2,3,4,5], [6,7,8,9], [10,11,12,13]]),
+
+            Case( 5, 1, 1, [[5], [4], [3], [2], [1]]),
+            Case(13, 2, 2, [[13,12], [11,10], [9,8], [7,6], [5,4], [3,2]]),
+            Case(13, 2, 3, [[13,12,11], [10,9,8], [7,6,5], [4,3,2]]),
+            Case(13, 2, 4, [[13,12,11,10], [9,8,7,6], [5,4,3,2]]),
+            Case(13, 2, 5, [[13,12,11,10,9], [8,7,6,5,4], [3,2]]),
+            Case(13, 2, 6, [[13,12,11,10,9,8], [7,6,5,4,3,2]]),
+            Case(13, 1, 6, [[13,12,11,10,9,8], [7,6,5,4,3,2], [1]]),
+        ]
+
+        for case in table:
+            actual = utils.batchFrames(case.start, case.stop, case.batches)
+            actual = [list(i) for i in actual]
+            self.assertEqual(case.expect, actual, msg=str(case))
+
+    def testBatchIterable(self):
+        Case = namedtuple('Case', ['it', 'batches', 'expect'])
+        table = [
+            Case(['a', 'b', 'c'],   0, []),
+            Case(['a', 'b', 'c'],  -1, []),
+            Case(['a', 'b', 'c'],   1, [['a'], ['b'], ['c']]),
+            Case(['a', 'b', 'c'],   2, [['a', 'b'], ['c']]),
+            Case(['a', 'b', 'c'],   3, [['a', 'b', 'c']]),
+            Case(['a', 'b', 'c'],   9, [['a', 'b', 'c']]),
+
+            Case('abc',  0, []),
+            Case('abc',  1, [['a'], ['b'], ['c']]),
+            Case('abc',  2, [['a', 'b'], ['c']]),
+            Case('abc',  3, [['a', 'b', 'c']]),
+            Case('abc',  9, [['a', 'b', 'c']]),
+
+            Case(range(1,5),  0, []),
+            Case(range(1,5),  1, [[1], [2], [3], [4]]),
+            Case(range(1,5),  2, [[1,2], [3,4]]),
+            Case(range(1,5),  3, [[1,2,3], [4]]),
+            Case(range(1,5),  4, [[1,2,3,4]]),
+            Case(range(1,5),  5, [[1,2,3,4]]),
+            Case(range(1,5),  9, [[1,2,3,4]]),
+        ]
+
+        def gen(): return (i for i in 'abc')
+        table += [
+            Case(gen(),  0, []),
+            Case(gen(),  1, [['a'], ['b'], ['c']]),
+            Case(gen(),  2, [['a', 'b'], ['c']]),
+            Case(gen(),  3, [['a', 'b', 'c']]),
+            Case(gen(),  4, [['a', 'b', 'c']]),
+            Case(gen(),  9, [['a', 'b', 'c']]),
+        ]
+
+        def _iter(): return iter([1,2,3,4,5,6,7])
+        table += [
+            Case(_iter(),  0, []),
+            Case(_iter(),  1, [[1], [2], [3], [4], [5], [6], [7]]),
+            Case(_iter(),  2, [[1,2], [3,4], [5,6], [7]]),
+            Case(_iter(),  3, [[1,2,3], [4,5,6], [7]]),
+            Case(_iter(),  4, [[1,2,3,4], [5,6,7]]),
+            Case(_iter(),  5, [[1,2,3,4,5], [6,7]]),
+            Case(_iter(),  6, [[1,2,3,4,5,6], [7]]),
+            Case(_iter(),  7, [[1,2,3,4,5,6,7]]),
+            Case(_iter(),  9, [[1,2,3,4,5,6,7]]),
+        ]
+
+        for case in table:
+            actual = utils.batchIterable(case.it, case.batches)
+            actual = [list(i) for i in actual]
+            self.assertEqual(case.expect, actual, msg=str(case))
+
 
 class TestFrameSet(unittest.TestCase):
 
