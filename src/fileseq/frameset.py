@@ -19,7 +19,8 @@ except ImportError:  # PY2
 from fileseq import constants # constants.MAX_FRAME_SIZE updated during tests
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
 from fileseq.exceptions import MaxSizeException, ParseException
-from fileseq.utils import asString, xfrange, unique, pad, quantize, normalizeFrame, normalizeFrames
+from fileseq.utils import asString, xfrange, unique, pad, quantize, normalizeFrame, normalizeFrames, \
+                          batchIterable
 
 # Issue #44
 # Possibly use an alternate range implementation, depending on platform.
@@ -526,6 +527,19 @@ class FrameSet(Set):
         """
         return FrameSet(FrameSet.framesToFrameRange(
             self.items, sort=True, compress=False))
+
+    def batches(self, batch_size):
+        """
+        Returns a generator that yields groups of frame numbers, up to ``batch_size``.
+        Convenience method for ``fileseq.utils.batchIterable(self, batch_size)``
+
+        Args:
+            batch_size (int): max frame values in each batch
+
+        Returns:
+            generator: yields batches of frames
+        """
+        return batchIterable(self, batch_size)
 
     def __getstate__(self):
         """
