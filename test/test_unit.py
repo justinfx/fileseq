@@ -511,6 +511,25 @@ class TestFrameSet(unittest.TestCase):
         _ = text_type(ret)
         val = repr(ret)
 
+    def testBatches(self):
+        D = Decimal
+        Case = namedtuple('Case', ['input', 'batch', 'expect'])
+        table = [
+            Case("1-3", 0, []),
+            Case("1-3", 1, [[1], [2], [3]]),
+            Case("1-3", 2, [[1,2], [3]]),
+            Case("1-3", 3, [[1,2,3]]),
+            Case("1-3", 9, [[1,2,3]]),
+
+            Case("6-7x0.2", 1, [[D('6.0')], [D('6.2')], [D('6.4')], [D('6.6')], [D('6.8')], [D('7.0')]]),
+            Case("6-7x0.2", 3, [[D('6.0'),D('6.2'),D('6.4')], [D('6.6'),D('6.8'),D('7.0')]]),
+        ]
+
+        for case in table:
+            fs = FrameSet(case.input)
+            actual = [list(i) for i in fs.batches(case.batch)]
+            self.assertEqual(case.expect, actual, msg=str(case))
+
 
 class TestBase(unittest.TestCase):
     RX_PATHSEP = re.compile(r'[/\\]')
@@ -1245,6 +1264,21 @@ class TestFileSequence(TestBase):
             # decoding error is expected for this case.
             if os.name != 'nt':
                 raise
+
+    def testBatches(self):
+        Case = namedtuple('Case', ['input', 'batch', 'expect'])
+        table = [
+            Case("f.1-3@.x", 0, []),
+            Case("f.1-3@.x", 1, [['f.1.x'], ['f.2.x'], ['f.3.x']]),
+            Case("f.1-3@.x", 2, [['f.1.x','f.2.x'], ['f.3.x']]),
+            Case("f.1-3@.x", 3, [['f.1.x','f.2.x','f.3.x']]),
+            Case("f.1-3@.x", 9, [['f.1.x','f.2.x','f.3.x']]),
+        ]
+
+        for case in table:
+            fs = FileSequence(case.input)
+            actual = [list(i) for i in fs.batches(case.batch)]
+            self.assertEqual(case.expect, actual, msg=str(case))
 
 
 class TestFindSequencesOnDisk(TestBase):

@@ -580,6 +580,19 @@ class FileSequence(object):
         """
         return self.__getitem__(idx)
 
+    def batches(self, batch_size):
+        """
+        Returns a generator that yields groups of file paths, up to ``batch_size``.
+        Convenience method for ``fileseq.utils.batchIterable(self, batch_size)``
+
+        Args:
+            batch_size (int): max file paths in each batch
+
+        Returns:
+            generator: yields batches of file paths in sequence
+        """
+        return utils.batchIterable(self, batch_size)
+
     def __setstate__(self, state):
         """
         Allows for de-serialization from a pickled :class:`FileSequence`.
