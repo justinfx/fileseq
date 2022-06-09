@@ -112,6 +112,37 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(len(expected), len(actual))
             self.assertEqual(expected, list(actual))
 
+    def testXfrange(self):
+        Case = namedtuple('Case', ['start', 'stop', 'step', 'len'])
+        table = [
+            Case(1, 1, 1, 1),
+            Case(1, 20, -1, 20),
+            Case(1, 20, 1, 20),
+            Case(1, 20, 2, 10),
+            Case(1, 20, 3, 7),
+            Case(1, 21, 1, 21),
+            Case(1, 21, 2, 11),
+            Case(1, 21, 3, 7),
+            Case(20, 1, 1, 20),
+            Case(20, 1, -1, 20),
+            Case(20, 1, -2, 10),
+            Case(20, 1, -3, 7),
+            Case(21, 1, 1, 21),
+            Case(21, 1, -1, 21),
+            Case(21, 1, -2, 11),
+            Case(21, 1, -3, 7)
+        ]
+        for case in table:
+            actual = utils.xfrange(case.start, case.stop, case.step)
+            self.assertIsInstance(actual, utils._xfrange)
+            self.assertEqual(case.start,  actual.start, msg=str(case))
+            self.assertEqual(case.stop,  actual.stop, msg=str(case))
+            if case.start <= case.stop:
+                self.assertEqual(abs(case.step),  actual.step, msg=str(case))
+            else:
+                self.assertEqual(-(abs(case.step)),  actual.step, msg=str(case))
+            self.assertEqual(case.len, len(actual), msg=str(case))
+
     def testAsString(self):
         expect = "my string"
         custom = _CustomPathString(expect)
@@ -124,7 +155,7 @@ class TestUtils(unittest.TestCase):
         self.assertNotIsInstance(actual, _CustomPathString)
 
     def testBatchFrames(self):
-        Case = namedtuple('Case', ['start', 'stop', 'batches', 'expect'])
+        Case = namedtuple('Case', ['start', 'stop', 'batch_size', 'expect'])
         table = [
             Case(1,  5, -1, []),
             Case(1,  5,  0, []),
@@ -147,9 +178,23 @@ class TestUtils(unittest.TestCase):
         ]
 
         for case in table:
-            actual = utils.batchFrames(case.start, case.stop, case.batches)
-            actual = [list(i) for i in actual]
+            ret = utils.batchFrames(case.start, case.stop, case.batch_size)
+            batches = [i for i in ret]
+            actual = [list(i) for i in batches]
             self.assertEqual(case.expect, actual, msg=str(case))
+
+            expect_len = sum(len(i) for i in case.expect)
+            actual_len = sum(len(i) for i in batches)
+            self.assertEqual(expect_len, actual_len, msg=str(case))
+
+            for i, actual_sub in enumerate(batches):
+                expect_sub = case.expect[i]
+                msg = '{!s} sub={!r}'.format(case, expect_sub)
+                self.assertEqual(expect_sub[0], actual_sub.start, msg=msg)
+                self.assertEqual(expect_sub[-1], actual_sub.stop, msg=msg)
+                expect_step = 1 if actual_sub.start <= actual_sub.stop else -1
+                self.assertEqual(expect_step, actual_sub.step, msg=msg)
+                self.assertEqual(len(expect_sub), len(actual_sub), msg=msg)
 
     def testBatchIterable(self):
         Case = namedtuple('Case', ['it', 'batches', 'expect'])
