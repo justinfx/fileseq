@@ -556,7 +556,7 @@ class TestFrameSet(unittest.TestCase):
         _ = text_type(ret)
         val = repr(ret)
 
-    def testBatches(self):
+    def testBatchesFrames(self):
         D = Decimal
         Case = namedtuple('Case', ['input', 'batch', 'expect'])
         table = [
@@ -572,8 +572,27 @@ class TestFrameSet(unittest.TestCase):
 
         for case in table:
             fs = FrameSet(case.input)
-            actual = [list(i) for i in fs.batches(case.batch)]
+            actual = [list(i) for i in fs.batches(case.batch, frames=True)]
             self.assertEqual(case.expect, actual, msg=str(case))
+
+    def testBatches(self):
+        D = Decimal
+        Case = namedtuple('Case', ['input', 'batch', 'expect'])
+        table = [
+            Case("1-3", 0, []),
+            Case("1-3", 1, ['1', '2', '3']),
+            Case("1-3", 2, ['1-2', '3']),
+            Case("1-3", 3, ['1-3']),
+            Case("1-3", 9, ['1-3']),
+
+            Case("6-7x0.2", 1, ['6', '6.2', '6.4', '6.6', '6.8', '7']),
+            Case("6-7x0.2", 3, ['6-6.4x0.2', '6.6-7x0.2']),
+        ]
+
+        for case in table:
+            expect = [FrameSet(i) for i in case.expect]
+            actual = list(FrameSet(case.input).batches(case.batch, frames=False))
+            self.assertListEqual(expect, actual, msg=str(case))
 
 
 class TestBase(unittest.TestCase):
@@ -1310,7 +1329,7 @@ class TestFileSequence(TestBase):
             if os.name != 'nt':
                 raise
 
-    def testBatches(self):
+    def testBatchesPaths(self):
         Case = namedtuple('Case', ['input', 'batch', 'expect'])
         table = [
             Case("f.1-3@.x", 0, []),
@@ -1322,8 +1341,26 @@ class TestFileSequence(TestBase):
 
         for case in table:
             fs = FileSequence(case.input)
-            actual = [list(i) for i in fs.batches(case.batch)]
+            actual = [list(i) for i in fs.batches(case.batch, paths=True)]
             self.assertEqual(case.expect, actual, msg=str(case))
+
+    def testBatches(self):
+        Case = namedtuple('Case', ['input', 'batch', 'expect'])
+        table = [
+            Case("f.1-3@.x", 0, []),
+            Case("f.1-3@.x", 1, ['f.1@.x', 'f.2@.x', 'f.3@.x']),
+            Case("f.1-3@.x", 2, ['f.1-2@.x', 'f.3@.x']),
+            Case("f.1-3@.x", 3, ['f.1-3@.x']),
+            Case("f.1-3@.x", 9, ['f.1-3@.x']),
+
+            Case("f.1-3,10-16x2@@.x", 2, ['f.1-2@@.x', 'f.3,10@@.x', 'f.12,14@@.x', 'f.16@@.x']),
+        ]
+
+        for case in table:
+            fs = FileSequence(case.input)
+            expect = [FileSequence(i) for i in case.expect]
+            actual = list(fs.batches(case.batch, paths=False))
+            self.assertEqual(expect, actual, msg=str(case))
 
 
 class TestFindSequencesOnDisk(TestBase):

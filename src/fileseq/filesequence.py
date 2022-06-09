@@ -580,18 +580,31 @@ class FileSequence(object):
         """
         return self.__getitem__(idx)
 
-    def batches(self, batch_size):
+    def batches(self, batch_size, paths=False):
         """
         Returns a generator that yields groups of file paths, up to ``batch_size``.
         Convenience method for ``fileseq.utils.batchIterable(self, batch_size)``
+        If ``paths=False``, each batch is a new ``FileSequence`` subrange.
+        If ``paths=True``, each batch is an islice generator object of each file
+        path in the subrange.
 
         Args:
             batch_size (int): max file paths in each batch
+            paths (bool): if True, generate individual file paths instead of FileSequences
 
         Returns:
-            generator: yields batches of file paths in sequence
+            generator: yields batches of file paths or FileSequence subranges of sequence
         """
-        return utils.batchIterable(self, batch_size)
+        if len(self) == 0:
+            return []
+
+        if paths:
+            # They just want batches of the individual file paths
+            return utils.batchIterable(self, batch_size)
+
+        # generate batches of index ranges for the current sequence
+        frame_gen = utils.batchFrames(0, len(self)-1, batch_size)
+        return (self[f.start:f.stop+1] for f in frame_gen)
 
     def __setstate__(self, state):
         """
