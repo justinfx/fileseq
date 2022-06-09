@@ -12,9 +12,9 @@ import decimal
 import numbers
 
 try:  # > PY2
-    from collections.abc import Set, Sequence
+    from collections.abc import Set, Sized, Iterable
 except ImportError:  # PY2
-    from collections import Set, Sequence
+    from collections import Set, Sized, Iterable
 
 from fileseq import constants # constants.MAX_FRAME_SIZE updated during tests
 from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
@@ -137,7 +137,7 @@ class FrameSet(Set):
                     self.framesToFrameRange, self._order, sort=False, compress=False)
                 return
             # if it's ordered, find unique and build
-            elif isinstance(frange, Sequence):
+            elif isinstance(frange, Sized) and isinstance(frange, Iterable):
                 self._maxSizeCheck(frange)
                 items = set()
                 order = unique(items, catch_parse_err(normalizeFrames, frange))
@@ -301,7 +301,7 @@ class FrameSet(Set):
     @classmethod
     def from_range(cls, start, end, step=1):
         """
-        Build a :class:`FrameSet` from given start and end frames.
+        Build a :class:`FrameSet` from given start and end frames (inclusive).
 
         Args:
             start (int): The first frame of the :class:`FrameSet`.
@@ -528,18 +528,26 @@ class FrameSet(Set):
         return FrameSet(FrameSet.framesToFrameRange(
             self.items, sort=True, compress=False))
 
-    def batches(self, batch_size):
+    def batches(self, batch_size, frames=False):
         """
-        Returns a generator that yields groups of frame numbers, up to ``batch_size``.
-        Convenience method for ``fileseq.utils.batchIterable(self, batch_size)``
+        Returns a generator that yields sub-batches of frames, up to ``batch_size``.
+        If ``frames=False``, each batch is a new ``FrameSet`` subrange.
+        If ``frames=True``, each batch is an islice generator object of the sub-range.
 
         Args:
             batch_size (int): max frame values in each batch
+            frames (bool): if True, generate islice sub-ranges instead of FrameSets
 
         Returns:
-            generator: yields batches of frames
+            generator: yields batches of islice or FrameSet sub-ranges
         """
-        return batchIterable(self, batch_size)
+        batch_it = batchIterable(self, batch_size)
+        if frames:
+            # They just want batches of the frame values
+            return batch_it
+
+        # return batches of FrameSet instance
+        return (self.from_iterable(b) for b in batch_it)
 
     def __getstate__(self):
         """
