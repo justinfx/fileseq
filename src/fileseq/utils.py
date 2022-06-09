@@ -40,7 +40,7 @@ def quantize(number, decimal_places, rounding=decimal.ROUND_HALF_EVEN):
 
 def lenRange(start, stop, step=1):
     """
-    Get the length of values for a given range
+    Get the length of values for a given range, exclusive of the stop
 
     Args:
         start (int):
@@ -118,6 +118,43 @@ else:
     xrange = range
 
 
+class _islice(object):
+
+    def __init__(self, gen, start, stop, step=1):
+        self._gen = gen
+        self._start = start
+        self._stop = stop
+        self._step = step
+
+    def __len__(self):
+        return lenRange(self._start, self._stop, self._step)
+
+    def __next__(self):
+        return next(self._gen)
+
+    def __iter__(self):
+        return self._gen.__iter__()
+
+    @property
+    def start(self):
+        return self._start
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @property
+    def step(self):
+        return self._step
+
+
+class _xfrange(_islice):
+
+    def __len__(self):
+        stop = self._stop + (1 if self._start <= self._stop else -1)
+        return lenRange(self._start, stop, self._step)
+
+
 def xfrange(start, stop, step=1, maxSize=-1):
     """
     Returns a generator that yields the frames from start to stop, inclusive.
@@ -159,9 +196,11 @@ def xfrange(start, stop, step=1, maxSize=-1):
     # generator expression to get a proper Generator
     if isinstance(start, futils.integer_types):
         offset = step // abs(step)
-        return (f for f in range(start, stop + offset, step))
+        gen = (f for f in range(start, stop + offset, step))
     else:
-        return (start + i * step for i in range(size))
+        gen = (start + i * step for i in range(size))
+
+    return _xfrange(gen, start, stop, step)
 
 
 def batchFrames(start, stop, batch_size):
@@ -208,6 +247,9 @@ def batchIterable(it, batch_size):
     if batch_size <= 0:
         return
 
+    # Try to get the length. If it is a generator with no
+    # known length, then we have to use a less efficient
+    # method that builds results by exhausting the generator
     try:
         length = len(it)
     except TypeError:
@@ -215,8 +257,11 @@ def batchIterable(it, batch_size):
             yield b
         return
 
+    # We can use the known length to yield slices
     for start in xrange(0, length, batch_size):
-        yield islice(it, start, start + batch_size)
+        stop = start + batch_size
+        gen = islice(it, start, stop)
+        yield _islice(gen, start, stop)
 
 
 def _batchGenerator(gen, batch_size):
