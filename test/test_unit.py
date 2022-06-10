@@ -198,6 +198,7 @@ class TestUtils(unittest.TestCase):
 
     def testBatchIterable(self):
         Case = namedtuple('Case', ['it', 'batches', 'expect'])
+        _range = range  # prevent pylint warning W1638
         table = [
             Case(['a', 'b', 'c'],   0, []),
             Case(['a', 'b', 'c'],  -1, []),
@@ -212,13 +213,13 @@ class TestUtils(unittest.TestCase):
             Case('abc',  3, [['a', 'b', 'c']]),
             Case('abc',  9, [['a', 'b', 'c']]),
 
-            Case(range(1,5),  0, []),
-            Case(range(1,5),  1, [[1], [2], [3], [4]]),
-            Case(range(1,5),  2, [[1,2], [3,4]]),
-            Case(range(1,5),  3, [[1,2,3], [4]]),
-            Case(range(1,5),  4, [[1,2,3,4]]),
-            Case(range(1,5),  5, [[1,2,3,4]]),
-            Case(range(1,5),  9, [[1,2,3,4]]),
+            Case(_range(1,5),  0, []),
+            Case(_range(1,5),  1, [[1], [2], [3], [4]]),
+            Case(_range(1,5),  2, [[1,2], [3,4]]),
+            Case(_range(1,5),  3, [[1,2,3], [4]]),
+            Case(_range(1,5),  4, [[1,2,3,4]]),
+            Case(_range(1,5),  5, [[1,2,3,4]]),
+            Case(_range(1,5),  9, [[1,2,3,4]]),
         ]
 
         def gen(): return (i for i in 'abc')
