@@ -263,14 +263,28 @@ class FileSequence(object):
         """
         return self._pad_style
 
-    def setPadStyle(self, pad_style):
+    def setPadStyle(self, pad_style, set_zfill=False):
         """
         Set new padding style for the sequence.
         See fileseq.constants.PAD_STYLE_HASH1 and fileseq.constants.PAD_STYLE_HASH4
 
+        The default behavior converts only the padding characters representation per the new style,
+        the same zfill/decimalPlaces value. If ``set_zfill=True``, convert the zfill/decimalPlaces
+        values to match the meaning of the padding characters per the new style.
+
         Args:
             pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style to set
+            set_zfill (bool): If True, convert zfill/decimalPlaces value instead of padding chars
         """
+        if set_zfill:
+            zfill = self.getPaddingNum(self._frame_pad, pad_style=pad_style)
+            decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=pad_style)
+
+            self._pad_style = pad_style
+            self._zfill = zfill
+            self._decimal_places = decimal_places
+            return
+
         decimal_places = self._decimal_places
         frame_pad = self.getPaddingChars(self._zfill, pad_style=pad_style)
         if decimal_places:

@@ -52,7 +52,9 @@ os.chdir(TEST_DIR)
 # For testing compatibility with pickle values from older version of fileseq
 PICKLE_TEST_SEQ = "/path/to/file.1-100x2#.exr"
 OLD_PICKLE_MAP = {
-    '1.10.0': b'\x80\x02cfileseq.filesequence\nFileSequence\nq\x01)\x81q\x02}q\x03(U\x04_extq\x04U\x04.exrU\t_frameSetq\x05cfileseq.frameset\nFrameSet\nq\x06)\x81q\x07U\x071-100x2q\x08\x85bU\x04_dirq\tU\t/path/to/U\x04_padq\nU\x01#U\x05_baseq\x0bU\x05file.U\x06_zfillq\x0cK\x04ub.'
+    '1.10.0': b'\x80\x02cfileseq.filesequence\nFileSequence\nq\x01)\x81q\x02}q\x03(U\x04_extq\x04U\x04.exrU'
+              b'\t_frameSetq\x05cfileseq.frameset\nFrameSet\nq\x06)\x81q\x07U\x071-100x2q\x08\x85bU\x04_dirq'
+              b'\tU\t/path/to/U\x04_padq\nU\x01#U\x05_baseq\x0bU\x05file.U\x06_zfillq\x0cK\x04ub.'
 }
 
 
@@ -798,6 +800,64 @@ class TestFileSequence(TestBase):
         with self.assertRaises(ValueError):
             seq.setSubframePadding("bad")
         self.assertEquals(expect, str(seq))
+
+    def testSetPadStyle(self):
+        Case = namedtuple('Case', ['input', 'to_style', 'expected_pad'])
+        H1 = fileseq.PAD_STYLE_HASH1
+        H4 = fileseq.PAD_STYLE_HASH4
+        FS = FileSequence
+
+        table = [
+            Case(FS('foo.1@.exr', H4), H1, '#'),
+            Case(FS('foo.1@@@@.exr', H4), H1, '####'),
+            Case(FS('foo.1#.exr', H4), H1, '####'),
+            Case(FS('foo.1###@.exr', H4), H1, '#############'),
+            Case(FS('foo.1-5x0.25#.####.exr', H4, allow_subframes=True), H1, '####.################'),
+            Case(FS('foo.1-5x0.25###@.#.exr', H4, allow_subframes=True), H1, '#############.####'),
+
+            Case(FS('foo.1@.exr', H1), H4, '@'),
+            Case(FS('foo.1@@@@.exr', H1), H4, '#'),
+            Case(FS('foo.1#.exr', H1), H4, '@'),
+            Case(FS('foo.1####.exr', H1), H4, '#'),
+            Case(FS('foo.1-5x0.25#.####.exr', H1, allow_subframes=True), H4, '@.#'),
+            Case(FS('foo.1-5x0.25####.#.exr', H1, allow_subframes=True), H4, '#.@'),
+        ]
+
+        for case in table:
+            actual = case.input.copy()
+            actual.setPadStyle(case.to_style)
+            self.assertEqual(case.input.zfill(), actual.zfill(), msg=str(case))
+            self.assertEqual(case.input.decimalPlaces(), actual.decimalPlaces(), msg=str(case))
+            self.assertEqual(case.expected_pad, actual.padding(), msg=str(case))
+
+    def testSetPadStyleSetZfill(self):
+        Case = namedtuple('Case', ['input', 'start_zfill', 'to_style', 'expected_zfill'])
+        H1 = fileseq.PAD_STYLE_HASH1
+        H4 = fileseq.PAD_STYLE_HASH4
+        FS = FileSequence
+
+        table = [
+            Case(FS('foo.1@.exr', H4), 1, H1, 1),
+            Case(FS('foo.1@@@@.exr', H4), 4, H1, 4),
+            Case(FS('foo.1#.exr', H4), 4, H1, 1),
+            Case(FS('foo.1####.exr', H4), 16, H1, 4),
+            Case(FS('foo.1-5x0.25#.####.exr', H4, allow_subframes=True), 4, H1, 1),
+            Case(FS('foo.1-5x0.25####.#.exr', H4, allow_subframes=True), 16, H1, 4),
+
+            Case(FS('foo.1@.exr', H1), 1, H4, 1),
+            Case(FS('foo.1@@@@.exr', H1), 4, H4, 4),
+            Case(FS('foo.1#.exr', H1), 1, H4, 4),
+            Case(FS('foo.1####.exr', H1), 4, H4, 16),
+            Case(FS('foo.1-5x0.25#.####.exr', H1, allow_subframes=True), 1, H4, 4),
+            Case(FS('foo.1-5x0.25####.#.exr', H1, allow_subframes=True), 4, H4, 16),
+        ]
+
+        for case in table:
+            self.assertEqual(case.start_zfill, case.input.zfill(), msg=str(case))
+            actual = case.input.copy()
+            actual.setPadStyle(case.to_style, set_zfill=True)
+            self.assertEqual(case.input.padding(), actual.padding(), msg=str(case))
+            self.assertEqual(case.expected_zfill, actual.zfill(), msg=str(case))
 
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
