@@ -1645,6 +1645,8 @@ class TestFindSequenceOnDisk(TestBase):
             ("subframe_seq/baz.#.0000.exr", "subframe_seq/baz.1-4#.0000.exr"),
             ("subframe_seq/baz.0001.#.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
             ("subframe_seq/baz.0001.0000.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
+            ("complex_ext/@.a.jpg", "complex_ext/1-3@.a.jpg"),
+            ("complex_ext/file.@.a.ext", "complex_ext/file.5-7@.a.ext"),
         ]
 
         for pattern, expected in tests:
@@ -1703,6 +1705,8 @@ class TestFindSequenceOnDisk(TestBase):
             ("seq/big.#@.ext", None),
             ("multi_range/file_@@.0001.exr", None),
             ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
+            ("complex_ext/#.a.jpg", None),
+            ("complex_ext/@.a.jpg", "complex_ext/1-3@.a.jpg"),
         ]
 
         for pattern, expected in tests:
