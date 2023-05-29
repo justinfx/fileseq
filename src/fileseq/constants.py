@@ -155,12 +155,12 @@ UDIM_PADDING_PATTERNS = ['<UDIM>', '%(UDIM)d']
 # Regular expression pattern for matching file names on disk.
 DISK_PATTERN = r"""
     \A
-    ((?:.*[/\\])?)            # dirname
-    (.*?)                     # basename
-    (-?\d+)?                  # frame
-    (                         # ext
-        (?:\.\w*[a-zA-Z]\w)*  #   optional leading alnum ext prefix (.foo.1bar)
-        (?:\.[^.]+)?          #   ext suffix
+    ((?:.*[/\\])?)             # dirname
+    (.*?)                      # basename
+    (-?\d+)?                   # frame
+    (                          # ext
+        (?:\.\w*[a-zA-Z]\w?)*  #   optional leading alnum ext prefix (.foo.1bar)
+        (?:\.[^.]+)?           #   ext suffix
     )
     \Z
     """
@@ -169,12 +169,12 @@ DISK_RE = re.compile(DISK_PATTERN, re.X)
 # Regular expression pattern for matching file names on disk allowing subframes.
 DISK_SUB_PATTERN = r"""
     \A
-    ((?:.*[/\\])?)            # dirname
-    (.*?)                     # basename
-    (-?\d+(?:\.\d+)?)?        # frame
-    (                         # ext
-        (?:\.\w*[a-zA-Z]\w)*  #   optional leading alnum ext prefix (.foo.1bar)
-        (?:\.[^.]+)?          #   ext suffix
+    ((?:.*[/\\])?)             # dirname
+    (.*?)                      # basename
+    (-?\d+(?:\.\d+)?)?         # frame
+    (                          # ext
+        (?:\.\w*[a-zA-Z]\w?)*  #   optional leading alnum ext prefix (.foo.1bar)
+        (?:\.[^.]+)?           #   ext suffix
     )
     \Z
     """
