@@ -398,6 +398,7 @@ def pad(number, width=0, decimal_places=None):
     Returns:
         str:
     """
+
     # Make the common case fast. Truncate to integer value as USD does.
     # https://graphics.pixar.com/usd/docs/api/_usd__page__value_clips.html
     # See _DeriveClipTimeString for formating of templateAssetPath
