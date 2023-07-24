@@ -391,19 +391,20 @@ def pad(number, width=0, decimal_places=None):
     Return the zero-padded string of a given number.
 
     Args:
-        number (int, float, or decimal.Decimal): the number to pad
+        number (str, int, float, or decimal.Decimal): the number to pad
         width (int): width for zero padding the integral component
         decimal_places (int): number of decimal places to use in frame range
 
     Returns:
         str:
     """
-
     # Make the common case fast. Truncate to integer value as USD does.
     # https://graphics.pixar.com/usd/docs/api/_usd__page__value_clips.html
     # See _DeriveClipTimeString for formating of templateAssetPath
     # https://github.com/PixarAnimationStudios/USD/blob/release/pxr/usd/usd/clipSetDefinition.cpp
     if decimal_places == 0:
+        if not isinstance(number, str):
+            number = round(number)
         return futils.native_str(number).partition(".")[0].zfill(width)
 
     # USD ultimately uses vsnprintf to format floats for templateAssetPath:
