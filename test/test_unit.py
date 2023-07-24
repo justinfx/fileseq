@@ -1106,6 +1106,13 @@ class TestFileSequence(TestBase):
         self.assertEquals(fs.extension(), '.exr')
         self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1002x0.25@.#.exr")
 
+    def testSubframeNotNegativeZero(self):
+        # test that a small negative subframe rounds to 0 (and not -0)
+        fs = FileSequence("#", allow_subframes=True)
+        self.assertEquals(fs.frame(-0.00000001), "0000")
+        fs = FileSequence("#.#", allow_subframes=True)
+        self.assertEquals(fs.frame(-0.00000001), "0000.0000")
+
     def testNoFrameNoVersionNoExt(self):
         for allow_subframes in [False, True]:
             fs = FileSequence("/path/to/file", allow_subframes=allow_subframes)
