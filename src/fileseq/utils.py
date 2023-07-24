@@ -404,8 +404,10 @@ def pad(number, width=0, decimal_places=None):
     # See _DeriveClipTimeString for formating of templateAssetPath
     # https://github.com/PixarAnimationStudios/USD/blob/release/pxr/usd/usd/clipSetDefinition.cpp
     if decimal_places == 0:
-        if not isinstance(number, str):
+        try:
             number = round(number)
+        except TypeError:
+            pass
         return futils.native_str(number).partition(".")[0].zfill(width)
 
     # USD ultimately uses vsnprintf to format floats for templateAssetPath:
