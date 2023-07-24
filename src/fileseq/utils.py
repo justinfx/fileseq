@@ -35,7 +35,10 @@ def quantize(number, decimal_places, rounding=decimal.ROUND_HALF_EVEN):
         decimal.Decimal:
     """
     quantize_exponent = decimal.Decimal(1).scaleb(-decimal_places)
-    return number.quantize(quantize_exponent, rounding=rounding)
+    nq = number.quantize(quantize_exponent, rounding=rounding)
+    if nq.is_zero():
+        return nq.copy_abs()
+    return nq
 
 
 def lenRange(start, stop, step=1):
