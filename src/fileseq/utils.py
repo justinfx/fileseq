@@ -405,7 +405,7 @@ def pad(number, width=0, decimal_places=None):
     # https://github.com/PixarAnimationStudios/USD/blob/release/pxr/usd/usd/clipSetDefinition.cpp
     if decimal_places == 0:
         try:
-            number = round(number)
+            number = round(number) or 0
         except TypeError:
             pass
         return futils.native_str(number).partition(".")[0].zfill(width)
