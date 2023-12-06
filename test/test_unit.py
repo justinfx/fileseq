@@ -1154,6 +1154,27 @@ class TestFileSequence(TestBase):
         self.assertEquals(len(seq), 5)
         self.assertEquals(seq.padding(), "<UDIM>")
 
+    def testEmptyExtension(self):
+        seq = FileSequence("/path/to/")
+        self.assertEquals(seq.dirname(), "/path/to/")
+        self.assertEquals(seq.basename(), "")
+        self.assertEquals(seq.extension(), "")
+
+        seq.setBasename("bar")
+        self.assertEquals(seq.basename(), "bar")
+        self.assertEquals(seq.extension(), "")
+
+        seq.setExtension("ext")
+        self.assertEquals(seq.extension(), ".ext")
+
+        seq.setExtension("")
+        self.assertEquals(seq.extension(), "")
+
+        seq = FileSequence("/path/to/bar.ext")
+        self.assertEquals(seq.extension(), ".ext")
+        seq.setExtension("")
+        self.assertEquals(seq.extension(), "")
+
     def testStringSubclasses(self):
         def sep(p):
             return p.replace("/", os.sep)

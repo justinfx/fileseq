@@ -446,7 +446,7 @@ class FileSequence(object):
         Args:
             ext (str): the new file extension
         """
-        if ext[0] != ".":
+        if ext and ext[0] != ".":
             ext = "." + ext
         self._ext = utils.asString(ext)
 
