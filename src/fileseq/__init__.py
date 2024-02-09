@@ -170,12 +170,11 @@ No:
 
     fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 """
-from __future__ import absolute_import
 
-from fileseq.constants import PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4
-from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
-from fileseq.frameset import FrameSet
-from fileseq.filesequence import FileSequence
+from .constants import PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4
+from .exceptions import ParseException, MaxSizeException, FileSeqException
+from .frameset import FrameSet
+from .filesequence import FileSequence
 
 padFrameRange = FrameSet.padFrameRange
 framesToFrameRange = FrameSet.framesToFrameRange

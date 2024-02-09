@@ -1,22 +1,13 @@
-#! /usr/bin/env python
 """
 utils - General tools of use to fileseq operations.
 """
-from __future__ import absolute_import, division
-
-from builtins import bytes
-from builtins import next
-from builtins import range
-from builtins import round
-from builtins import object
-import future.utils as futils
 
 import decimal
-from itertools import chain, count, islice
 import os
 import sys
+from itertools import chain, count, islice
 
-from fileseq import exceptions
+from . import exceptions
 
 
 FILESYSTEM_ENCODING = sys.getfilesystemencoding() or 'utf-8'
@@ -187,18 +178,18 @@ def xfrange(start, stop, step=1, maxSize=-1):
     else:
         step = -abs(step)
 
-    if isinstance(start, futils.integer_types):
+    if isinstance(start, int):
         size = (stop - start) // step + 1
     else:
         size = int((stop - start) / step) + 1
 
-    if maxSize >= 0 and size > maxSize:
+    if 0 <= maxSize < size:
         raise exceptions.MaxSizeException(
             "Size %d > %s (MAX_FRAME_SIZE)" % (size, maxSize))
 
     # because an xrange is an odd object all its own, we wrap it in a
     # generator expression to get a proper Generator
-    if isinstance(start, futils.integer_types):
+    if isinstance(start, int):
         offset = step // abs(step)
         gen = (f for f in range(start, stop + offset, step))
     else:
@@ -304,7 +295,7 @@ def normalizeFrame(frame):
     """
     if frame is None:
         return None
-    elif isinstance(frame, futils.integer_types):
+    elif isinstance(frame, int):
         return frame
     elif isinstance(frame, float):
         frame_int = int(frame)
@@ -402,14 +393,14 @@ def pad(number, width=0, decimal_places=None):
 
     # Make the common case fast. Truncate to integer value as USD does.
     # https://graphics.pixar.com/usd/docs/api/_usd__page__value_clips.html
-    # See _DeriveClipTimeString for formating of templateAssetPath
+    # See _DeriveClipTimeString for formatting of templateAssetPath
     # https://github.com/PixarAnimationStudios/USD/blob/release/pxr/usd/usd/clipSetDefinition.cpp
     if decimal_places == 0:
         try:
             number = round(number) or 0
         except TypeError:
             pass
-        return futils.native_str(number).partition(".")[0].zfill(width)
+        return str(number).partition(".")[0].zfill(width)
 
     # USD ultimately uses vsnprintf to format floats for templateAssetPath:
     # _DeriveClipTimeString -> TfStringPrintf -> ArchVStringPrintf -> ArchVsnprintf -> vsnprintf
@@ -422,7 +413,7 @@ def pad(number, width=0, decimal_places=None):
             number = decimal.Decimal(number)
         number = quantize(number, decimal_places, decimal.ROUND_HALF_EVEN)
 
-    number = futils.native_str(number)
+    number = str(number)
 
     parts = number.split(".", 1)
     parts[0] = parts[0].zfill(width)
@@ -447,7 +438,7 @@ def _getPathSep(path):
     return os.sep
 
 
-_STR_TYPES = frozenset((futils.text_type, futils.binary_type))
+_STR_TYPES = frozenset((str, bytes))
 
 
 def asString(obj):
@@ -456,7 +447,7 @@ def asString(obj):
     and not some derived type that can change semantics.
 
     If the object is unicode, return unicode.
-    Otherwise return the string conversion of the object.
+    Otherwise, return the string conversion of the object.
 
     Args:
         obj: Object to return as str or unicode
@@ -467,15 +458,12 @@ def asString(obj):
     typ = type(obj)
     # explicit type check as faster path
     if typ in _STR_TYPES:
-        if not futils.PY2 and typ is futils.binary_type:
+        if typ is bytes:
             obj = os.fsdecode(obj)
         return obj
     # derived type check
     elif isinstance(obj, bytes):
-        if futils.PY2:
-            obj = bytes(obj)
-        else:
-            obj = obj.decode(FILESYSTEM_ENCODING)
+        obj = obj.decode(FILESYSTEM_ENCODING)
     else:
-        obj = futils.text_type(obj)
-    return futils.native(obj)
+        obj = str(obj)
+    return str(obj)

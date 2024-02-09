@@ -1,14 +1,6 @@
-#! /usr/bin/env python
 """
 filesequence - A parsing object representing sequential files for fileseq.
 """
-from __future__ import absolute_import
-
-from builtins import next
-from builtins import filter
-from builtins import str
-from builtins import map
-from builtins import object
 
 import decimal
 import fnmatch
@@ -19,18 +11,14 @@ import re
 import sys
 from glob import iglob
 
-import future.utils as futils
-from future.utils import iteritems
-
-from fileseq.exceptions import ParseException, MaxSizeException, FileSeqException
-from fileseq.constants import \
-    PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4, \
-    PAD_MAP, REVERSE_PAD_MAP, \
-    DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE, \
-    PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE, \
-    UDIM_PADDING_PATTERNS
-from fileseq.frameset import FrameSet
-from fileseq import constants, utils
+from . import constants, utils
+from .constants import (
+    PAD_STYLE_DEFAULT, PAD_MAP, REVERSE_PAD_MAP,
+    DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE,
+    PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE,
+    UDIM_PADDING_PATTERNS)
+from .exceptions import ParseException, FileSeqException
+from .frameset import FrameSet
 
 
 class FileSequence(object):
@@ -180,7 +168,7 @@ class FileSequence(object):
         try:
             return self._format(template)
         except UnicodeEncodeError:
-            return self._format(futils.text_type(template))
+            return self._format(str(template))
 
     def _format(self, template):
         # Potentially expensive if inverted range is large
@@ -231,7 +219,7 @@ class FileSequence(object):
         dirname = utils.asString(dirname)
         sep = utils._getPathSep(dirname)
         if not dirname.endswith(sep):
-            dirname = futils.native_str(dirname) + sep
+            dirname = str(dirname) + sep
 
         self._dir = dirname
 
@@ -569,7 +557,7 @@ class FileSequence(object):
             zframe = ""
         else:
             zframe = None
-            if not isinstance(frame, futils.integer_types + (float, decimal.Decimal)):
+            if not isinstance(frame, (int, float, decimal.Decimal)):
                 try:
                     frame = int(frame)
                 except ValueError:
@@ -580,7 +568,7 @@ class FileSequence(object):
             if zframe is None:
                 zframe = utils.pad(frame, self._zfill, self._decimal_places)
 
-        return futils.native_str("".join((self._dir, self._base, zframe, self._ext)))
+        return str("".join((self._dir, self._base, zframe, self._ext)))
 
     def index(self, idx):
         """
@@ -617,8 +605,8 @@ class FileSequence(object):
             return utils.batchIterable(self, batch_size)
 
         # generate batches of index ranges for the current sequence
-        frame_gen = utils.batchFrames(0, len(self)-1, batch_size)
-        return (self[f.start:f.stop+1] for f in frame_gen)
+        frame_gen = utils.batchFrames(0, len(self) - 1, batch_size)
+        return (self[f.start:f.stop + 1] for f in frame_gen)
 
     def __setstate__(self, state):
         """
@@ -708,7 +696,7 @@ class FileSequence(object):
             :class:`IndexError`: If slice is outside the range of the sequence
         """
         if not self._frameSet:
-            return futils.native_str(self)
+            return str(self)
 
         frames = self._frameSet[idx]
 
@@ -749,12 +737,6 @@ class FileSequence(object):
             self._pad if frameSet else "",
             self._ext,
         ]
-
-        if futils.PY2:
-            for i, part in enumerate(parts):
-                if isinstance(part, futils.text_type):
-                    parts[i] = futils.native(part.encode(utils.FILESYSTEM_ENCODING))
-
         return "".join(parts)
 
     def __repr__(self):
@@ -779,7 +761,7 @@ class FileSequence(object):
 
     @classmethod
     def yield_sequences_in_list(
-        cls, paths, using=None, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False
+            cls, paths, using=None, pad_style=PAD_STYLE_DEFAULT, allow_subframes=False
     ):
         """
         Yield the discrete sequences within paths.  This does not try to
@@ -896,7 +878,7 @@ class FileSequence(object):
             finish_new_seq(seq)
             return seq
 
-        for (dirname, basename, ext, decimal_places), frames in iteritems(seqs):
+        for (dirname, basename, ext, decimal_places), frames in seqs.items():
             # Short-circuit logic if we do not have multiple frames, since we
             # only need to build and return a single simple sequence
             if not frames:
@@ -959,8 +941,8 @@ class FileSequence(object):
 
     @classmethod
     def findSequencesOnDisk(
-        cls, pattern, include_hidden=False, strictPadding=False, pad_style=PAD_STYLE_DEFAULT,
-        allow_subframes=False
+            cls, pattern, include_hidden=False, strictPadding=False, pad_style=PAD_STYLE_DEFAULT,
+            allow_subframes=False
     ):
         """
         Yield the sequences found in the given directory.
@@ -1209,7 +1191,7 @@ class FileSequence(object):
         sequences = []
         allow_subframes = bool(seq.decimalPlaces())
         for match in cls.yield_sequences_in_list(
-            globbed, using=seq, pad_style=pad_style, allow_subframes=allow_subframes
+                globbed, using=seq, pad_style=pad_style, allow_subframes=allow_subframes
         ):
             if match.basename() == basename and match.extension() == ext:
                 if pad:
@@ -1418,8 +1400,9 @@ class FileSequence(object):
             paddingNum = int(paddingNumStr) if paddingNumStr else 1
             return max(paddingNum, 1)
 
+        char = ''
+        rval = 0
         try:
-            rval = 0
             for char in chars:
                 rval += cls.PAD_MAP[char][pad_style]
             return rval

@@ -1,8 +1,6 @@
-#! /usr/bin/env python
 """
 constants - General constants of use to fileseq operations.
 """
-from __future__ import absolute_import
 
 import re
 
@@ -98,7 +96,8 @@ _FRANGE_SUB_PARTS = [
             )?
         )?
     )
-    """,r"""
+    """,
+    r"""
     (?:
         -?\d+\.\d+                # start frame
         (?:                       # optional range

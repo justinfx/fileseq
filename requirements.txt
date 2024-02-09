@@ -1,6 +1,3 @@
-# python 2/3 support
-future
-
 # testing
 pytest
 pylint

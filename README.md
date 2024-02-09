@@ -31,7 +31,7 @@ A FrameSet wraps a sequence of frames in a list container.
 ```python
 fs = fileseq.FrameSet("1-5")
 for f in fs:
-  print f
+  print(f)
 ```
 
 ### Access Frames

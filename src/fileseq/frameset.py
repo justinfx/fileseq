@@ -1,33 +1,18 @@
-#! /usr/bin/env python
 """
 frameset - A set-like object representing a frame range for fileseq.
 """
-from __future__ import absolute_import, division
-
-from builtins import str
-from builtins import map
-import future.utils as futils
 
 import decimal
 import numbers
+from collections.abc import Set, Sized, Iterable
 
-try:  # > PY2
-    from collections.abc import Set, Sized, Iterable
-except ImportError:  # PY2
-    from collections import Set, Sized, Iterable
-
-from fileseq import constants # constants.MAX_FRAME_SIZE updated during tests
-from fileseq.constants import PAD_MAP, FRANGE_RE, PAD_RE
-from fileseq.exceptions import MaxSizeException, ParseException
-from fileseq.utils import asString, xfrange, unique, pad, quantize, normalizeFrame, normalizeFrames, \
-                          batchIterable
-
-# Issue #44
-# Possibly use an alternate range implementation, depending on platform.
-from fileseq.utils import range
+from . import constants  # constants.MAX_FRAME_SIZE updated during tests
+from .constants import PAD_MAP, FRANGE_RE, PAD_RE
+from .exceptions import MaxSizeException, ParseException
+from .utils import (asString, xfrange, unique, pad, quantize,
+                    normalizeFrame, normalizeFrames, batchIterable)
 
 
-@futils.python_2_unicode_compatible
 class FrameSet(Set):
     """
     A ``FrameSet`` is an immutable representation of the ordered, unique
@@ -119,10 +104,10 @@ class FrameSet(Set):
             try:
                 return fn(*a, **kw)
             except (TypeError, ValueError) as e:
-                futils.raise_from(ParseException('FrameSet args parsing error: {}'.format(e)), e)
+                raise ParseException('FrameSet args parsing error: {}'.format(e)) from e
 
         # if the user provides anything but a string, short-circuit the build
-        if not isinstance(frange, futils.string_types):
+        if not isinstance(frange, (str, )):
             # if it's apparently a FrameSet already, short-circuit the build
             if set(dir(frange)).issuperset(self.__slots__):
                 for attr in self.__slots__:
@@ -147,7 +132,7 @@ class FrameSet(Set):
                     self.framesToFrameRange, self._order, sort=False, compress=False)
                 return
             # if it's an individual number build directly
-            elif isinstance(frange, futils.integer_types + (float, decimal.Decimal)):
+            elif isinstance(frange, (int, float, decimal.Decimal)):
                 frame = normalizeFrame(frange)
                 self._order = (frame, )
                 self._items = frozenset([frame])
@@ -163,14 +148,10 @@ class FrameSet(Set):
 
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        if futils.PY2:
-            frange = bytes(frange).translate(None, ''.join(self.PAD_MAP.keys()))
-            self._frange = asString(frange)
-        else:
-            frange = str(frange)
-            for key in self.PAD_MAP:
-                frange = frange.replace(key, '')
-            self._frange = asString(frange)
+        frange = str(frange)
+        for key in self.PAD_MAP:
+            frange = frange.replace(key, '')
+        self._frange = asString(frange)
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
@@ -211,7 +192,7 @@ class FrameSet(Set):
                 items.update(frames)
             # handle staggered frames (1-100:5)
             elif modifier == ':':
-                if '.' in futils.native_str(chunk):
+                if '.' in str(chunk):
                     raise ValueError("Unable to stagger subframes")
                 for stagger in range(chunk, 0, -1):
                     frames = xfrange(start, end, stagger, maxSize=maxSize)
@@ -221,7 +202,7 @@ class FrameSet(Set):
                     items.update(frames)
             # handle filled frames (1-100y5)
             elif modifier == 'y':
-                if '.' in futils.native_str(chunk):
+                if '.' in str(chunk):
                     raise ValueError("Unable to fill subframes")
                 not_good = frozenset(xfrange(start, end, chunk, maxSize=maxSize))
                 frames = xfrange(start, end, 1, maxSize=maxSize)
@@ -497,7 +478,7 @@ class FrameSet(Set):
         """
         # No inverted frame range when range includes subframes
         for frame in self.items:
-            if not isinstance(frame, futils.integer_types):
+            if not isinstance(frame, (int, )):
                 return ''
 
         result = []
@@ -576,7 +557,7 @@ class FrameSet(Set):
             # this is to allow unpickling of "3rd generation" FrameSets,
             # which are immutable and may be empty.
             self.__init__(state[0])
-        elif isinstance(state, futils.string_types):
+        elif isinstance(state, str):
             # this is to allow unpickling of "2nd generation" FrameSets,
             # which were mutable and could not be empty.
             self.__init__(state)
@@ -994,7 +975,7 @@ class FrameSet(Set):
         Returns:
             :class:`FrameSet`:
         """
-        from_frozenset = self.items.union(*map(set, other))
+        from_frozenset = self.items.union(*(set(o) for o in other))
         return self.from_iterable(from_frozenset, sort=True)
 
     def intersection(self, *other):
@@ -1008,7 +989,7 @@ class FrameSet(Set):
         Returns:
             :class:`FrameSet`:
         """
-        from_frozenset = self.items.intersection(*map(set, other))
+        from_frozenset = self.items.intersection(*(set(o) for o in other))
         return self.from_iterable(from_frozenset, sort=True)
 
     def difference(self, *other):
@@ -1022,7 +1003,7 @@ class FrameSet(Set):
         Returns:
             :class:`FrameSet`:
         """
-        from_frozenset = self.items.difference(*map(set, other))
+        from_frozenset = self.items.difference(*(set(o) for o in other))
         return self.from_iterable(from_frozenset, sort=True)
 
     def symmetric_difference(self, other):
@@ -1096,12 +1077,9 @@ class FrameSet(Set):
         """
         # we're willing to trim padding characters from consideration
         # this translation is orders of magnitude faster than prior method
-        if futils.PY2:
-            frange = bytes(frange).translate(None, ''.join(cls.PAD_MAP.keys()))
-        else:
-            frange = str(frange)
-            for key in cls.PAD_MAP:
-                frange = frange.replace(key, '')
+        frange = str(frange)
+        for key in cls.PAD_MAP:
+            frange = frange.replace(key, '')
 
         if not frange:
             return True
@@ -1401,4 +1379,4 @@ class FrameSet(Set):
         if sort:
             frames.sort()
         ret = ','.join(FrameSet.framesToFrameRanges(frames, zfill))
-        return futils.native_str(ret)
+        return str(ret)
