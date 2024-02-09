@@ -10,7 +10,7 @@ MAX_FRAME_SIZE = 10000000
 
 
 class _PadStyle(object):
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.__name = name
 
     def __hash__(self):

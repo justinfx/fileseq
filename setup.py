@@ -22,6 +22,7 @@ setup(name='Fileseq',
 
       package_dir={'': 'src'},
       packages=find_packages('src'),
+      package_data={'fileseq': ['py.typed']},
 
       test_suite="test.run",
 

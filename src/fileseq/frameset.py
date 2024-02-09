@@ -1,9 +1,11 @@
 """
 frameset - A set-like object representing a frame range for fileseq.
 """
+from __future__ import annotations
 
 import decimal
 import numbers
+import typing
 from collections.abc import Set, Sized, Iterable
 
 from . import constants  # constants.MAX_FRAME_SIZE updated during tests
@@ -80,6 +82,9 @@ class FrameSet(Set):
     PAD_RE = PAD_RE
 
     __slots__ = ('_frange', '_items', '_order')
+
+    _items: frozenset[int]
+    _order: tuple[int, ...]
 
     def __new__(cls, *args, **kwargs):
         """
@@ -225,7 +230,7 @@ class FrameSet(Set):
         self._order = tuple(order)
 
     @property
-    def is_null(self):
+    def is_null(self) -> bool:
         """
         Read-only access to determine if the :class:`FrameSet` is the null or
         empty :class:`FrameSet`.
@@ -236,7 +241,7 @@ class FrameSet(Set):
         return not (self._frange and self._items and self._order)
 
     @property
-    def frange(self):
+    def frange(self) -> str:
         """
         Read-only access to the frame range used to create this :class:`FrameSet`.
 
@@ -246,7 +251,7 @@ class FrameSet(Set):
         return self._frange
 
     @property
-    def items(self):
+    def items(self) -> frozenset[int]:
         """
         Read-only access to the unique frames that form this :class:`FrameSet`.
 
@@ -256,7 +261,7 @@ class FrameSet(Set):
         return self._items
 
     @property
-    def order(self):
+    def order(self) -> tuple[int, ...]:
         """
         Read-only access to the ordered frames that form this :class:`FrameSet`.
 
@@ -266,7 +271,7 @@ class FrameSet(Set):
         return self._order
 
     @classmethod
-    def from_iterable(cls, frames, sort=False):
+    def from_iterable(cls, frames: typing.Iterable[int], sort: bool = False) -> FrameSet:
         """
         Build a :class:`FrameSet` from an iterable of frames.
 
@@ -280,7 +285,7 @@ class FrameSet(Set):
         return FrameSet(sorted(frames) if sort else frames)
 
     @classmethod
-    def from_range(cls, start, end, step=1):
+    def from_range(cls, start: int, end: int, step: int = 1) -> FrameSet:
         """
         Build a :class:`FrameSet` from given start and end frames (inclusive).
 
@@ -314,7 +319,7 @@ class FrameSet(Set):
         Private method to simplify comparison operations.
 
         Args:
-            other (:class:`FrameSet` or set or frozenset or or iterable): item to be compared
+            other (:class:`FrameSet` or set or frozenset or iterable): item to be compared
 
         Returns:
             :class:`FrameSet`
@@ -329,7 +334,7 @@ class FrameSet(Set):
         except Exception:
             return NotImplemented
 
-    def index(self, frame):
+    def index(self, frame: int) -> int:
         """
         Return the index of the given frame number within the :class:`FrameSet`.
 
@@ -344,7 +349,7 @@ class FrameSet(Set):
         """
         return self.order.index(frame)
 
-    def frame(self, index):
+    def frame(self, index: int) -> int:
         """
         Return the frame at the given index.
 
@@ -359,7 +364,7 @@ class FrameSet(Set):
         """
         return self.order[index]
 
-    def hasFrame(self, frame):
+    def hasFrame(self, frame: int) -> bool:
         """
         Check if the :class:`FrameSet` contains the frame or subframe
 
@@ -371,7 +376,7 @@ class FrameSet(Set):
         """
         return frame in self
 
-    def hasSubFrames(self):
+    def hasSubFrames(self) -> bool:
         """
         Check if the :class:`FrameSet` contains any subframes
 
@@ -383,7 +388,7 @@ class FrameSet(Set):
             isinstance(item, (float, decimal.Decimal)) for item in self.items
         )
 
-    def start(self):
+    def start(self) -> int:
         """
         The first frame in the :class:`FrameSet`.
 
@@ -395,7 +400,7 @@ class FrameSet(Set):
         """
         return self.order[0]
 
-    def end(self):
+    def end(self) -> int:
         """
         The last frame in the :class:`FrameSet`.
 
@@ -407,7 +412,7 @@ class FrameSet(Set):
         """
         return self.order[-1]
 
-    def isConsecutive(self):
+    def isConsecutive(self) -> bool:
         """
         Return whether the frame range represents consecutive integers,
         as opposed to having a stepping >= 2
@@ -425,7 +430,7 @@ class FrameSet(Set):
         """
         return len(self) == abs(self.end()-self.start()) + 1
 
-    def frameRange(self, zfill=0, decimal_places=None):
+    def frameRange(self, zfill: int = 0, decimal_places: int|None = None) -> str:
         """
         Return the frame range used to create this :class:`FrameSet`, padded if
         desired.
@@ -450,7 +455,7 @@ class FrameSet(Set):
         """
         return self.padFrameRange(self.frange, zfill, decimal_places)
 
-    def invertedFrameRange(self, zfill=0, decimal_places=None):
+    def invertedFrameRange(self, zfill:int = 0, decimal_places: int|None = None) -> str:
         """
         Return the inverse of the :class:`FrameSet` 's frame range, padded if
         desired.
@@ -499,7 +504,7 @@ class FrameSet(Set):
         return self.framesToFrameRange(
             result, zfill=zfill, sort=False, compress=False)
 
-    def normalize(self):
+    def normalize(self) -> FrameSet:
         """
         Returns a new normalized (sorted and compacted) :class:`FrameSet`.
 
@@ -509,7 +514,7 @@ class FrameSet(Set):
         return FrameSet(FrameSet.framesToFrameRange(
             self.items, sort=True, compress=False))
 
-    def batches(self, batch_size, frames=False):
+    def batches(self, batch_size: int, frames: bool = False) -> typing.Generator:
         """
         Returns a generator that yields sub-batches of frames, up to ``batch_size``.
         If ``frames=False``, each batch is a new ``FrameSet`` subrange.
@@ -913,7 +918,7 @@ class FrameSet(Set):
 
     __rxor__ = __xor__
 
-    def isdisjoint(self, other):
+    def isdisjoint(self, other) -> bool|NotImplemented:
         """
         Check if the contents of :class:self has no common intersection with the
         contents of :class:other.
@@ -930,7 +935,7 @@ class FrameSet(Set):
             return NotImplemented
         return self.items.isdisjoint(other.items)
 
-    def issubset(self, other):
+    def issubset(self, other) -> bool|NotImplemented:
         """
         Check if the contents of `self` is a subset of the contents of
         `other.`
@@ -947,7 +952,7 @@ class FrameSet(Set):
             return NotImplemented
         return self.items <= other.items
 
-    def issuperset(self, other):
+    def issuperset(self, other) -> bool|NotImplemented:
         """
         Check if the contents of `self` is a superset of the contents of
         `other.`
@@ -964,7 +969,7 @@ class FrameSet(Set):
             return NotImplemented
         return self.items >= other.items
 
-    def union(self, *other):
+    def union(self, *other) -> FrameSet:
         """
         Returns a new :class:`FrameSet` with the elements of `self` and
         of `other`.
@@ -978,7 +983,7 @@ class FrameSet(Set):
         from_frozenset = self.items.union(*(set(o) for o in other))
         return self.from_iterable(from_frozenset, sort=True)
 
-    def intersection(self, *other):
+    def intersection(self, *other) -> FrameSet:
         """
         Returns a new :class:`FrameSet` with the elements common to `self` and
         `other`.
@@ -992,7 +997,7 @@ class FrameSet(Set):
         from_frozenset = self.items.intersection(*(set(o) for o in other))
         return self.from_iterable(from_frozenset, sort=True)
 
-    def difference(self, *other):
+    def difference(self, *other) -> FrameSet:
         """
         Returns a new :class:`FrameSet` with elements in `self` but not in
         `other`.
@@ -1006,7 +1011,7 @@ class FrameSet(Set):
         from_frozenset = self.items.difference(*(set(o) for o in other))
         return self.from_iterable(from_frozenset, sort=True)
 
-    def symmetric_difference(self, other):
+    def symmetric_difference(self, other) -> FrameSet:
         """
         Returns a new :class:`FrameSet` that contains all the elements in either
         `self` or `other`, but not both.
@@ -1023,7 +1028,7 @@ class FrameSet(Set):
         from_frozenset = self.items.symmetric_difference(other.items)
         return self.from_iterable(from_frozenset, sort=True)
 
-    def copy(self):
+    def copy(self) -> FrameSet:
         """
         Create a deep copy of this :class:`FrameSet`.
 
@@ -1064,7 +1069,7 @@ class FrameSet(Set):
                                    % (size, constants.MAX_FRAME_SIZE))
 
     @classmethod
-    def isFrameRange(cls, frange):
+    def isFrameRange(cls, frange: str) -> bool:
         """
         Return True if the given string is a frame range. Any padding
         characters, such as '#' and '@' are ignored.
@@ -1095,7 +1100,7 @@ class FrameSet(Set):
         return True
 
     @classmethod
-    def padFrameRange(cls, frange, zfill, decimal_places=None):
+    def padFrameRange(cls, frange: str, zfill: int, decimal_places: int|None = None) -> str:
         """
         Return the zero-padded version of the frame range string.
 
@@ -1125,7 +1130,7 @@ class FrameSet(Set):
         return cls.PAD_RE.sub(_do_pad, frange)
 
     @classmethod
-    def _parse_frange_part(cls, frange):
+    def _parse_frange_part(cls, frange: str) -> tuple[int, int, str, int]:
         """
         Internal method: parse a discrete frame range part.
 
@@ -1161,7 +1166,7 @@ class FrameSet(Set):
         return start, end, modifier, abs(chunk)
 
     @staticmethod
-    def _build_frange_part(start, stop, stride, zfill=0):
+    def _build_frange_part(start: int, stop: int|None, stride: int|decimal.Decimal|None, zfill: int = 0) -> str:
         """
         Private method: builds a proper and padded frame range string.
 
@@ -1188,7 +1193,13 @@ class FrameSet(Set):
 
     @staticmethod
     def _build_frange_part_decimal(
-        start, stop, count, stride, min_stride, max_stride, zfill=0
+            start: decimal.Decimal,
+            stop: decimal.Decimal,
+            count:int,
+            stride: decimal.Decimal|None,
+            min_stride: decimal.Decimal,
+            max_stride: decimal.Decimal,
+            zfill: int = 0
     ):
         """
         Private method: builds a proper and padded subframe range string from
@@ -1232,7 +1243,7 @@ class FrameSet(Set):
         return FrameSet._build_frange_part(start, stop, stride, zfill=zfill)
 
     @staticmethod
-    def framesToFrameRanges(frames, zfill=0):
+    def framesToFrameRanges(frames: typing.Iterable, zfill: int = 0) -> typing.Generator[str]:
         """
         Converts a sequence of frames to a series of padded
         frame range strings.
@@ -1355,7 +1366,7 @@ class FrameSet(Set):
                 yield _build(curr_start, curr_frame, curr_stride, zfill)
 
     @staticmethod
-    def framesToFrameRange(frames, sort=True, zfill=0, compress=False):
+    def framesToFrameRange(frames: typing.Iterable, sort: bool = True, zfill: int = 0, compress: bool = False) -> str:
         """
         Converts an iterator of frames into a
         frame range string.
