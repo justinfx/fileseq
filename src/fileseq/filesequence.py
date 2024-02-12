@@ -36,6 +36,15 @@ class FileSequence:
             :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
             ``fileseq.constants.MAX_FRAME_SIZE``
     """
+    _base: str
+    _decimal_places: int
+    _dir: str
+    _ext: str
+    _frameSet: FrameSet|None
+    _frame_pad: str
+    _pad: str
+    _subframe_pad: str
+    
     DISK_RE = DISK_RE
     DISK_SUB_RE = DISK_SUB_RE
     PAD_MAP = PAD_MAP
@@ -526,7 +535,7 @@ class FileSequence:
         """
         return self._zfill
 
-    def decimalPlaces(self) -> int | None:
+    def decimalPlaces(self) -> int:
         """
         Returns the number of decimal places to output.
 
@@ -555,13 +564,13 @@ class FileSequence:
         Returns:
             str:
         """
+        zframe: object = None
         if self._zfill == 0:
             # There may have been no placeholder for frame IDs in
             # the sequence, in which case we don't want to insert
             # a frame ID
             zframe = ""
         else:
-            zframe = None
             if not isinstance(frame, (int, float, decimal.Decimal)):
                 try:
                     frame = int(frame)
@@ -573,7 +582,7 @@ class FileSequence:
             if zframe is None:
                 zframe = utils.pad(frame, self._zfill, self._decimal_places)
 
-        return str("".join((self._dir, self._base, zframe, self._ext)))
+        return str("".join((self._dir, self._base, str(zframe), self._ext)))
 
     def index(self, idx: int) -> str:
         """
@@ -768,9 +777,9 @@ class FileSequence:
     def yield_sequences_in_list(
             cls,
             paths: typing.Iterable[str],
-            using: FileSequence = None,
+            using: FileSequence|None = None,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
-            allow_subframes: bool = False) -> typing.Generator[FileSequence]:
+            allow_subframes: bool = False) -> typing.Iterator[FileSequence]:
         """
         Yield the discrete sequences within paths.  This does not try to
         determine if the files actually exist on disk, it assumes you already
@@ -803,22 +812,21 @@ class FileSequence:
         Yields:
             :obj:`FileSequence`:
         """
-        seqs = {}
+        seqs: dict[tuple[str, str, str, int], set[str]] = {}
         if allow_subframes:
             _check = cls.DISK_SUB_RE.match
         else:
             _check = cls.DISK_RE.match
 
-        using_template = isinstance(using, FileSequence)
-
-        if using_template:
+        if isinstance(using, FileSequence):
             dirname, basename, ext = using.dirname(), using.basename(), using.extension()
-            head = len(dirname + basename)
-            tail = -len(ext)
-            frames = set()
+            head: int = len(dirname + basename)
+            tail: int = -len(ext)
+            frames: set[str] = set()
 
+            path: str
             for path in filter(None, map(utils.asString, paths)):
-                frame = path[head:tail]
+                frame = path[head:tail]  # type: ignore
                 try:
                     int(frame)
                 except ValueError:
@@ -904,7 +912,7 @@ class FileSequence:
             # sort the frame list by their string padding width
             sorted_frames = sorted(((get_frame_width(f), f) for f in frames), key=operator.itemgetter(0))
 
-            current_frames = []
+            current_frames: list[str] = []
             current_width = None
 
             for width, frame in sorted_frames:
@@ -1036,7 +1044,7 @@ class FileSequence:
                 raise FileSeqException(msg)
 
             if seq.padding() and strictPadding:
-                get_frame = lambda f: _match_pattern(f).group(1)
+                get_frame = lambda f: _match_pattern(f).group(1)  # type: ignore
                 _filter_padding = functools.partial(
                     cls._filterByPaddingNum,
                     zfill=seq.zfill(),
@@ -1048,7 +1056,7 @@ class FileSequence:
         # Avoids testing the os.listdir() for files as
         # a second step.
         ret = next(os.walk(dirpath), None)
-        files = ret[-1] if ret else []
+        files: typing.Iterable[str] = ret[-1] if ret else []
 
         # collapse some generators to get us the files that match our regex
         if not include_hidden:

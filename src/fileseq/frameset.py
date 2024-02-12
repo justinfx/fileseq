@@ -105,6 +105,7 @@ class FrameSet(Set):
     def __init__(self, frange):
         """Initialize the :class:`FrameSet` object.
         """
+
         def catch_parse_err(fn, *a, **kw):
             try:
                 return fn(*a, **kw)
@@ -112,7 +113,7 @@ class FrameSet(Set):
                 raise ParseException('FrameSet args parsing error: {}'.format(e)) from e
 
         # if the user provides anything but a string, short-circuit the build
-        if not isinstance(frange, (str, )):
+        if not isinstance(frange, (str,)):
             # if it's apparently a FrameSet already, short-circuit the build
             if set(dir(frange)).issuperset(self.__slots__):
                 for attr in self.__slots__:
@@ -139,7 +140,7 @@ class FrameSet(Set):
             # if it's an individual number build directly
             elif isinstance(frange, (int, float, decimal.Decimal)):
                 frame = normalizeFrame(frange)
-                self._order = (frame, )
+                self._order = (frame,)
                 self._items = frozenset([frame])
                 self._frange = catch_parse_err(
                     self.framesToFrameRange, self._order, sort=False, compress=False)
@@ -428,9 +429,9 @@ class FrameSet(Set):
         Returns:
             bool:
         """
-        return len(self) == abs(self.end()-self.start()) + 1
+        return len(self) == abs(self.end() - self.start()) + 1
 
-    def frameRange(self, zfill: int = 0, decimal_places: int|None = None) -> str:
+    def frameRange(self, zfill: int = 0, decimal_places: int | None = None) -> str:
         """
         Return the frame range used to create this :class:`FrameSet`, padded if
         desired.
@@ -455,7 +456,7 @@ class FrameSet(Set):
         """
         return self.padFrameRange(self.frange, zfill, decimal_places)
 
-    def invertedFrameRange(self, zfill:int = 0, decimal_places: int|None = None) -> str:
+    def invertedFrameRange(self, zfill: int = 0, decimal_places: int | None = None) -> str:
         """
         Return the inverse of the :class:`FrameSet` 's frame range, padded if
         desired.
@@ -483,10 +484,10 @@ class FrameSet(Set):
         """
         # No inverted frame range when range includes subframes
         for frame in self.items:
-            if not isinstance(frame, (int, )):
+            if not isinstance(frame, (int,)):
                 return ''
 
-        result = []
+        result: list[int] = []
         frames = sorted(self.items)
         for idx, frame in enumerate(frames[:-1]):
             next_frame = frames[idx + 1]
@@ -514,7 +515,7 @@ class FrameSet(Set):
         return FrameSet(FrameSet.framesToFrameRange(
             self.items, sort=True, compress=False))
 
-    def batches(self, batch_size: int, frames: bool = False) -> typing.Generator:
+    def batches(self, batch_size: int, frames: bool = False) -> typing.Iterator:
         """
         Returns a generator that yields sub-batches of frames, up to ``batch_size``.
         If ``frames=False``, each batch is a new ``FrameSet`` subrange.
@@ -545,7 +546,7 @@ class FrameSet(Set):
         # we have to special-case the empty FrameSet, because of a quirk in
         # Python where __setstate__ will not be called if the return value of
         # bool(__getstate__) == False.  A tuple with ('',) will return True.
-        return (self.frange, )
+        return (self.frange,)
 
     def __setstate__(self, state):
         """
@@ -691,7 +692,7 @@ class FrameSet(Set):
         if other is NotImplemented:
             return NotImplemented
         return self.items < other.items or (
-            self.items == other.items and self.order < other.order)
+                self.items == other.items and self.order < other.order)
 
     def __le__(self, other):
         """
@@ -798,7 +799,7 @@ class FrameSet(Set):
         if other is NotImplemented:
             return NotImplemented
         return self.items > other.items or (
-            self.items == other.items and self.order > other.order)
+                self.items == other.items and self.order > other.order)
 
     def __and__(self, other):
         """
@@ -918,7 +919,7 @@ class FrameSet(Set):
 
     __rxor__ = __xor__
 
-    def isdisjoint(self, other) -> bool|NotImplemented:
+    def isdisjoint(self, other) -> bool | NotImplemented:  # type: ignore
         """
         Check if the contents of :class:self has no common intersection with the
         contents of :class:other.
@@ -935,7 +936,7 @@ class FrameSet(Set):
             return NotImplemented
         return self.items.isdisjoint(other.items)
 
-    def issubset(self, other) -> bool|NotImplemented:
+    def issubset(self, other) -> bool | NotImplemented:  # type: ignore
         """
         Check if the contents of `self` is a subset of the contents of
         `other.`
@@ -952,7 +953,7 @@ class FrameSet(Set):
             return NotImplemented
         return self.items <= other.items
 
-    def issuperset(self, other) -> bool|NotImplemented:
+    def issuperset(self, other) -> bool | NotImplemented:  # type: ignore
         """
         Check if the contents of `self` is a superset of the contents of
         `other.`
@@ -1042,7 +1043,7 @@ class FrameSet(Set):
         return fs
 
     @classmethod
-    def _maxSizeCheck(cls, obj):
+    def _maxSizeCheck(cls, obj: int | float | decimal.Decimal | Sized):
         """
         Raise a MaxSizeException if ``obj`` exceeds MAX_FRAME_SIZE
 
@@ -1056,9 +1057,9 @@ class FrameSet(Set):
         size = 0
 
         if isinstance(obj, numbers.Number):
-            if obj > constants.MAX_FRAME_SIZE:
+            if obj > constants.MAX_FRAME_SIZE:  # type: ignore
                 fail = True
-                size = obj
+                size = obj  # type: ignore
 
         elif hasattr(obj, '__len__'):
             size = len(obj)
@@ -1100,7 +1101,7 @@ class FrameSet(Set):
         return True
 
     @classmethod
-    def padFrameRange(cls, frange: str, zfill: int, decimal_places: int|None = None) -> str:
+    def padFrameRange(cls, frange: str, zfill: int, decimal_places: int | None = None) -> str:
         """
         Return the zero-padded version of the frame range string.
 
@@ -1112,6 +1113,7 @@ class FrameSet(Set):
         Returns:
             str:
         """
+
         def _do_pad(match):
             """
             Substitutes padded for unpadded frames.
@@ -1119,11 +1121,11 @@ class FrameSet(Set):
             result = list(match.groups())
 
             neg, start = result[:2]
-            result[:2] = [pad(neg+start, zfill, decimal_places)]
+            result[:2] = [pad(neg + start, zfill, decimal_places)]
 
             neg, end = result[2:4]
             if end:
-                result[2:4] = [pad(neg+end, zfill, decimal_places)]
+                result[2:4] = [pad(neg + end, zfill, decimal_places)]
 
             return ''.join((i for i in result if i))
 
@@ -1166,7 +1168,7 @@ class FrameSet(Set):
         return start, end, modifier, abs(chunk)
 
     @staticmethod
-    def _build_frange_part(start: int, stop: int|None, stride: int|decimal.Decimal|None, zfill: int = 0) -> str:
+    def _build_frange_part(start: object, stop: object, stride: int | decimal.Decimal | None, zfill: int = 0) -> str:
         """
         Private method: builds a proper and padded frame range string.
 
@@ -1195,8 +1197,8 @@ class FrameSet(Set):
     def _build_frange_part_decimal(
             start: decimal.Decimal,
             stop: decimal.Decimal,
-            count:int,
-            stride: decimal.Decimal|None,
+            count: int,
+            stride: decimal.Decimal | None,
             min_stride: decimal.Decimal,
             max_stride: decimal.Decimal,
             zfill: int = 0
@@ -1228,14 +1230,16 @@ class FrameSet(Set):
 
             # Minimise number of decimal places in stride
             stride_range = max_stride - min_stride
-            stride_range = stride_range.as_tuple()
-            leading_zeros = abs(len(stride_range.digits) + stride_range.exponent)
+            stride_range_tup = stride_range.as_tuple()
+            leading_zeros = abs(len(stride_range_tup.digits) + int(stride_range_tup.exponent))
             stride = abs(quantize(stride, leading_zeros + 1)).normalize()
+
+        assert isinstance(stride, decimal.Decimal)
 
         # Adjust end frame if required so correct number of steps is
         # calculated when recreating FrameSet from frange string
         while abs(stop - start) / stride + 1 < count:
-            exponent = stop.as_tuple().exponent
+            exponent = int(stop.as_tuple().exponent)
             delta = decimal.Decimal(1).scaleb(exponent)
             stop += delta.copy_sign(stop)
 
@@ -1243,7 +1247,7 @@ class FrameSet(Set):
         return FrameSet._build_frange_part(start, stop, stride, zfill=zfill)
 
     @staticmethod
-    def framesToFrameRanges(frames: typing.Iterable, zfill: int = 0) -> typing.Generator[str]:
+    def framesToFrameRanges(frames: typing.Iterable, zfill: int = 0) -> typing.Iterator[str]:
         """
         Converts a sequence of frames to a series of padded
         frame range strings.
@@ -1263,9 +1267,9 @@ class FrameSet(Set):
 
         curr_start = None
         curr_stride = None
-        curr_strides = None # used for decimal frame handling only
-        curr_min_stride = None # used for decimal frame handling only
-        curr_max_stride = None # used for decimal frame handling only
+        curr_strides = None  # used for decimal frame handling only
+        curr_min_stride = None  # used for decimal frame handling only
+        curr_max_stride = None  # used for decimal frame handling only
         curr_frame = None
         last_frame = None
         curr_count = 0
@@ -1276,9 +1280,9 @@ class FrameSet(Set):
                 curr_count += 1
                 continue
             if curr_stride is None:
-                curr_stride = abs(curr_frame-curr_start)
+                curr_stride = abs(curr_frame - curr_start)
                 curr_strides = {curr_stride}
-            new_stride = abs(curr_frame-last_frame)
+            new_stride = abs(curr_frame - last_frame)
 
             # Handle decimal strides and frame rounding
             if isinstance(curr_stride, decimal.Decimal):
@@ -1342,7 +1346,7 @@ class FrameSet(Set):
                 if isinstance(curr_stride, decimal.Decimal):
                     stride = curr_strides.pop() if len(curr_strides) == 1 else None
                     yield _build_decimal(curr_start, last_frame, curr_count,
-                        stride, curr_min_stride, curr_max_stride, zfill)
+                                         stride, curr_min_stride, curr_max_stride, zfill)
                 else:
                     yield _build(curr_start, last_frame, curr_stride, zfill)
                 curr_stride = None
@@ -1361,7 +1365,7 @@ class FrameSet(Set):
             if isinstance(curr_stride, decimal.Decimal):
                 stride = curr_strides.pop() if len(curr_strides) == 1 else None
                 yield _build_decimal(curr_start, curr_frame, curr_count,
-                    stride, curr_min_stride, curr_max_stride, zfill)
+                                     stride, curr_min_stride, curr_max_stride, zfill)
             else:
                 yield _build(curr_start, curr_frame, curr_stride, zfill)
 
