@@ -4,6 +4,8 @@ utils - General tools of use to fileseq operations.
 
 import decimal
 import os
+import typing
+
 import sys
 from itertools import chain, count, islice
 
@@ -319,7 +321,7 @@ def normalizeFrame(frame):
                 return normalizeFrame(frame)
 
 
-def normalizeFrames(frames):
+def normalizeFrames(frames: typing.Iterable[typing.Any]) -> list:
     """
     Convert a sequence of frame numbers to the most appropriate type for the
     overall sequence, where all members of the result are of the same type.
@@ -335,6 +337,8 @@ def normalizeFrames(frames):
     # Normalise all frame values and find their type
     frames = [normalizeFrame(frame) for frame in frames]
     frame_types = set(type(frame) for frame in frames)
+
+    FrameType: object
 
     # Determine best overall type for frames
     if float in frame_types:

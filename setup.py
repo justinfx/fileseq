@@ -22,6 +22,7 @@ setup(name='Fileseq',
 
       package_dir={'': 'src'},
       packages=find_packages('src'),
+      package_data={'fileseq': ['py.typed']},
 
       test_suite="test.run",
 
@@ -51,4 +52,6 @@ setup(name='Fileseq',
       ],
 
       keywords='vfx visual effects file sequence frames image',
+
+      install_requires=['typing-extensions'],
       )

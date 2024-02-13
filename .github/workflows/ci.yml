@@ -59,11 +59,24 @@ jobs:
       - name: Fuzz tests
         run: |
           python ./test/test_fuzz.py
+  mypy:
+    name: mypy type check
+    runs-on: ubuntu-22.04
+    # We want to run on external PRs, but not on our own internal PRs as they'll be run
+    # by the push to the branch.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run mypy
+        uses: jpetrucciani/mypy-check@master
+        with:
+          path: './src/fileseq'
 
   deploy:
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: 
       - test
+      - mypy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
