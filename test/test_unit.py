@@ -584,7 +584,6 @@ class TestFrameSet(unittest.TestCase):
             actual = list(FrameSet(case.input).batches(case.batch, frames=False))
             self.assertListEqual(expect, actual, msg=str(case))
 
-
 class TestBase(unittest.TestCase):
     RX_PATHSEP = re.compile(r'[/\\]')
 
@@ -846,6 +845,31 @@ class TestFileSequence(TestBase):
             self.assertEqual(case.input.padding(), actual.padding(), msg=str(case))
             self.assertEqual(case.expected_zfill, actual.zfill(), msg=str(case))
 
+    def testDefaultRangePadding(self):
+        """
+        Set a default pad char when a range is set
+        https://github.com/justinfx/fileseq/issues/12
+        """
+        # Should set a default pad char
+        fs = FileSequence("foo.exr")
+        self.assertEqual("", fs.padding())
+        fs.setFrameRange("1-3")
+        self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
+        self.assertEqual(["foo1.exr", "foo2.exr", "foo3.exr"], list(fs))
+
+        # Should set a default pad char
+        fs = FileSequence("foo.exr")
+        self.assertEqual("", fs.padding())
+        fs.setFrameSet(FrameSet("1-3"))
+        self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
+        self.assertEqual(["foo1.exr", "foo2.exr", "foo3.exr"], list(fs))
+
+        # Should not change an existing pad char
+        fs = FileSequence("foo.exr")
+        fs.setPadding("#")
+        fs.setFrameRange("1-3")
+        self.assertEqual("#", fs.padding())
+
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameSet(FrameSet("10-20"))
@@ -952,6 +976,7 @@ class TestFileSequence(TestBase):
 
     def testNoPlaceholder(self):
         expected = "/path/to/file.mov"
+        expected_patt = "/path/to/file%d.mov"
         seqs = FileSequence(expected)
 
         self.assertEquals(expected, seqs.index(0))
@@ -965,10 +990,11 @@ class TestFileSequence(TestBase):
         seqs.setFrameRange("1-100")
 
         for i in range(0, 100):
+            expected = expected_patt % (i+1)
             self.assertEquals(expected, seqs.index(i))
             self.assertEquals(expected, seqs.frame(i + 1))
             self.assertEquals(expected, seqs[i])
-        self.assertEquals(1, len(seqs))
+        self.assertEquals(100, len(seqs))
 
         seqs.setPadding("#")
         self.assertEquals(100, len(seqs))

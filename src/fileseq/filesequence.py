@@ -53,6 +53,8 @@ class FileSequence:
     SPLIT_RE = SPLIT_RE
     SPLIT_SUB_RE = SPLIT_SUB_RE
 
+    _DEFAULT_PAD_CHAR = '@'
+
     def __init__(self,
                  sequence: str,
                  pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
@@ -430,6 +432,9 @@ class FileSequence:
                 ])
         self._frameSet = frameSet
 
+        if not self._pad:
+            self.setPadding(self._DEFAULT_PAD_CHAR)
+
     def extension(self) -> str:
         """
         Return the file extension of the sequence, including leading period.
@@ -485,6 +490,8 @@ class FileSequence:
             frange (str): a properly formatted frame range, as per :class:`.FrameSet`
         """
         self._frameSet = FrameSet(frange)
+        if not self._pad:
+            self.setPadding(self._DEFAULT_PAD_CHAR)
 
     def invertedFrameRange(self) -> str:
         """
