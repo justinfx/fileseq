@@ -1,33 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-from __future__ import absolute_import
-
 import warnings
+
 with warnings.catch_warnings():
     warnings.simplefilter('ignore', DeprecationWarning)
-
-    from future import standard_library
-    standard_library.install_aliases()
-
-from builtins import map
-from future.utils import string_types, native_str, integer_types, text_type, PY2
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 from decimal import Decimal
 import json
 import operator
 import os
+import pickle
 import re
 import string
 import sys
-from collections import namedtuple
 import unittest
+from collections import namedtuple
 
 import fileseq
 from fileseq import (FrameSet,
@@ -42,12 +30,10 @@ from fileseq import (FrameSet,
 from fileseq import constants, exceptions, utils
 from fileseq.constants import PAD_MAP
 
-
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 SRC_DIR = os.path.join(TEST_DIR, "../src")
 sys.path.insert(0, SRC_DIR)
 os.chdir(TEST_DIR)
-
 
 # For testing compatibility with pickle values from older version of fileseq
 PICKLE_TEST_SEQ = "/path/to/file.1-100x2#.exr"
@@ -110,7 +96,7 @@ class TestUtils(unittest.TestCase):
         for start, stop, step in table:
             expected = list(range(start, stop, step))
             actual = utils.xrange2(start, stop, step)
-            self.assertEqual(len(expected),  utils.lenRange(start, stop, step))
+            self.assertEqual(len(expected), utils.lenRange(start, stop, step))
             self.assertEqual(len(expected), len(actual))
             self.assertEqual(expected, list(actual))
 
@@ -137,12 +123,12 @@ class TestUtils(unittest.TestCase):
         for case in table:
             actual = utils.xfrange(case.start, case.stop, case.step)
             self.assertIsInstance(actual, utils._xfrange)
-            self.assertEqual(case.start,  actual.start, msg=str(case))
-            self.assertEqual(case.stop,  actual.stop, msg=str(case))
+            self.assertEqual(case.start, actual.start, msg=str(case))
+            self.assertEqual(case.stop, actual.stop, msg=str(case))
             if case.start <= case.stop:
-                self.assertEqual(abs(case.step),  actual.step, msg=str(case))
+                self.assertEqual(abs(case.step), actual.step, msg=str(case))
             else:
-                self.assertEqual(-(abs(case.step)),  actual.step, msg=str(case))
+                self.assertEqual(-(abs(case.step)), actual.step, msg=str(case))
             self.assertEqual(case.len, len(actual), msg=str(case))
 
     def testAsString(self):
@@ -159,24 +145,24 @@ class TestUtils(unittest.TestCase):
     def testBatchFrames(self):
         Case = namedtuple('Case', ['start', 'stop', 'batch_size', 'expect'])
         table = [
-            Case(1,  5, -1, []),
-            Case(1,  5,  0, []),
-            Case(1,  5,  1, [[1], [2], [3], [4], [5]]),
-            Case(1,  5,  2, [[1,2], [3,4], [5]]),
-            Case(1,  5,  3, [[1,2,3], [4,5]]),
-            Case(1,  5,  4, [[1,2,3,4], [5]]),
-            Case(1,  5,  5, [[1,2,3,4,5]]),
-            Case(1,  5,  9, [[1,2,3,4,5]]),
-            Case(2, 13,  3, [[2,3,4], [5,6,7], [8,9,10], [11,12,13]]),
-            Case(2, 13,  4, [[2,3,4,5], [6,7,8,9], [10,11,12,13]]),
+            Case(1, 5, -1, []),
+            Case(1, 5, 0, []),
+            Case(1, 5, 1, [[1], [2], [3], [4], [5]]),
+            Case(1, 5, 2, [[1, 2], [3, 4], [5]]),
+            Case(1, 5, 3, [[1, 2, 3], [4, 5]]),
+            Case(1, 5, 4, [[1, 2, 3, 4], [5]]),
+            Case(1, 5, 5, [[1, 2, 3, 4, 5]]),
+            Case(1, 5, 9, [[1, 2, 3, 4, 5]]),
+            Case(2, 13, 3, [[2, 3, 4], [5, 6, 7], [8, 9, 10], [11, 12, 13]]),
+            Case(2, 13, 4, [[2, 3, 4, 5], [6, 7, 8, 9], [10, 11, 12, 13]]),
 
-            Case( 5, 1, 1, [[5], [4], [3], [2], [1]]),
-            Case(13, 2, 2, [[13,12], [11,10], [9,8], [7,6], [5,4], [3,2]]),
-            Case(13, 2, 3, [[13,12,11], [10,9,8], [7,6,5], [4,3,2]]),
-            Case(13, 2, 4, [[13,12,11,10], [9,8,7,6], [5,4,3,2]]),
-            Case(13, 2, 5, [[13,12,11,10,9], [8,7,6,5,4], [3,2]]),
-            Case(13, 2, 6, [[13,12,11,10,9,8], [7,6,5,4,3,2]]),
-            Case(13, 1, 6, [[13,12,11,10,9,8], [7,6,5,4,3,2], [1]]),
+            Case(5, 1, 1, [[5], [4], [3], [2], [1]]),
+            Case(13, 2, 2, [[13, 12], [11, 10], [9, 8], [7, 6], [5, 4], [3, 2]]),
+            Case(13, 2, 3, [[13, 12, 11], [10, 9, 8], [7, 6, 5], [4, 3, 2]]),
+            Case(13, 2, 4, [[13, 12, 11, 10], [9, 8, 7, 6], [5, 4, 3, 2]]),
+            Case(13, 2, 5, [[13, 12, 11, 10, 9], [8, 7, 6, 5, 4], [3, 2]]),
+            Case(13, 2, 6, [[13, 12, 11, 10, 9, 8], [7, 6, 5, 4, 3, 2]]),
+            Case(13, 1, 6, [[13, 12, 11, 10, 9, 8], [7, 6, 5, 4, 3, 2], [1]]),
         ]
 
         for case in table:
@@ -202,49 +188,51 @@ class TestUtils(unittest.TestCase):
         Case = namedtuple('Case', ['it', 'batches', 'expect'])
         _range = range  # prevent pylint warning W1638
         table = [
-            Case(['a', 'b', 'c'],   0, []),
-            Case(['a', 'b', 'c'],  -1, []),
-            Case(['a', 'b', 'c'],   1, [['a'], ['b'], ['c']]),
-            Case(['a', 'b', 'c'],   2, [['a', 'b'], ['c']]),
-            Case(['a', 'b', 'c'],   3, [['a', 'b', 'c']]),
-            Case(['a', 'b', 'c'],   9, [['a', 'b', 'c']]),
+            Case(['a', 'b', 'c'], 0, []),
+            Case(['a', 'b', 'c'], -1, []),
+            Case(['a', 'b', 'c'], 1, [['a'], ['b'], ['c']]),
+            Case(['a', 'b', 'c'], 2, [['a', 'b'], ['c']]),
+            Case(['a', 'b', 'c'], 3, [['a', 'b', 'c']]),
+            Case(['a', 'b', 'c'], 9, [['a', 'b', 'c']]),
 
-            Case('abc',  0, []),
-            Case('abc',  1, [['a'], ['b'], ['c']]),
-            Case('abc',  2, [['a', 'b'], ['c']]),
-            Case('abc',  3, [['a', 'b', 'c']]),
-            Case('abc',  9, [['a', 'b', 'c']]),
+            Case('abc', 0, []),
+            Case('abc', 1, [['a'], ['b'], ['c']]),
+            Case('abc', 2, [['a', 'b'], ['c']]),
+            Case('abc', 3, [['a', 'b', 'c']]),
+            Case('abc', 9, [['a', 'b', 'c']]),
 
-            Case(_range(1,5),  0, []),
-            Case(_range(1,5),  1, [[1], [2], [3], [4]]),
-            Case(_range(1,5),  2, [[1,2], [3,4]]),
-            Case(_range(1,5),  3, [[1,2,3], [4]]),
-            Case(_range(1,5),  4, [[1,2,3,4]]),
-            Case(_range(1,5),  5, [[1,2,3,4]]),
-            Case(_range(1,5),  9, [[1,2,3,4]]),
+            Case(_range(1, 5), 0, []),
+            Case(_range(1, 5), 1, [[1], [2], [3], [4]]),
+            Case(_range(1, 5), 2, [[1, 2], [3, 4]]),
+            Case(_range(1, 5), 3, [[1, 2, 3], [4]]),
+            Case(_range(1, 5), 4, [[1, 2, 3, 4]]),
+            Case(_range(1, 5), 5, [[1, 2, 3, 4]]),
+            Case(_range(1, 5), 9, [[1, 2, 3, 4]]),
         ]
 
         def gen(): return (i for i in 'abc')
+
         table += [
-            Case(gen(),  0, []),
-            Case(gen(),  1, [['a'], ['b'], ['c']]),
-            Case(gen(),  2, [['a', 'b'], ['c']]),
-            Case(gen(),  3, [['a', 'b', 'c']]),
-            Case(gen(),  4, [['a', 'b', 'c']]),
-            Case(gen(),  9, [['a', 'b', 'c']]),
+            Case(gen(), 0, []),
+            Case(gen(), 1, [['a'], ['b'], ['c']]),
+            Case(gen(), 2, [['a', 'b'], ['c']]),
+            Case(gen(), 3, [['a', 'b', 'c']]),
+            Case(gen(), 4, [['a', 'b', 'c']]),
+            Case(gen(), 9, [['a', 'b', 'c']]),
         ]
 
-        def _iter(): return iter([1,2,3,4,5,6,7])
+        def _iter(): return iter([1, 2, 3, 4, 5, 6, 7])
+
         table += [
-            Case(_iter(),  0, []),
-            Case(_iter(),  1, [[1], [2], [3], [4], [5], [6], [7]]),
-            Case(_iter(),  2, [[1,2], [3,4], [5,6], [7]]),
-            Case(_iter(),  3, [[1,2,3], [4,5,6], [7]]),
-            Case(_iter(),  4, [[1,2,3,4], [5,6,7]]),
-            Case(_iter(),  5, [[1,2,3,4,5], [6,7]]),
-            Case(_iter(),  6, [[1,2,3,4,5,6], [7]]),
-            Case(_iter(),  7, [[1,2,3,4,5,6,7]]),
-            Case(_iter(),  9, [[1,2,3,4,5,6,7]]),
+            Case(_iter(), 0, []),
+            Case(_iter(), 1, [[1], [2], [3], [4], [5], [6], [7]]),
+            Case(_iter(), 2, [[1, 2], [3, 4], [5, 6], [7]]),
+            Case(_iter(), 3, [[1, 2, 3], [4, 5, 6], [7]]),
+            Case(_iter(), 4, [[1, 2, 3, 4], [5, 6, 7]]),
+            Case(_iter(), 5, [[1, 2, 3, 4, 5], [6, 7]]),
+            Case(_iter(), 6, [[1, 2, 3, 4, 5, 6], [7]]),
+            Case(_iter(), 7, [[1, 2, 3, 4, 5, 6, 7]]),
+            Case(_iter(), 9, [[1, 2, 3, 4, 5, 6, 7]]),
         ]
 
         for case in table:
@@ -402,7 +390,7 @@ class TestFrameSet(unittest.TestCase):
                 continue
             neg_src = []
             for x in case.src:
-                if isinstance(x, integer_types + (float, Decimal)):
+                if isinstance(x, (int, float, Decimal)):
                     neg_src.append(-x)
                 elif x.startswith('-'):
                     neg_src.append(x[1:])
@@ -508,7 +496,7 @@ class TestFrameSet(unittest.TestCase):
             Case('1-10', slice(5, None), (6, 7, 8, 9, 10)),
             Case('1-10', slice(-3, None), (8, 9, 10)),
             Case('1-10', slice(-6, None, 2), (5, 7, 9)),
-            Case('1-10x0.5', slice(1,3), (Decimal('1.5'), Decimal('2.0'))),
+            Case('1-10x0.5', slice(1, 3), (Decimal('1.5'), Decimal('2.0'))),
             Case('1-10x0.5', slice(-3, None), (Decimal('9.0'), Decimal('9.5'), Decimal('10.0')))
         ]
 
@@ -521,29 +509,29 @@ class TestFrameSet(unittest.TestCase):
         table = [
             ("1-2x0.25",
              [Decimal("1.00"), Decimal("1.25"), Decimal("1.50"), Decimal("1.75"),
-             Decimal("2.00")]
-            ),
+              Decimal("2.00")]
+             ),
             ("1,1.5",
              [Decimal("1.0"), Decimal("1.5")]
              ),
             ("1-2,3-4x0.5",
              [Decimal("1.0"), Decimal("2.0"), Decimal("3.0"), Decimal("3.5"),
               Decimal("4.0")]
-            ),
+             ),
             ("1-2x0.3",
              [Decimal("1.0"), Decimal("1.3"), Decimal("1.6"), Decimal("1.9")]
-            ),
+             ),
 
             ("1.5,1",
              [Decimal("1.5"), Decimal("1.0")]
-            ),
+             ),
             ("4-3x0.5,2-1",
              [Decimal("4.0"), Decimal("3.5"), Decimal("3.0"), Decimal("2.0"),
               Decimal("1.0")]
-            ),
+             ),
             ("2-1x0.3",
              [Decimal("2.0"), Decimal("1.7"), Decimal("1.4"), Decimal("1.1")]
-            ),
+             ),
 
         ]
 
@@ -556,7 +544,6 @@ class TestFrameSet(unittest.TestCase):
         """https://github.com/justinfx/fileseq/issues/99"""
         ret = FrameSet(u'1-10')
         _ = str(ret)
-        _ = text_type(ret)
         val = repr(ret)
 
     def testBatchesFrames(self):
@@ -565,12 +552,12 @@ class TestFrameSet(unittest.TestCase):
         table = [
             Case("1-3", 0, []),
             Case("1-3", 1, [[1], [2], [3]]),
-            Case("1-3", 2, [[1,2], [3]]),
-            Case("1-3", 3, [[1,2,3]]),
-            Case("1-3", 9, [[1,2,3]]),
+            Case("1-3", 2, [[1, 2], [3]]),
+            Case("1-3", 3, [[1, 2, 3]]),
+            Case("1-3", 9, [[1, 2, 3]]),
 
             Case("6-7x0.2", 1, [[D('6.0')], [D('6.2')], [D('6.4')], [D('6.6')], [D('6.8')], [D('7.0')]]),
-            Case("6-7x0.2", 3, [[D('6.0'),D('6.2'),D('6.4')], [D('6.6'),D('6.8'),D('7.0')]]),
+            Case("6-7x0.2", 3, [[D('6.0'), D('6.2'), D('6.4')], [D('6.6'), D('6.8'), D('7.0')]]),
         ]
 
         for case in table:
@@ -597,14 +584,13 @@ class TestFrameSet(unittest.TestCase):
             actual = list(FrameSet(case.input).batches(case.batch, frames=False))
             self.assertListEqual(expect, actual, msg=str(case))
 
-
 class TestBase(unittest.TestCase):
     RX_PATHSEP = re.compile(r'[/\\]')
 
     def assertEquals(self, a, b, msg=None):
         # Make sure string paths are compared with normalized
         # path separators
-        if isinstance(a, string_types) and isinstance(b, string_types):
+        if isinstance(a, str) and isinstance(b, str):
             a = os.path.normpath(a)
             b = os.path.normpath(b)
 
@@ -619,10 +605,10 @@ class TestBase(unittest.TestCase):
             msg=msg)
 
     def assertNativeStr(self, a):
-        self.assertIsInstance(a, native_str, '{0!r} != {1!r}'.format(a, native_str))
+        self.assertIsInstance(a, str, '{0!r} != {1!r}'.format(a, str))
 
     def toNormpaths(self, collection):
-        if isinstance(collection, string_types):
+        if isinstance(collection, str):
             collection = [collection]
         return sorted(os.path.normpath(p) for p in collection)
 
@@ -859,6 +845,31 @@ class TestFileSequence(TestBase):
             self.assertEqual(case.input.padding(), actual.padding(), msg=str(case))
             self.assertEqual(case.expected_zfill, actual.zfill(), msg=str(case))
 
+    def testDefaultRangePadding(self):
+        """
+        Set a default pad char when a range is set
+        https://github.com/justinfx/fileseq/issues/12
+        """
+        # Should set a default pad char
+        fs = FileSequence("foo.exr")
+        self.assertEqual("", fs.padding())
+        fs.setFrameRange("1-3")
+        self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
+        self.assertEqual(["foo1.exr", "foo2.exr", "foo3.exr"], list(fs))
+
+        # Should set a default pad char
+        fs = FileSequence("foo.exr")
+        self.assertEqual("", fs.padding())
+        fs.setFrameSet(FrameSet("1-3"))
+        self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
+        self.assertEqual(["foo1.exr", "foo2.exr", "foo3.exr"], list(fs))
+
+        # Should not change an existing pad char
+        fs = FileSequence("foo.exr")
+        fs.setPadding("#")
+        fs.setFrameRange("1-3")
+        self.assertEqual("#", fs.padding())
+
     def testSetFrameSet(self):
         seq = FileSequence("/cheech/chong.1-5#.exr")
         seq.setFrameSet(FrameSet("10-20"))
@@ -908,7 +919,7 @@ class TestFileSequence(TestBase):
             actual = fs[case.slice]
             self.assertEqual(case.expected, actual)
 
-            if isinstance(actual, string_types):
+            if isinstance(actual, str):
                 self.assertNativeStr(actual)
 
         fs = FileSequence('file.1-10#.ext')
@@ -965,6 +976,7 @@ class TestFileSequence(TestBase):
 
     def testNoPlaceholder(self):
         expected = "/path/to/file.mov"
+        expected_patt = "/path/to/file%d.mov"
         seqs = FileSequence(expected)
 
         self.assertEquals(expected, seqs.index(0))
@@ -978,10 +990,11 @@ class TestFileSequence(TestBase):
         seqs.setFrameRange("1-100")
 
         for i in range(0, 100):
+            expected = expected_patt % (i+1)
             self.assertEquals(expected, seqs.index(i))
             self.assertEquals(expected, seqs.frame(i + 1))
             self.assertEquals(expected, seqs[i])
-        self.assertEquals(1, len(seqs))
+        self.assertEquals(100, len(seqs))
 
         seqs.setPadding("#")
         self.assertEquals(100, len(seqs))
@@ -1396,6 +1409,7 @@ class TestFileSequence(TestBase):
         https://github.com/justinfx/fileseq/issues/99
         https://github.com/justinfx/fileseq/issues/100
         """
+
         def check(seq):
             # make sure none of these raise a unicode exception
             s = str(seq)
@@ -1423,9 +1437,9 @@ class TestFileSequence(TestBase):
         table = [
             Case("f.1-3@.x", 0, []),
             Case("f.1-3@.x", 1, [['f.1.x'], ['f.2.x'], ['f.3.x']]),
-            Case("f.1-3@.x", 2, [['f.1.x','f.2.x'], ['f.3.x']]),
-            Case("f.1-3@.x", 3, [['f.1.x','f.2.x','f.3.x']]),
-            Case("f.1-3@.x", 9, [['f.1.x','f.2.x','f.3.x']]),
+            Case("f.1-3@.x", 2, [['f.1.x', 'f.2.x'], ['f.3.x']]),
+            Case("f.1-3@.x", 3, [['f.1.x', 'f.2.x', 'f.3.x']]),
+            Case("f.1-3@.x", 9, [['f.1.x', 'f.2.x', 'f.3.x']]),
         ]
 
         for case in table:
@@ -1599,7 +1613,8 @@ class TestFindSequencesOnDisk(TestBase):
 
             ("subframe_seq/foz.debug.#.#.exr", ['subframe_seq/foz.debug.1001-1002x0.25#.#.exr']),
 
-            ("subframe_seq/baz_{left,right}.#.#.exr", ['subframe_seq/baz_left.1001-1002x0.25#.#.exr', 'subframe_seq/baz_right.1001-1002x0.25#.#.exr']),
+            ("subframe_seq/baz_{left,right}.#.#.exr",
+             ['subframe_seq/baz_left.1001-1002x0.25#.#.exr', 'subframe_seq/baz_right.1001-1002x0.25#.#.exr']),
         ]
 
         for pattern, expected in tests:
@@ -1645,7 +1660,8 @@ class TestFindSequencesOnDisk(TestBase):
         tests = [
             ('mixed_case/sub/file_foo_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext']),
             ('mixed_case/sub/file_FOO_*.ext', ['mixed_case/sub/file_FOO_4-6@@@.ext']),
-            ('mixed_case/sub/file_*_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext']),
+            ('mixed_case/sub/file_*_*.ext',
+             ['mixed_case/sub/file_foo_1-3@@@.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext']),
         ]
 
         for pattern, expected in tests:
@@ -1834,6 +1850,7 @@ class TestFindSequenceOnDisk(TestBase):
                 self.pat = pat
                 self.expected = expected
                 self.strict = strict
+
             def __repr__(self):
                 return "Case(pat={!r}, expect={!r}, strict={})".format(self.pat, self.expected, self.strict)
 
@@ -1969,6 +1986,7 @@ class TestPaddingFunctions(TestBase):
         Ensure that alternate padding formats are conformed
         to a primary PAD_MAP format
         """
+
         class Case(object):
             def __init__(self, src, expected, error=False):
                 self.src = src
@@ -1976,7 +1994,7 @@ class TestPaddingFunctions(TestBase):
                 self.error = error
 
         tests = [
-            Case('#', '#',),
+            Case('#', '#', ),
             Case('#@', '#@'),
             Case('@@@@', '@@@@'),
             Case('@@@', '@@@'),
@@ -2018,6 +2036,7 @@ class TestPaddingFunctions(TestBase):
                 self.frange = frange
                 self.pad = pad
                 self.expected = expected
+
             def __str__(self):
                 return "input={!r}, pad={}".format(self.frange, self.pad)
 
@@ -2053,6 +2072,7 @@ class TestPaddingFunctions(TestBase):
                 self.pad = pad
                 self.expected = expected
                 self.has_padded = has_padded
+
             def __repr__(self):
                 return "Case(paths={!r}, pad={}, has_padded={})".format(self.paths, self.pad, self.has_padded)
 

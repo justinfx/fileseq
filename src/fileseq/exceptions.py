@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 """
 exceptions - Exception subclasses relevant to fileseq operations.
 """

@@ -8,6 +8,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -22,6 +23,7 @@ out/
 *.egg-info/
 .installed.cfg
 *.egg
+.DS_Store
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -62,3 +64,5 @@ atlassian-ide-plugin.xml
 # Line Profiler Logs
 *.py.prof
 *.py.lprof
+
+.dmypy.json

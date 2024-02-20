@@ -1,19 +1,12 @@
 #!/usr/bin/env python
 
-from __future__ import division
-from __future__ import absolute_import
-
-from future import standard_library
-standard_library.install_aliases()
-from future.utils import string_types, text_type, native_str
-
-import unittest
 import pickle
 import re
 import types
+import unittest
 
-from fileseq.utils import *
 from fileseq import FrameSet, framesToFrameRange, ParseException
+from fileseq.utils import *
 
 
 def _yrange(first, last=None, incr=1):
@@ -76,98 +69,98 @@ FRAME_SET_SHOULD_SUCCEED = [
     # permutations on comma separated individual frames
     ('DupePos', '1,1,1', [1]),
     ('DupeNeg', '-1,-1,-1', [-1]),
-    ('DupeMix', '-1,1,-1,1', [-1,1]),
-    ('CommaSepPos', '1,3,17', [1,3,17]),
-    ('CommaSepNeg', '-1,-3,-17', [-1,-3,-17]),
-    ('CommaSepMix', '1,-3,17', [1,-3,17]),
-    ('CommaSepPosInv', '17,3,1', [17,3,1]),
-    ('CommaSepNegInv', '-17,-3,-1', [-17,-3,-1]),
-    ('CommaSepMixInv', '17,-3,1', [17,-3,1]),
-    ('CommaSepMixInv', '17,-3,1', [17,-3,1]),
+    ('DupeMix', '-1,1,-1,1', [-1, 1]),
+    ('CommaSepPos', '1,3,17', [1, 3, 17]),
+    ('CommaSepNeg', '-1,-3,-17', [-1, -3, -17]),
+    ('CommaSepMix', '1,-3,17', [1, -3, 17]),
+    ('CommaSepPosInv', '17,3,1', [17, 3, 1]),
+    ('CommaSepNegInv', '-17,-3,-1', [-17, -3, -1]),
+    ('CommaSepMixInv', '17,-3,1', [17, -3, 1]),
+    ('CommaSepMixInv', '17,-3,1', [17, -3, 1]),
     ("CommaTrailing", "1,", [1]),
     ("CommaLeading", ",1", [1]),
-    ("CommaDupes", "1,,,,,,2,,,,,3,,,", [1,2,3]),
+    ("CommaDupes", "1,,,,,,2,,,,,3,,,", [1, 2, 3]),
     # args that str(arg) cast to a valid FrameSet
     ('PosInt', 1, [1]),
     ('NegInt', -1, [-1]),
-    ('FrameSet', FrameSet("1-20"), list(range(1,21))),
+    ('FrameSet', FrameSet("1-20"), list(range(1, 21))),
     # unicode args that are the equivalent of a valid FrameSet
-    ('UnicodeEquivalentRange', u'-1--20', list(range(-1,-21,-1))),
-    ('UnicodeEquivalentRangeChunk', u'-1--20x5', list(range(-1,-21,-5))),
-    ('UnicodeEquivalentRangeFill', u'-1--20y5', list(_yrange(-1,-21,-5))),
-    ('UnicodeEquivalentRangeStagger', u'-1--20:5', list(_srange(-1,-21,-5))),
+    ('UnicodeEquivalentRange', u'-1--20', list(range(-1, -21, -1))),
+    ('UnicodeEquivalentRangeChunk', u'-1--20x5', list(range(-1, -21, -5))),
+    ('UnicodeEquivalentRangeFill', u'-1--20y5', list(_yrange(-1, -21, -5))),
+    ('UnicodeEquivalentRangeStagger', u'-1--20:5', list(_srange(-1, -21, -5))),
 ]
 
 LO_RANGES = [
     # low value permutations of signed integer ranges, these will all be individually tested
-    ('PosToPos', '1-20', list(range(1,21,1))),
-    ('NegToPos', '-1-20', list(range(-1,21,1))),
-    ('NegToNeg', '-1--20', list(range(-1,-21,-1))),
-    ('PosToNeg', '1--20', list(range(1,-21,-1))),
-    ('PosToPosInv', '20-1', list(range(20,0,-1))),
-    ('NegToPosInv', '-20-1', list(range(-20,2,1))),
-    ('NegToNegInv', '-20--1', list(range(-20,0,1))),
-    ('PosToNegInv', '20--1', list(range(20,-2,-1))),
-    ('PosToPosChunk', '1-20x5', list(range(1,21,5))),
-    ('NegToPosChunk', '-1-20x5', list(range(-1,21,5))),
-    ('NegToNegChunk', '-1--20x5', list(range(-1,-21,-5))),
-    ('PosToNegChunk', '1--20x5', list(range(1,-21,-5))),
-    ('PosToPosChunkInv', '20-1x5', list(range(20,0,-5))),
-    ('NegToPosChunkInv', '-20-1x5', list(range(-20,2,5))),
-    ('NegToNegChunkInv', '-20--1x5', list(range(-20,0,5))),
-    ('PosToNegChunkInv', '20--1x5', list(range(20,-2,-5))),
-    ('PosToPosNegChunkInv', '20-1x-1', list(range(20,0,-1))),
-    ('PosToPosFill', '1-20y5', list(_yrange(1,21,5))),
-    ('NegToPosFill', '-1-20y5', list(_yrange(-1,21,5))),
-    ('NegToNegFill', '-1--20y5', list(_yrange(-1,-21,-5))),
-    ('PosToNegFill', '1--20y5', list(_yrange(1,-21,-5))),
-    ('PosToPosFillInv', '20-1y5', list(_yrange(20,0,-5))),
-    ('NegToPosFillInv', '-20-1y5', list(_yrange(-20,2,5))),
-    ('NegToNegFillInv', '-20--1y5', list(_yrange(-20,0,5))),
-    ('PosToNegFillInv', '20--1y5', list(_yrange(20,-2,-5))),
-    ('PosToPosStagger', '1-20:5', list(_srange(1,21,5))),
-    ('NegToPosStagger', '-1-20:5', list(_srange(-1,21,5))),
-    ('NegToNegStagger', '-1--20:5', list(_srange(-1,-21,-5))),
-    ('PosToNegStagger', '1--20:5', list(_srange(1,-21,-5))),
-    ('PosToPosStaggerInv', '20-1:5', list(_srange(20,0,-5))),
-    ('NegToPosStaggerInv', '-20-1:5', list(_srange(-20,2,5))),
-    ('NegToNegStaggerInv', '-20--1:5', list(_srange(-20,0,5))),
-    ('PosToNegStaggerInv', '20--1:5', list(_srange(20,-2,-5)))]
+    ('PosToPos', '1-20', list(range(1, 21, 1))),
+    ('NegToPos', '-1-20', list(range(-1, 21, 1))),
+    ('NegToNeg', '-1--20', list(range(-1, -21, -1))),
+    ('PosToNeg', '1--20', list(range(1, -21, -1))),
+    ('PosToPosInv', '20-1', list(range(20, 0, -1))),
+    ('NegToPosInv', '-20-1', list(range(-20, 2, 1))),
+    ('NegToNegInv', '-20--1', list(range(-20, 0, 1))),
+    ('PosToNegInv', '20--1', list(range(20, -2, -1))),
+    ('PosToPosChunk', '1-20x5', list(range(1, 21, 5))),
+    ('NegToPosChunk', '-1-20x5', list(range(-1, 21, 5))),
+    ('NegToNegChunk', '-1--20x5', list(range(-1, -21, -5))),
+    ('PosToNegChunk', '1--20x5', list(range(1, -21, -5))),
+    ('PosToPosChunkInv', '20-1x5', list(range(20, 0, -5))),
+    ('NegToPosChunkInv', '-20-1x5', list(range(-20, 2, 5))),
+    ('NegToNegChunkInv', '-20--1x5', list(range(-20, 0, 5))),
+    ('PosToNegChunkInv', '20--1x5', list(range(20, -2, -5))),
+    ('PosToPosNegChunkInv', '20-1x-1', list(range(20, 0, -1))),
+    ('PosToPosFill', '1-20y5', list(_yrange(1, 21, 5))),
+    ('NegToPosFill', '-1-20y5', list(_yrange(-1, 21, 5))),
+    ('NegToNegFill', '-1--20y5', list(_yrange(-1, -21, -5))),
+    ('PosToNegFill', '1--20y5', list(_yrange(1, -21, -5))),
+    ('PosToPosFillInv', '20-1y5', list(_yrange(20, 0, -5))),
+    ('NegToPosFillInv', '-20-1y5', list(_yrange(-20, 2, 5))),
+    ('NegToNegFillInv', '-20--1y5', list(_yrange(-20, 0, 5))),
+    ('PosToNegFillInv', '20--1y5', list(_yrange(20, -2, -5))),
+    ('PosToPosStagger', '1-20:5', list(_srange(1, 21, 5))),
+    ('NegToPosStagger', '-1-20:5', list(_srange(-1, 21, 5))),
+    ('NegToNegStagger', '-1--20:5', list(_srange(-1, -21, -5))),
+    ('PosToNegStagger', '1--20:5', list(_srange(1, -21, -5))),
+    ('PosToPosStaggerInv', '20-1:5', list(_srange(20, 0, -5))),
+    ('NegToPosStaggerInv', '-20-1:5', list(_srange(-20, 2, 5))),
+    ('NegToNegStaggerInv', '-20--1:5', list(_srange(-20, 0, 5))),
+    ('PosToNegStaggerInv', '20--1:5', list(_srange(20, -2, -5)))]
 
 HI_RANGES = [
     # high value permutations of signed integer ranges, these will be permuted with the LO_RANGES for testing
-    ('PosToPos', '21-30', list(range(21,31,1))),
-    ('NegToPos', '-21-30', list(range(-21,31,1))),
-    ('NegToNeg', '-21--30', list(range(-21,-31,-1))),
-    ('PosToNeg', '21--30', list(range(21,-31,-1))),
-    ('PosToPosInv', '30-21', list(range(30,20,-1))),
-    ('NegToPosInv', '-30-21', list(range(-30,22,1))),
-    ('NegToNegInv', '-30--21', list(range(-30,-20,1))),
-    ('PosToNegInv', '30--21', list(range(30,-22,-1))),
-    ('PosToPosChunk', '21-30x5', list(range(21,31,5))),
-    ('NegToPosChunk', '-21-30x5', list(range(-21,31,5))),
-    ('NegToNegChunk', '-21--30x5', list(range(-21,-31,-5))),
-    ('PosToNegChunk', '21--30x5', list(range(21,-31,-5))),
-    ('PosToPosChunkInv', '30-21x5', list(range(30,20,-5))),
-    ('NegToPosChunkInv', '-30-21x5', list(range(-30,22,5))),
-    ('NegToNegChunkInv', '-30--21x5', list(range(-30,-20,5))),
-    ('PosToNegChunkInv', '30--21x5', list(range(30,-22,-5))),
-    ('PosToPosFill', '21-30y5', list(_yrange(21,31,5))),
-    ('NegToPosFill', '-21-30y5', list(_yrange(-21,31,5))),
-    ('NegToNegFill', '-21--30y5', list(_yrange(-21,-31,-5))),
-    ('PosToNegFill', '21--30y5', list(_yrange(21,-31,-5))),
-    ('PosToPosFillInv', '30-21y5', list(_yrange(30,20,-5))),
-    ('NegToPosFillInv', '-30-21y5', list(_yrange(-30,22,5))),
-    ('NegToNegFillInv', '-30--21y5', list(_yrange(-30,-20,5))),
-    ('PosToNegFillInv', '30--21y5', list(_yrange(30,-22,-5))),
-    ('PosToPosStagger', '21-30:5', list(_srange(21,31,5))),
-    ('NegToPosStagger', '-21-30:5', list(_srange(-21,31,5))),
-    ('NegToNegStagger', '-21--30:5', list(_srange(-21,-31,-5))),
-    ('PosToNegStagger', '21--30:5', list(_srange(21,-31,-5))),
-    ('PosToPosStaggerInv', '30-21:5', list(_srange(30,20,-5))),
-    ('NegToPosStaggerInv', '-30-21:5', list(_srange(-30,22,5))),
-    ('NegToNegStaggerInv', '-30--21:5', list(_srange(-30,-20,5))),
-    ('PosToNegStaggerInv', '30--21:5', list(_srange(30,-22,-5)))]
+    ('PosToPos', '21-30', list(range(21, 31, 1))),
+    ('NegToPos', '-21-30', list(range(-21, 31, 1))),
+    ('NegToNeg', '-21--30', list(range(-21, -31, -1))),
+    ('PosToNeg', '21--30', list(range(21, -31, -1))),
+    ('PosToPosInv', '30-21', list(range(30, 20, -1))),
+    ('NegToPosInv', '-30-21', list(range(-30, 22, 1))),
+    ('NegToNegInv', '-30--21', list(range(-30, -20, 1))),
+    ('PosToNegInv', '30--21', list(range(30, -22, -1))),
+    ('PosToPosChunk', '21-30x5', list(range(21, 31, 5))),
+    ('NegToPosChunk', '-21-30x5', list(range(-21, 31, 5))),
+    ('NegToNegChunk', '-21--30x5', list(range(-21, -31, -5))),
+    ('PosToNegChunk', '21--30x5', list(range(21, -31, -5))),
+    ('PosToPosChunkInv', '30-21x5', list(range(30, 20, -5))),
+    ('NegToPosChunkInv', '-30-21x5', list(range(-30, 22, 5))),
+    ('NegToNegChunkInv', '-30--21x5', list(range(-30, -20, 5))),
+    ('PosToNegChunkInv', '30--21x5', list(range(30, -22, -5))),
+    ('PosToPosFill', '21-30y5', list(_yrange(21, 31, 5))),
+    ('NegToPosFill', '-21-30y5', list(_yrange(-21, 31, 5))),
+    ('NegToNegFill', '-21--30y5', list(_yrange(-21, -31, -5))),
+    ('PosToNegFill', '21--30y5', list(_yrange(21, -31, -5))),
+    ('PosToPosFillInv', '30-21y5', list(_yrange(30, 20, -5))),
+    ('NegToPosFillInv', '-30-21y5', list(_yrange(-30, 22, 5))),
+    ('NegToNegFillInv', '-30--21y5', list(_yrange(-30, -20, 5))),
+    ('PosToNegFillInv', '30--21y5', list(_yrange(30, -22, -5))),
+    ('PosToPosStagger', '21-30:5', list(_srange(21, 31, 5))),
+    ('NegToPosStagger', '-21-30:5', list(_srange(-21, 31, 5))),
+    ('NegToNegStagger', '-21--30:5', list(_srange(-21, -31, -5))),
+    ('PosToNegStagger', '21--30:5', list(_srange(21, -31, -5))),
+    ('PosToPosStaggerInv', '30-21:5', list(_srange(30, 20, -5))),
+    ('NegToPosStaggerInv', '-30-21:5', list(_srange(-30, 22, 5))),
+    ('NegToNegStaggerInv', '-30--21:5', list(_srange(-30, -20, 5))),
+    ('PosToNegStaggerInv', '30--21:5', list(_srange(30, -22, -5)))]
 
 for lo in LO_RANGES:
     FRAME_SET_SHOULD_SUCCEED.append(lo)
@@ -201,7 +194,6 @@ FRAME_SET_SHOULD_FAIL = [
     ("NonNumericSeq", ["a", "z"]),
     ("ActualNone", None),
 ]
-
 
 FRAME_SET_FROM_RANGE_SHOULD_SUCCEED = [
     # individual frames
@@ -242,9 +234,9 @@ class TestFrameSet(unittest.TestCase):
         f = FrameSet(test)
         m = u'FrameSet("{0}")._frange != {0}: got {1}'
         r = f._frange
-        self.assertEqual(r, native_str(test), m.format(test, r))
+        self.assertEqual(r, str(test), m.format(test, r))
         m = u'FrameSet("{0}")._frange returns {1}: got {2}'
-        self.assertIsInstance(r, native_str, m.format(test, native_str, type(r)))
+        self.assertIsInstance(r, str, m.format(test, str, type(r)))
 
     def _check___init___items(self, test, expect):
         """
@@ -299,9 +291,9 @@ class TestFrameSet(unittest.TestCase):
         f = FrameSet(test)
         m = u'str(FrameSet("{0}")) != {0}: got {1}'
         r = str(f)
-        self.assertEqual(r, native_str(test), m.format(test, r))
+        self.assertEqual(r, str(test), m.format(test, r))
         m = u'str(FrameSet("{0}")) returns {1}: got {2}'
-        self.assertIsInstance(r, native_str, m.format(test, native_str, type(r)))
+        self.assertIsInstance(r, str, m.format(test, str, type(r)))
 
     def _check___len__(self, test, expect):
         """
@@ -519,6 +511,7 @@ class TestFrameSet(unittest.TestCase):
         l = max([max([len(i) for i in re.findall(p1, str(f))]) + 1, 4])
 
         p2 = r'(-?\d+)(?:(-)(-?\d+)([xy:]\d+)?)?'
+
         def replace(match):
             start, sep, end, step = match.groups()
             if start:
@@ -526,6 +519,7 @@ class TestFrameSet(unittest.TestCase):
             if end:
                 end = end.zfill(l)
             return ''.join(o for o in [start, sep, end, step] if o)
+
         expect = re.sub(p2, replace, str(f))
         try:
             r = f.frameRange(l)
@@ -535,7 +529,7 @@ class TestFrameSet(unittest.TestCase):
         self.assertEqual(r, expect, m.format(test, l, expect, r))
 
         m = u'FrameSet("{0}").frameRange({1}) returns {2}: got {3}'
-        self.assertIsInstance(r, native_str, m.format(test, l, native_str, type(r)))
+        self.assertIsInstance(r, str, m.format(test, l, str, type(r)))
 
     def _check_invertedFrameRange(self, test, expect):
         """
@@ -557,7 +551,7 @@ class TestFrameSet(unittest.TestCase):
             e = [i for i in range(t[0], t[-1]) if i not in t]
             self.assertEqual(c, e, m.format(test, e, c))
         m = u'FrameSet("{0}").invertedFrameRange() returns {1}: got {2}'
-        self.assertIsInstance(r, native_str, m.format(test, native_str, type(r)))
+        self.assertIsInstance(r, str, m.format(test, str, type(r)))
 
     def _check_normalize(self, test, expect):
         """
@@ -612,7 +606,7 @@ class TestFrameSet(unittest.TestCase):
         m = u'repr(FrameSet("{0}")) != {1}: got {2}'
         self.assertEqual(repr(f), e, m.format(test, e, repr(f)))
         m = u'repr(FrameSet("{0}")) returns {1}: got {2}'
-        self.assertIsInstance(repr(f), native_str, m.format(test, native_str, type(repr(f))))
+        self.assertIsInstance(repr(f), str, m.format(test, str, type(repr(f))))
 
     def _check___reversed__(self, test, expect):
         """
@@ -954,7 +948,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertTrue(f.isdisjoint(FrameSet('-1')))
             self.assertTrue(f.isdisjoint(expect))
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.isdisjoint(t)
             e = set(expect).isdisjoint(v)
@@ -977,7 +971,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertTrue(f.issubset(FrameSet('-1')))
             self.assertTrue(f.issubset(expect))
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.issubset(t)
             e = set(expect).issubset(v)
@@ -1000,7 +994,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertFalse(f.issuperset(FrameSet('-1')))
             self.assertTrue(f.issuperset(expect))
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.issuperset(t)
             e = set(expect).issuperset(v)
@@ -1023,7 +1017,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertEqual(f.union(FrameSet('-1')), FrameSet('-1'))
             self.assertEqual(f.union(expect), FrameSet.from_iterable(expect, sort=True))
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.union(t)
             e = FrameSet.from_iterable(set(expect).union(v), sort=True)
@@ -1046,7 +1040,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertEqual(f.intersection(FrameSet('-1')), f)
             self.assertEqual(f.intersection(expect), f)
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.intersection(t)
             e = FrameSet.from_iterable(set(expect).intersection(v), sort=True)
@@ -1069,7 +1063,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertEqual(f.intersection(FrameSet('-1')), f)
             self.assertEqual(f.intersection(expect), f)
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.difference(t)
             e = FrameSet.from_iterable(set(expect).difference(v), sort=True)
@@ -1092,7 +1086,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertEqual(f.intersection(FrameSet('-1')), f)
             self.assertEqual(f.intersection(expect), f)
             return
-        for v in [[expect[0]], expect, expect + [max(expect)+1], [i + max(expect) + 1 for i in expect]]:
+        for v in [[expect[0]], expect, expect + [max(expect) + 1], [i + max(expect) + 1 for i in expect]]:
             t = FrameSet.from_iterable(v)
             r = f.symmetric_difference(t)
             e = FrameSet.from_iterable(set(expect).symmetric_difference(v), sort=True)
@@ -1100,7 +1094,7 @@ class TestFrameSet(unittest.TestCase):
             self.assertEqual(r, e, m.format(t, f, e))
             m = u'FrameSet("{0}").symmetric_difference(FrameSet("{1}")) returns {2}: got {3}'
             self.assertIsInstance(r, FrameSet, m.format(test, t,
-                                                                FrameSet, type(r)))
+                                                        FrameSet, type(r)))
 
     def _check_copy(self, test, expect):
         """
@@ -1274,7 +1268,8 @@ class TestFramesToFrameRange(unittest.TestCase):
         m = '{0!r} != {1!r}'
         self.assertEqual(f, r, m.format(f, r))
         m = '{0!r} != {1!r} ; got type {2!r}'
-        self.assertIsInstance(frange, native_str, m.format(frange, native_str, type(frange)))
+        self.assertIsInstance(frange, str, m.format(frange, str, type(frange)))
+
 
 # due to the sheer number of combinations, we build the bulk of our tests on to TestFramesToFrameRange dynamically
 for name, tst, exp in FRAME_SET_SHOULD_SUCCEED:
@@ -1308,10 +1303,8 @@ class TestFrameSetFromRangeConstructor(unittest.TestCase):
 for name, start, end, step_, exp in FRAME_SET_FROM_RANGE_SHOULD_SUCCEED:
     setattr(
         TestFrameSetFromRangeConstructor, 'testFromRange%s' % name,
-        lambda self, s=start, e=end, step=step_, exp=exp: TestFrameSetFromRangeConstructor._check_fromRange(self, s, e, step, exp))
-
+        lambda self, s=start, e=end, step=step_, exp=exp: TestFrameSetFromRangeConstructor._check_fromRange(self, s, e,
+                                                                                                            step, exp))
 
 if __name__ == '__main__':
     unittest.main(verbosity=1)
-
-

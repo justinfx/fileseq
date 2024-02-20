@@ -39,7 +39,7 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.7/', None),
+    'python': ('https://docs.python.org/3.10/', None),
 }
 
 # Add python types to exclude from sphinx check that complains about

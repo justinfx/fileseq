@@ -1,8 +1,6 @@
-#! /usr/bin/env python
 """
 constants - General constants of use to fileseq operations.
 """
-from __future__ import absolute_import
 
 import re
 
@@ -12,7 +10,7 @@ MAX_FRAME_SIZE = 10000000
 
 
 class _PadStyle(object):
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.__name = name
 
     def __hash__(self):
@@ -98,7 +96,8 @@ _FRANGE_SUB_PARTS = [
             )?
         )?
     )
-    """,r"""
+    """,
+    r"""
     (?:
         -?\d+\.\d+                # start frame
         (?:                       # optional range

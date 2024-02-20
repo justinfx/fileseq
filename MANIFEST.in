@@ -1,3 +1,6 @@
 graft test
 include README.md
 global-include *.exr *.ext *.jpg *.py
+prune .venv/
+prune docs/
+prune test/.pytest_cache/
