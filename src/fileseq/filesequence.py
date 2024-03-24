@@ -3,6 +3,7 @@ filesequence - A parsing object representing sequential files for fileseq.
 """
 from __future__ import annotations
 
+import dataclasses
 import decimal
 import fnmatch
 import functools
@@ -54,6 +55,14 @@ class FileSequence:
     SPLIT_SUB_RE = SPLIT_SUB_RE
 
     _DEFAULT_PAD_CHAR = '@'
+
+    @dataclasses.dataclass
+    class _Components:
+        dir: str
+        base: str
+        frameSet: FrameSet|str|None
+        pad: str|int
+        ext: str
 
     def __init__(self,
                  sequence: str,
@@ -753,15 +762,9 @@ class FileSequence:
         Returns:
             str:
         """
-        frameSet = utils.asString(self._frameSet or "")
-        parts = [
-            self._dir,
-            self._base,
-            frameSet,
-            self._pad if frameSet else "",
-            self._ext,
-        ]
-        return "".join(parts)
+        cmpts = self.__components()
+        cmpts.frameSet = utils.asString(cmpts.frameSet or "")
+        return "".join(dataclasses.astuple(cmpts))
 
     def __repr__(self):
         try:
@@ -770,10 +773,19 @@ class FileSequence:
             return super(self.__class__, self).__repr__()
 
     def __eq__(self, other):
-        return str(self) == str(other)
+        if not isinstance(other, FileSequence):
+            return str(self) == str(other)
+
+        a = self.__components()
+        b = other.__components()
+
+        a.pad = self.getPaddingNum(a.pad)
+        b.pad = other.getPaddingNum(b.pad)
+
+        return a == b
 
     def __ne__(self, other):
-        return str(self) != str(other)
+        return not self.__eq__(other)
 
     def __hash__(self):
         # TODO: Technically we should be returning None,
@@ -782,6 +794,15 @@ class FileSequence:
         # Python3 fails with TypeError: unhashable.
         # For now, preserving the hashing behaviour in py3.
         return id(self)
+
+    def __components(self):
+        return self._Components(
+            self._dir,
+            self._base,
+            self._frameSet or "",
+            self._pad if self._frameSet else "",
+            self._ext,
+        )
 
     @classmethod
     def yield_sequences_in_list(
