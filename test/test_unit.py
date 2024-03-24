@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
+import dataclasses
 import warnings
 
 with warnings.catch_warnings():
@@ -242,6 +245,30 @@ class TestUtils(unittest.TestCase):
 
 
 class TestFrameSet(unittest.TestCase):
+
+    def testEqual(self):
+        @dataclasses.dataclass
+        class Case:
+            a: FrameSet|str|None
+            b: FrameSet|str|None
+            expect: bool
+
+        table = [
+            Case(a=FrameSet('1-5'), b=FrameSet('1-5'), expect=True),
+            Case(a=FrameSet('1-5'), b=FrameSet('1,2,3,4,5'), expect=True),
+            Case(a=FrameSet('1-3,5-8'), b=FrameSet('1,2,3,5,6-8'), expect=True),
+            Case(a=FrameSet('1-5'), b=FrameSet('1-4,6'), expect=False),
+
+            # Automatic casting of other object
+            Case(a=FrameSet('1-5'), b='1-5', expect=True),
+            Case(a=FrameSet('1-5'), b='1-4', expect=False),
+            Case(a=FrameSet('1-5'), b=[1,2,3,4,5], expect=True),
+            Case(a=FrameSet('1-5'), b=[1,2,3,5], expect=False),
+        ]
+
+        for case in table:
+            fn = self.assertEqual if case.expect else self.assertNotEqual
+            fn(case.a, case.b)
 
     def testFrameValues(self):
         class Case:
@@ -639,6 +666,65 @@ class _CustomPathString(str):
 
 
 class TestFileSequence(TestBase):
+
+    def testToStr(self):
+        @dataclasses.dataclass
+        class Case:
+            seq: FileSequence
+            expect: str
+
+        FS = FileSequence
+        table = [
+            Case(FS("/dir/file.1-5#.ext"), "/dir/file.1-5#.ext"),
+            Case(FS("/dir/file.0001.ext"), "/dir/file.0001#.ext"),
+            Case(FS("/dir/file.1.ext"), "/dir/file.1@.ext"),
+            Case(FS("/dir/file.ext"), "/dir/file.ext"),
+            Case(FS("/dir/file"), "/dir/file"),
+            Case(FS("/dir/.ext"), "/dir/.ext"),
+            Case(FS("file"), "file"),
+        ]
+
+        for case in table:
+            actual = str(case.seq)
+            self.assertEqual(case.expect, actual)
+
+        fs = FS("/dir/file.1.ext")
+        fs._frameSet = None
+        actual = str(fs)
+        self.assertEqual("/dir/file..ext", actual)
+
+    def testEqual(self):
+        @dataclasses.dataclass
+        class Case:
+            a: FileSequence|str|None
+            b: FileSequence|str|None
+            expect: bool
+
+        FS = FileSequence
+        table = [
+            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5#.ext'), expect=True),
+            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5@@@@.ext'), expect=True),
+            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5@.ext'), expect=False),
+            Case(a=FS('/dir/file.0001.ext'), b=FS('/dir/file.0001.ext'), expect=True),
+            Case(a=FS('file.1-5#.ext'), b=FS('file.1-5#.ext'), expect=True),
+            Case(a=FS('file.1-5#'), b=FS('file.1-5#'), expect=True),
+            Case(a=FS('file.ext'), b=FS('file.ext'), expect=True),
+            Case(a=FS('file'), b=FS('file'), expect=True),
+
+            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1,2,3,4,5#.ext'), expect=True),
+            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1,2,3,4,5#.ext'), expect=True),
+            Case(a=FS('/dir/file.1-3,5-8#.ext'), b=FS('/dir/file.1,2,3,5,6-8#.ext'), expect=True),
+            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-4,6#.ext'), expect=False),
+
+            # Automatic casting of other object, to string
+            Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1-5#.ext', expect=True),
+            Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1,2,3,4,5#.ext', expect=False),
+            Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1-4#.ext', expect=False),
+        ]
+
+        for case in table:
+            fn = self.assertEqual if case.expect else self.assertNotEqual
+            fn(case.a, case.b)
 
     def testNativeStr(self):
         seq = FileSequence("/foo/boo.1-5#.exr")
