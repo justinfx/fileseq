@@ -759,6 +759,13 @@ class FileSequence:
         """
         String representation of this :class:`FileSequence`.
 
+        Note:
+            A FileSequence that does not define a frame range will omit
+            the padding character component when string formatted, even
+            if the padding character is set.
+            For more control over the exact string format, use the
+            :obj:`FileSequence.format()` method.
+
         Returns:
             str:
         """

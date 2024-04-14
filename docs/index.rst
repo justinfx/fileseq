@@ -23,7 +23,7 @@ fileseq.filesequence module
     :members:
     :undoc-members:
     :show-inheritance:
-    :special-members: __getitem__, __iter__, __len__
+    :special-members: __str__, __getitem__, __iter__, __len__, __setstate__
 
 fileseq.frameset module
 -----------------------
