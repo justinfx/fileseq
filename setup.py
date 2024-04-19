@@ -52,6 +52,4 @@ setup(name='Fileseq',
       ],
 
       keywords='vfx visual effects file sequence frames image',
-
-      install_requires=['typing-extensions'],
       )

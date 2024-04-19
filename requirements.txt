@@ -1,5 +1,3 @@
-typing-extensions
-
 # testing
 pytest
 pylint

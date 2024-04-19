@@ -13,7 +13,6 @@ import re
 import sys
 import typing
 from glob import iglob
-from typing_extensions import Self
 
 from . import constants, utils
 from .constants import (
@@ -148,7 +147,7 @@ class FileSequence:
                 for frame in self._frameSet
             ])
 
-    def copy(self) -> Self:
+    def copy(self) -> FileSequence:
         """
         Create a deep copy of this sequence
 
@@ -210,7 +209,7 @@ class FileSequence:
             inverted=inverted,
             dirname=self.dirname())
 
-    def split(self) -> list[Self]:
+    def split(self) -> list[FileSequence]:
         """
         Split the :class:`FileSequence` into contiguous pieces and return them
         as a list of :class:`FileSequence` instances.
