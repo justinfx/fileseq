@@ -3,6 +3,7 @@ constants - General constants of use to fileseq operations.
 """
 
 import re
+import typing
 
 # The max frame count of a FrameSet before a MaxSizeException
 # exception is raised
@@ -13,16 +14,16 @@ class _PadStyle(object):
     def __init__(self, name: str):
         self.__name = name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<PAD_STYLE: {}>'.format(self.__name)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__name
 
-    def __eq__(self, other):
+    def __eq__(self, other: typing.Any) -> bool:
         if not isinstance(other, _PadStyle):
             return False
         return str(self) == str(other)

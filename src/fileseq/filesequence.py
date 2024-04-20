@@ -3,6 +3,7 @@ filesequence - A parsing object representing sequential files for fileseq.
 """
 from __future__ import annotations
 
+import collections.abc
 import dataclasses
 import decimal
 import fnmatch
@@ -161,7 +162,7 @@ class FileSequence:
             fs._frameSet = self._frameSet.copy()
         return fs
 
-    def format(self, template="{basename}{range}{padding}{extension}") -> str:
+    def format(self, template: str = "{basename}{range}{padding}{extension}") -> str:
         """Return the file sequence as a formatted string according to
         the given template.
 
@@ -195,7 +196,7 @@ class FileSequence:
         except UnicodeEncodeError:
             return self._format(str(template))
 
-    def _format(self, template):
+    def _format(self, template: str) -> str:
         # Potentially expensive if inverted range is large
         # and user never asked for it in template
         inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
@@ -232,7 +233,7 @@ class FileSequence:
         """
         return self._dir
 
-    def setDirname(self, dirname: str):
+    def setDirname(self, dirname: str) -> None:
         """
         Set a new directory name for the sequence.
 
@@ -257,7 +258,7 @@ class FileSequence:
         """
         return self._base
 
-    def setBasename(self, base: str):
+    def setBasename(self, base: str) -> None:
         """
         Set a new basename for the sequence.
 
@@ -276,7 +277,7 @@ class FileSequence:
         """
         return self._pad_style
 
-    def setPadStyle(self, pad_style: constants._PadStyle, set_zfill: bool = False):
+    def setPadStyle(self, pad_style: constants._PadStyle, set_zfill: bool = False) -> None:
         """
         Set new padding style for the sequence.
         See fileseq.constants.PAD_STYLE_HASH1 and fileseq.constants.PAD_STYLE_HASH4
@@ -321,7 +322,7 @@ class FileSequence:
         """
         return self._pad
 
-    def setPadding(self, padding: str):
+    def setPadding(self, padding: str) -> None:
         """
         Set new padding characters for the sequence.
         i.e. "#" or "@@@" or '%04d', or an empty string to disable range formatting.
@@ -354,7 +355,7 @@ class FileSequence:
         """
         return self._frame_pad
 
-    def setFramePadding(self, padding: str):
+    def setFramePadding(self, padding: str) -> None:
         """
         Set new padding characters for the frames of the sequence.
         i.e. "#" or "@@@" or '%04d', or an empty string to disable range formatting.
@@ -388,7 +389,7 @@ class FileSequence:
         """
         return self._subframe_pad
 
-    def setSubframePadding(self, padding: str):
+    def setSubframePadding(self, padding: str) -> None:
         """
         Set new padding characters for the subframes in the sequence.
         i.e. "#" or "@@@", or an empty string to disable range
@@ -415,7 +416,7 @@ class FileSequence:
         self._pad = pad
         self._decimal_places = decimal_places
 
-    def frameSet(self) -> FrameSet | None:
+    def frameSet(self) -> FrameSet|None:
         """
         Return the :class:`.FrameSet` of the sequence if specified,
         otherwise None.
@@ -425,7 +426,7 @@ class FileSequence:
         """
         return self._frameSet
 
-    def setFrameSet(self, frameSet: FrameSet | None):
+    def setFrameSet(self, frameSet: FrameSet|None) -> None:
         """
         Set a new :class:`.FrameSet` for the sequence.
 
@@ -452,7 +453,7 @@ class FileSequence:
         """
         return self._ext
 
-    def setExtension(self, ext: str):
+    def setExtension(self, ext: str) -> None:
         """
         Set a new file extension for the sequence.
 
@@ -466,7 +467,7 @@ class FileSequence:
             ext = "." + ext
         self._ext = utils.asString(ext)
 
-    def setExtention(self, ext: str):
+    def setExtention(self, ext: str) -> None:
         """
         Deprecated: use :meth:`setExtension`.
 
@@ -490,7 +491,7 @@ class FileSequence:
             return ''
         return self._frameSet.frameRange(self._zfill, self._decimal_places)
 
-    def setFrameRange(self, frange):
+    def setFrameRange(self, frange: typing.Any) -> None:
         """
         Set a new frame range for the sequence.
 
@@ -610,7 +611,7 @@ class FileSequence:
         Returns:
             str:
         """
-        return self.__getitem__(idx)
+        return self.__getitem__(idx)  # type: ignore
 
     def batches(self, batch_size: int, paths: bool = False) -> typing.Iterable[str | FileSequence]:
         """
@@ -638,7 +639,7 @@ class FileSequence:
         frame_gen = utils.batchFrames(0, len(self) - 1, batch_size)
         return (self[f.start:f.stop + 1] for f in frame_gen)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: typing.Any) -> None:
         """
         Allows for de-serialization from a pickled :class:`FileSequence`.
 
@@ -652,7 +653,7 @@ class FileSequence:
         self.__dict__.setdefault('_subframe_pad', '')
         self.__dict__.setdefault('_decimal_places', 0)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, typing.Any]:
         """
         Convert sequence object into a state dict that is suitable for
         further serialization, such as to JSON
@@ -668,7 +669,7 @@ class FileSequence:
         return state
 
     @classmethod
-    def from_dict(cls, state: dict) -> FileSequence:
+    def from_dict(cls, state: dict[str, typing.Any]) -> FileSequence:
         """
         Constructor to create a new sequence object from a state
         that was previously returned by :meth:`FileSequence.to_dict`
@@ -691,13 +692,13 @@ class FileSequence:
         fs.__setstate__(state)
         return fs
 
-    def __iter__(self):
+    def __iter__(self) -> collections.abc.Generator[str, None, None]:
         """
         Allow iteration over the path or paths this :class:`FileSequence`
         represents.
 
         Yields:
-            :class:`FileSequence`:
+            str: path
         """
         # If there is no frame range, or there is no padding
         # characters, then we only want to represent a single path
@@ -708,7 +709,7 @@ class FileSequence:
         for f in self._frameSet:
             yield self.frame(f)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: typing.Any) -> str|FileSequence:
         """
         Allows indexing and slicing into the underlying :class:`.FrameSet`
 
@@ -743,7 +744,7 @@ class FileSequence:
         fs.setFrameSet(fset)
         return fs
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The length (number of files) represented by this :class:`FileSequence`.
 
@@ -754,7 +755,7 @@ class FileSequence:
             return 1
         return len(self._frameSet)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         String representation of this :class:`FileSequence`.
 
@@ -772,28 +773,28 @@ class FileSequence:
         cmpts.frameSet = utils.asString(cmpts.frameSet or "")
         return "".join(dataclasses.astuple(cmpts))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         try:
             return "<%s: %r>" % (self.__class__.__name__, self.__str__())
         except TypeError:
             return super(self.__class__, self).__repr__()
 
-    def __eq__(self, other):
+    def __eq__(self, other: typing.Any) -> bool:
         if not isinstance(other, FileSequence):
             return str(self) == str(other)
 
         a = self.__components()
         b = other.__components()
 
-        a.pad = self.getPaddingNum(a.pad)
-        b.pad = other.getPaddingNum(b.pad)
+        a.pad = self.getPaddingNum(str(a.pad))
+        b.pad = other.getPaddingNum(str(b.pad))
 
         return a == b
 
-    def __ne__(self, other):
+    def __ne__(self, other: typing.Any) -> bool:
         return not self.__eq__(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # TODO: Technically we should be returning None,
         # as this class is mutable and cannot reliably be hashed.
         # Python2 allows it without this definition.
@@ -801,7 +802,7 @@ class FileSequence:
         # For now, preserving the hashing behaviour in py3.
         return id(self)
 
-    def __components(self):
+    def __components(self) -> _Components:
         return self._Components(
             self._dir,
             self._base,
@@ -863,7 +864,7 @@ class FileSequence:
 
             path: str
             for path in filter(None, map(utils.asString, paths)):
-                frame = path[head:tail]  # type: ignore
+                frame = path[head:tail]
                 try:
                     int(frame)
                 except ValueError:
@@ -891,26 +892,27 @@ class FileSequence:
                 if frame:
                     seqs[key].add(frame)
 
-        def start_new_seq():
+        def start_new_seq() -> FileSequence:
             seq = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
             return seq
 
-        def finish_new_seq(seq):
+        def finish_new_seq(seq: FileSequence) -> None:
             if seq._subframe_pad:
                 seq._pad = '.'.join([seq._frame_pad, seq._subframe_pad])
             else:
                 seq._pad = seq._frame_pad
 
-            seq.__init__(utils.asString(seq), pad_style=pad_style, allow_subframes=allow_subframes)
+            seq.__init__(utils.asString(seq), pad_style=pad_style,  # type: ignore[misc]
+                         allow_subframes=allow_subframes)
 
-        def get_frame_width(frame_str):
+        def get_frame_width(frame_str: str) -> int:
             frame_num, _, _ = frame_str.partition(".")
             return len(frame_num)
 
-        def get_frame_minwidth(frame_str):
+        def get_frame_minwidth(frame_str: str) -> int:
             # find the smallest padding width for a frame string
             frame_num, _, _ = frame_str.partition(".")
             size = len(frame_num)
@@ -920,7 +922,7 @@ class FileSequence:
                 return 1
             return size
 
-        def frames_to_seq(frames, pad_length, decimal_places):
+        def frames_to_seq(frames: typing.Iterable[str], pad_length: int, decimal_places: int) -> FileSequence:
             seq = start_new_seq()
             seq._frameSet = FrameSet(sorted(decimal.Decimal(f) for f in frames))
             seq._frame_pad = cls.getPaddingChars(pad_length, pad_style=pad_style)
@@ -950,11 +952,11 @@ class FileSequence:
             sorted_frames = sorted(((get_frame_width(f), f) for f in frames), key=operator.itemgetter(0))
 
             current_frames: list[str] = []
-            current_width = None
+            current_width = -1
 
             for width, frame in sorted_frames:
                 # initialize on first item
-                if current_width is None:
+                if current_width < 0:
                     current_width = width
 
                 if width != current_width and get_frame_minwidth(frame) > current_width:
@@ -1231,8 +1233,11 @@ class FileSequence:
                 patt = r'.*[/\\]'
             patt += re.escape(basename) + '(.*)' + re.escape(ext) + r'\Z'
 
-            def get_frame(f):
-                return re.match(patt, f, re.I).group(1)
+            def get_frame(f: str) -> str:
+                m = re.match(patt, f, re.I)
+                if not m:
+                    raise ValueError(f'no frame match: str={f}, pattern={patt}')
+                return m.group(1)
 
             if strictPadding:
                 globbed = pad_filter_ctx(
@@ -1310,14 +1315,19 @@ class FileSequence:
         return filename
 
     class _FilterByPaddingNum(object):
-        def __init__(self):
+        def __init__(self) -> None:
             # Tracks whether a padded frame has been yielded:
             #       padded: file.0001.ext
             #   not padded: file.1001.ext
             self.has_padded_frames = False
             self.has_padded_subframes = False
 
-        def __call__(self, iterable, zfill, decimal_places=0, get_frame=None):
+        def __call__(self,
+                     iterable: typing.Iterable[str],
+                     zfill: int|None,
+                     decimal_places: typing.Optional[int] = 0,
+                     get_frame: typing.Optional[typing.Callable[[str], str]] = None
+                     ) -> collections.abc.Generator[str, None, None]:
             """
             Yield only path elements from iterable which have a frame padding that
             matches the given target padding numbers. If zfill is None only the
@@ -1345,10 +1355,12 @@ class FileSequence:
             has_padded_frame = False
             has_padded_subframe = False
 
-            def check_padded(frame):
-                return frame and (frame[0] == '0' or frame[:2] == '-0')
+            def check_padded(frame: str) -> bool:
+                if frame and (frame[0] == '0' or frame[:2] == '-0'):
+                    return True
+                return False
 
-            def set_has_padded():
+            def set_has_padded() -> None:
                 if has_padded_frame:
                     self.has_padded_frames = True
                 if has_padded_subframe:
@@ -1410,7 +1422,7 @@ class FileSequence:
                     continue
 
     @classmethod
-    def _filterByPaddingNum(cls, *args, **kwargs):
+    def _filterByPaddingNum(cls, *args, **kwargs) -> typing.Generator[str]:  # type: ignore
         ctx = cls._FilterByPaddingNum()
         return ctx(*args, **kwargs)
 
