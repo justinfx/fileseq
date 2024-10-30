@@ -814,6 +814,8 @@ class FileSequence(object):
             :obj:`FileSequence`:
         """
         seqs = {}
+        variant_seq = 0
+        variant_single = 1
         if allow_subframes:
             _check = cls.DISK_SUB_RE.match
         else:
@@ -839,7 +841,7 @@ class FileSequence(object):
                     except decimal.DecimalException:
                         continue
                 _, _, subframe = frame.partition(".")
-                key = (dirname, basename, ext, len(subframe))
+                key = (dirname, basename, ext, len(subframe), variant_seq)
                 seqs.setdefault(key, frames).add(frame)
 
         else:
@@ -849,9 +851,9 @@ class FileSequence(object):
                     continue
                 if frame:
                     _, _, subframe = frame.partition(".")
-                    key = (dirname, basename, ext, len(subframe))
+                    key = (dirname, basename, ext, len(subframe), variant_seq)
                 else:
-                    key = (dirname, basename, ext, 0)
+                    key = (dirname, basename, ext, 0, variant_single)
                 seqs.setdefault(key, set())
                 if frame:
                     seqs[key].add(frame)
@@ -896,7 +898,8 @@ class FileSequence(object):
             finish_new_seq(seq)
             return seq
 
-        for (dirname, basename, ext, decimal_places), frames in iteritems(seqs):
+        for parts, frames in iteritems(seqs):
+            (dirname, basename, ext, decimal_places) = parts[:4]
             # Short-circuit logic if we do not have multiple frames, since we
             # only need to build and return a single simple sequence
             if not frames:

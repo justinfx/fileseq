@@ -1361,6 +1361,22 @@ class TestFileSequence(TestBase):
         self.assertEqual(fileseq.PAD_STYLE_HASH1, actual.padStyle())
         self.assertEqual(4, actual.zfill())
 
+    def test_yield_sequences_in_list_frame_no_frame(self):
+        paths = [
+            'frame_no_frame/file02.jpg',
+            'frame_no_frame/file.jpg',
+            'frame_no_frame/name.jpg',
+        ]
+
+        expects = [
+            'frame_no_frame/file2@@.jpg',
+            'frame_no_frame/file.jpg',
+            'frame_no_frame/name.jpg',
+        ]
+        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths)}
+        for expect in expects:
+            self.assertIn(expect, actual)
+
     def testIgnoreFrameSetStrings(self):
         for char in "xy:,".split():
             fs = FileSequence("/path/to/file{0}1-1x1#.exr".format(char))
