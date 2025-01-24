@@ -335,7 +335,7 @@ class FrameSet(Set):  # type:ignore[type-arg]
         try:
             return FrameSet(other)
         except Exception:
-            return NotImplemented
+            return NotImplemented  # type: ignore
 
     def index(self, frame: int) -> int:
         """
@@ -935,7 +935,7 @@ class FrameSet(Set):  # type:ignore[type-arg]
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
-            return NotImplemented
+            return NotImplemented  # type: ignore
         return self.items.isdisjoint(other.items)
 
     def issubset(self, other: typing.Any) -> bool | NotImplemented:  # type: ignore
@@ -952,7 +952,7 @@ class FrameSet(Set):  # type:ignore[type-arg]
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
-            return NotImplemented
+            return NotImplemented  # type: ignore
         return self.items <= other.items  # type: ignore
 
     def issuperset(self, other: typing.Any) -> bool | NotImplemented:  # type: ignore
@@ -969,7 +969,7 @@ class FrameSet(Set):  # type:ignore[type-arg]
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
-            return NotImplemented
+            return NotImplemented  # type: ignore
         return self.items >= other.items  # type: ignore
 
     def union(self, *other: typing.Any) -> FrameSet:
@@ -1027,7 +1027,7 @@ class FrameSet(Set):  # type:ignore[type-arg]
         """
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
-            return NotImplemented
+            return NotImplemented  # type: ignore
         from_frozenset = self.items.symmetric_difference(other.items)
         return self.from_iterable(from_frozenset, sort=True)
 
