@@ -13,6 +13,7 @@ from decimal import Decimal
 import json
 import operator
 import os
+import pathlib
 import pickle
 import re
 import string
@@ -23,6 +24,7 @@ from collections import namedtuple
 import fileseq
 from fileseq import (FrameSet,
                      FileSequence,
+                     FilePathSequence,
                      findSequencesOnDisk,
                      findSequenceOnDisk,
                      padFrameRange,
@@ -664,1356 +666,1430 @@ class _CustomPathString(str):
     def __getitem__(self, item):
         return self._create(super(_CustomPathString, self).__getitem__(item))
 
-
-class TestFileSequence(TestBase):
-
-    def testToStr(self):
-        @dataclasses.dataclass
-        class Case:
-            seq: FileSequence
-            expect: str
-
-        FS = FileSequence
-        table = [
-            Case(FS("/dir/file.1-5#.ext"), "/dir/file.1-5#.ext"),
-            Case(FS("/dir/file.0001.ext"), "/dir/file.0001#.ext"),
-            Case(FS("/dir/file.1.ext"), "/dir/file.1@.ext"),
-            Case(FS("/dir/file.ext"), "/dir/file.ext"),
-            Case(FS("/dir/file"), "/dir/file"),
-            Case(FS("/dir/.ext"), "/dir/.ext"),
-            Case(FS("file"), "file"),
-        ]
-
-        for case in table:
-            actual = str(case.seq)
-            self.assertEqual(case.expect, actual)
-
-        fs = FS("/dir/file.1.ext")
-        fs._frameSet = None
-        actual = str(fs)
-        self.assertEqual("/dir/file..ext", actual)
-
-    def testEqual(self):
-        @dataclasses.dataclass
-        class Case:
-            a: FileSequence|str|None
-            b: FileSequence|str|None
-            expect: bool
-
-        FS = FileSequence
-        table = [
-            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5#.ext'), expect=True),
-            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5@@@@.ext'), expect=True),
-            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5@.ext'), expect=False),
-            Case(a=FS('/dir/file.0001.ext'), b=FS('/dir/file.0001.ext'), expect=True),
-            Case(a=FS('file.1-5#.ext'), b=FS('file.1-5#.ext'), expect=True),
-            Case(a=FS('file.1-5#'), b=FS('file.1-5#'), expect=True),
-            Case(a=FS('file.ext'), b=FS('file.ext'), expect=True),
-            Case(a=FS('file'), b=FS('file'), expect=True),
-
-            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1,2,3,4,5#.ext'), expect=True),
-            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1,2,3,4,5#.ext'), expect=True),
-            Case(a=FS('/dir/file.1-3,5-8#.ext'), b=FS('/dir/file.1,2,3,5,6-8#.ext'), expect=True),
-            Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-4,6#.ext'), expect=False),
-
-            # Automatic casting of other object, to string
-            Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1-5#.ext', expect=True),
-            Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1,2,3,4,5#.ext', expect=False),
-            Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1-4#.ext', expect=False),
-        ]
-
-        for case in table:
-            fn = self.assertEqual if case.expect else self.assertNotEqual
-            fn(case.a, case.b)
-
-    def testNativeStr(self):
-        seq = FileSequence("/foo/boo.1-5#.exr")
-        self.assertNativeStr(seq.dirname())
-        self.assertNativeStr(seq.basename())
-        self.assertNativeStr(seq.padding())
-        self.assertNativeStr(seq.extension())
-        self.assertNativeStr(seq.extension())
-        self.assertNativeStr(seq.format('{basename}'))
-        self.assertNativeStr(seq.frame(1))
-        self.assertNativeStr(seq.frameRange())
-        self.assertNativeStr(seq.index(1))
-        self.assertNativeStr(seq.invertedFrameRange())
-
-        self.assertNativeStr(FileSequence.conformPadding('#'))
-        self.assertNativeStr(FileSequence.getPaddingChars(4))
-
-    def testSeqGettersType1(self):
-        seq = FileSequence("/foo/boo.1-5#.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertNativeStr(seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertNativeStr(seq.basename())
-        self.assertEquals("#", seq.padding())
-        self.assertNativeStr(seq.padding())
-        self.assertEquals(".exr", seq.extension())
-        self.assertNativeStr(seq.extension())
-
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertNativeStr(seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertNativeStr(seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
-        self.assertNativeStr(seq.index(0))
-
-    def testSeqGettersType2(self):
-        seq = FileSequence("/foo/boo1-5#.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo", seq.basename())
-        self.assertEquals("#", seq.padding())
-        self.assertEquals(".exr", seq.extension())
-
-        self.assertEquals("/foo/boo9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo0001.exr", seq[0])
-        self.assertEquals("/foo/boo0001.exr", seq.index(0))
-
-    def testSeqGettersPrintf(self):
-        seq = FileSequence("/foo/boo.1-5%04d.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("%04d", seq.padding())
-        self.assertEquals(".exr", seq.extension())
-
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
-
-    def testSeqGettersHoudini(self):
-        seq = FileSequence("/foo/boo.1-5$F.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("$F", seq.padding())
-        self.assertEquals(".exr", seq.extension())
-
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.1.exr", seq[0])
-        self.assertEquals("/foo/boo.1.exr", seq.index(0))
-
-    def testSeqGettersHoudiniPadded(self):
-        seq = FileSequence("/foo/boo.1-5$F4.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("$F4", seq.padding())
-        self.assertEquals(".exr", seq.extension())
-
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
-
-    def testSeqGettersUdim(self):
-        seq = FileSequence("/foo/boo.1-5<UDIM>.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("<UDIM>", seq.padding())
-        self.assertEquals(".exr", seq.extension())
-
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
-
-    def testSeqGettersUdimD(self):
-        seq = FileSequence("/foo/boo.1-5%(UDIM)d.exr")
-        self.assertEquals(5, len(seq))
-        self.assertEquals("/foo/", seq.dirname())
-        self.assertEquals("boo.", seq.basename())
-        self.assertEquals("%(UDIM)d", seq.padding())
-        self.assertEquals(".exr", seq.extension())
-
-        self.assertEquals("/foo/boo.9999.exr", seq.frame(9999))
-        self.assertEquals("/foo/boo.0001.exr", seq[0])
-        self.assertEquals("/foo/boo.0001.exr", seq.index(0))
-
-    def testSetDirname(self):
-        seq = FileSequence("/foo/bong.1-5@.exr")
-        seq.setDirname("/bing/")
-        self.assertEquals("/bing/bong.1.exr", seq[0])
-
-        seq = FileSequence("/foo/bong.1-5@.exr")
-        seq.setDirname("bing")
-        self.assertEquals("bing/bong.1.exr", seq[0])
-
-    def testSetBasename(self):
-        seq = FileSequence("/foo/bong.1-5@.exr")
-        seq.setBasename("bar.")
-        self.assertEquals("/foo/bar.1.exr", seq[0])
-
-    def testSetPadding(self):
-        seq = FileSequence("/foo/bong.1-5@.exr")
-        seq.setPadding("#")
-        self.assertEquals("/foo/bong.0001.exr", seq[0])
-
-        seq.setPadding("%02d")
-        self.assertEquals("/foo/bong.01.exr", seq[0])
-
-        expect = "/foo/bong.1-5#.exr"
-        seq = FileSequence(expect)
-        with self.assertRaises(ValueError):
-            seq.setPadding("bad")
-        self.assertEquals(expect, str(seq))
-
-        expect = "/foo/bong.1-5#.10-20@@.exr"
-        seq = FileSequence(expect)
-        with self.assertRaises(ValueError):
-            seq.setFramePadding("bad")
-        self.assertEquals(expect, str(seq))
-
-        expect = "/foo/bong.1-5#.10-20@@.exr"
-        seq = FileSequence(expect)
-        with self.assertRaises(ValueError):
-            seq.setSubframePadding("bad")
-        self.assertEquals(expect, str(seq))
-
-    def testSetPadStyle(self):
-        Case = namedtuple('Case', ['input', 'to_style', 'expected_pad'])
-        H1 = fileseq.PAD_STYLE_HASH1
-        H4 = fileseq.PAD_STYLE_HASH4
-        FS = FileSequence
-
-        table = [
-            Case(FS('foo.1@.exr', H4), H1, '#'),
-            Case(FS('foo.1@@@@.exr', H4), H1, '####'),
-            Case(FS('foo.1#.exr', H4), H1, '####'),
-            Case(FS('foo.1###@.exr', H4), H1, '#############'),
-            Case(FS('foo.1-5x0.25#.####.exr', H4, allow_subframes=True), H1, '####.################'),
-            Case(FS('foo.1-5x0.25###@.#.exr', H4, allow_subframes=True), H1, '#############.####'),
-
-            Case(FS('foo.1@.exr', H1), H4, '@'),
-            Case(FS('foo.1@@@@.exr', H1), H4, '#'),
-            Case(FS('foo.1#.exr', H1), H4, '@'),
-            Case(FS('foo.1####.exr', H1), H4, '#'),
-            Case(FS('foo.1-5x0.25#.####.exr', H1, allow_subframes=True), H4, '@.#'),
-            Case(FS('foo.1-5x0.25####.#.exr', H1, allow_subframes=True), H4, '#.@'),
-        ]
-
-        for case in table:
-            actual = case.input.copy()
-            actual.setPadStyle(case.to_style)
-            self.assertEqual(case.input.zfill(), actual.zfill(), msg=str(case))
-            self.assertEqual(case.input.decimalPlaces(), actual.decimalPlaces(), msg=str(case))
-            self.assertEqual(case.expected_pad, actual.padding(), msg=str(case))
-
-    def testSetPadStyleSetZfill(self):
-        Case = namedtuple('Case', ['input', 'start_zfill', 'to_style', 'expected_zfill'])
-        H1 = fileseq.PAD_STYLE_HASH1
-        H4 = fileseq.PAD_STYLE_HASH4
-        FS = FileSequence
-
-        table = [
-            Case(FS('foo.1@.exr', H4), 1, H1, 1),
-            Case(FS('foo.1@@@@.exr', H4), 4, H1, 4),
-            Case(FS('foo.1#.exr', H4), 4, H1, 1),
-            Case(FS('foo.1####.exr', H4), 16, H1, 4),
-            Case(FS('foo.1-5x0.25#.####.exr', H4, allow_subframes=True), 4, H1, 1),
-            Case(FS('foo.1-5x0.25####.#.exr', H4, allow_subframes=True), 16, H1, 4),
-
-            Case(FS('foo.1@.exr', H1), 1, H4, 1),
-            Case(FS('foo.1@@@@.exr', H1), 4, H4, 4),
-            Case(FS('foo.1#.exr', H1), 1, H4, 4),
-            Case(FS('foo.1####.exr', H1), 4, H4, 16),
-            Case(FS('foo.1-5x0.25#.####.exr', H1, allow_subframes=True), 1, H4, 4),
-            Case(FS('foo.1-5x0.25####.#.exr', H1, allow_subframes=True), 4, H4, 16),
-        ]
-
-        for case in table:
-            self.assertEqual(case.start_zfill, case.input.zfill(), msg=str(case))
-            actual = case.input.copy()
-            actual.setPadStyle(case.to_style, set_zfill=True)
-            self.assertEqual(case.input.padding(), actual.padding(), msg=str(case))
-            self.assertEqual(case.expected_zfill, actual.zfill(), msg=str(case))
-
-    def testDefaultRangePadding(self):
-        """
-        Set a default pad char when a range is set
-        https://github.com/justinfx/fileseq/issues/12
-        """
-        # Should set a default pad char
-        fs = FileSequence("foo.exr")
-        self.assertEqual("", fs.padding())
-        fs.setFrameRange("1-3")
-        self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
-        self.assertEqual(["foo1.exr", "foo2.exr", "foo3.exr"], list(fs))
-
-        # Should set a default pad char
-        fs = FileSequence("foo.exr")
-        self.assertEqual("", fs.padding())
-        fs.setFrameSet(FrameSet("1-3"))
-        self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
-        self.assertEqual(["foo1.exr", "foo2.exr", "foo3.exr"], list(fs))
-
-        # Should not change an existing pad char
-        fs = FileSequence("foo.exr")
-        fs.setPadding("#")
-        fs.setFrameRange("1-3")
-        self.assertEqual("#", fs.padding())
-
-    def testSetFrameSet(self):
-        seq = FileSequence("/cheech/chong.1-5#.exr")
-        seq.setFrameSet(FrameSet("10-20"))
-        self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
-
-    def testSetFrameRange(self):
-        seq = FileSequence("/cheech/chong.1-5#.exr")
-        seq.setFrameRange("10-20")
-        self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
-
-    def testFrame(self):
-        seq = FileSequence("/foo/bar/bing.#.exr")
-        self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
-        self.assertNativeStr(seq.frame(1))
-        self.assertEquals("/foo/bar/bing.#.exr", seq.frame("#"))
-        self.assertNativeStr(seq.frame("#"))
-
-        seq = FileSequence("/foo/bar/bing.%04d.exr")
-        self.assertEquals("/foo/bar/bing.0001.exr", seq.frame(1))
-        self.assertEquals("/foo/bar/bing.%04d.exr", seq.frame("%04d"))
-
-    def testIter(self):
-        known = {
-            "/cheech/chong.0001.exr",
-            "/cheech/chong.0003.exr",
-            "/cheech/chong.0005.exr"
-        }
-        seq = FileSequence("/cheech/chong.1,3,5#.exr")
-        self.assertFalse(known.difference(seq))
-
-    def testSlicing(self):
-        Case = namedtuple('Case', ['input', 'slice', 'expected'])
-        table = [
-            Case('file.1-10#.ext', 1, 'file.0002.ext'),
-            Case('file.1-10#.ext', -1, 'file.0010.ext'),
-            Case('file.1-10#.ext', slice(3, 6), FileSequence('file.4-6#.ext')),
-            Case('file.1-10#.ext', slice(None, 5), FileSequence('file.1-5#.ext')),
-            Case('file.1-10#.ext', slice(5, None), FileSequence('file.6-10#.ext')),
-            Case('file.1-10#.ext', slice(-3, None), FileSequence('file.8-10#.ext')),
-            Case('file.1-10#.ext', slice(-6, None, 2), FileSequence('file.5-9x2#.ext')),
-            Case('file.-5-30x3#.ext', slice(3, 8, 2), FileSequence('file.4-16x6#.ext')),
-            Case('file.-5-30x3#.ext', slice(None, None, 2), FileSequence('file.-5-25x6#.ext')),
-        ]
-
-        for case in table:
-            fs = FileSequence(case.input)
-            actual = fs[case.slice]
-            self.assertEqual(case.expected, actual)
-
-            if isinstance(actual, str):
-                self.assertNativeStr(actual)
-
-        fs = FileSequence('file.1-10#.ext')
-        raises = [-20, 20, slice(11, None), slice(-200, -100)]
-        for case in raises:
-            with self.assertRaises(IndexError):
-                ret = fs.__getitem__(case)
-                raise RuntimeError("expected case %s to raise an IndexError; got %s" % (case, ret))
-
-    def testFormat(self):
-        seq = FileSequence("/cheech/chong.1-10,30,40#.exr")
-        self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
-        self.assertNativeStr(seq.format())
-        self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
-        self.assertNativeStr(seq.format("{inverted}"))
-
-        seq = findSequencesOnDisk("broken_seq")[0]
-        self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
-        self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
-        seq = findSequencesOnDisk("step_seq")[0]
-        self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
-
-    def testFormatInverted(self):
-        _maxSize = constants.MAX_FRAME_SIZE
-        try:
-            maxSize = constants.MAX_FRAME_SIZE = 500
-
-            # Test catching error for large inverted range
-            seq = FileSequence("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE + 3))
-            self.assertRaises(exceptions.MaxSizeException, seq.format, '{inverted}')
-
-        finally:
-            constants.MAX_FRAME_SIZE = _maxSize
-
-    def testSplit(self):
-        seqs = FileSequence("/cheech/chong.1-10,30,40#.exr").split()
-        self.assertEquals("/cheech/chong.0001-0010#.exr", str(seqs[0]))
-        self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
-        self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
-
-    def testMissingPeriods(self):
-        seqs = FileSequence("/path/to/something_1-10#_exr")
-        self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
-
-        seqs = FileSequence("/path/to/something_1-10%04d_exr")
-        self.assertEquals("/path/to/something_0001_exr", seqs.index(0))
-
-    def testNumericFilename(self):
-        seqs = FileSequence("/path/to/1-10#.exr")
-        self.assertEquals("/path/to/0001.exr", seqs.index(0))
-
-        seqs = FileSequence("/path/to/1-10%04d.exr")
-        self.assertEquals("/path/to/0001.exr", seqs.index(0))
-
-    def testNoPlaceholder(self):
-        expected = "/path/to/file.mov"
-        expected_patt = "/path/to/file%d.mov"
-        seqs = FileSequence(expected)
-
-        self.assertEquals(expected, seqs.index(0))
-        self.assertEquals(expected, seqs.frame(0))
-        self.assertEquals(expected, seqs[0])
-        self.assertEquals(None, seqs.frameSet())
-        self.assertEquals("", seqs.frameRange())
-        self.assertEquals("", seqs.invertedFrameRange())
-        self.assertEquals(1, len(seqs))
-
-        seqs.setFrameRange("1-100")
-
-        for i in range(0, 100):
-            expected = expected_patt % (i+1)
-            self.assertEquals(expected, seqs.index(i))
-            self.assertEquals(expected, seqs.frame(i + 1))
-            self.assertEquals(expected, seqs[i])
-        self.assertEquals(100, len(seqs))
-
-        seqs.setPadding("#")
-        self.assertEquals(100, len(seqs))
-
-    def testNoPlaceholderNumExt(self):
-        basename = 'file'
-        exts = ('.7zip', '.mp4')
-
-        for ext in exts:
-            expected = basename + ext
-            seqs = FileSequence(expected)
-
-            self.assertEquals(ext, seqs.extension())
-            self.assertEquals(basename, seqs.basename())
-            self.assertEquals(expected, str(seqs))
-
-    def testSplitXY(self):
-        seqs = FileSequence("/cheech/0-9x1/chong.1-10#.exr")
-        self.assertEquals("/cheech/0-9x1/chong.0001.exr", seqs.index(0))
-
-    def testSerialization(self):
-        fs = FileSequence("/path/to/file.1-100x2#.exr")
-        s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
-        fs2 = pickle.loads(s)
-        self.assertEquals(str(fs), str(fs2))
-        self.assertEquals(len(fs), len(fs2))
-        self.assertEquals(list(fs), list(fs2))
-
-        fs = FileSequence("/path/to/file.1-100x2%04d.exr")
-        s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
-        fs2 = pickle.loads(s)
-        self.assertEquals(str(fs), str(fs2))
-        self.assertEquals(len(fs), len(fs2))
-        self.assertEquals(list(fs), list(fs2))
-
-    def testSerializationCompatablity(self):
-        fs = FileSequence(PICKLE_TEST_SEQ)
-        for version, s in OLD_PICKLE_MAP.items():
+class AbstractBaseTests:
+    """Namespace that prevents unittest from discovering test cases which are
+    meant to be abstract"""
+
+    class BaseFileSequenceTest(TestBase):
+
+        FS = None
+        FILE = None  # Type of the file "contained" by the file sequence
+
+        def assertPath(self, obj):
+            """Helper method to assert that obj is a pathlib.Path instance"""
+            self.assertIsInstance(obj, pathlib.Path)
+
+        def testToStr(self):
+            @dataclasses.dataclass
+            class Case:
+                seq_str: str  # Changed from FileSequence to str since we'll construct it
+                expect: str
+
+            FS = self.FS
+            table = [
+                Case("/dir/file.1-5#.ext", "/dir/file.1-5#.ext"),
+                Case("/dir/file.0001.ext", "/dir/file.0001#.ext"),
+                Case("/dir/file.1.ext", "/dir/file.1@.ext"),
+                Case("/dir/file.ext", "/dir/file.ext"),
+                Case("/dir/file", "/dir/file"),
+                Case("/dir/.ext", "/dir/.ext"),
+                Case("file", "file"),
+            ]
+
+            for case in table:
+                seq = FS(case.seq_str)
+                actual = str(seq)
+                self.assertEqual(case.expect, actual)
+
+            fs = FS("/dir/file.1.ext")
+            fs._frameSet = None
+            actual = str(fs)
+            self.assertEqual("/dir/file..ext", actual)
+
+        def testEqual(self):
+            @dataclasses.dataclass
+            class Case:
+                a: FileSequence|str|None
+                b: FileSequence|str|None
+                expect: bool
+
+            FS = self.FS
+            table = [
+                Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5#.ext'), expect=True),
+                Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5@@@@.ext'), expect=True),
+                Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-5@.ext'), expect=False),
+                Case(a=FS('/dir/file.0001.ext'), b=FS('/dir/file.0001.ext'), expect=True),
+                Case(a=FS('file.1-5#.ext'), b=FS('file.1-5#.ext'), expect=True),
+                Case(a=FS('file.1-5#'), b=FS('file.1-5#'), expect=True),
+                Case(a=FS('file.ext'), b=FS('file.ext'), expect=True),
+                Case(a=FS('file'), b=FS('file'), expect=True),
+
+                Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1,2,3,4,5#.ext'), expect=True),
+                Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1,2,3,4,5#.ext'), expect=True),
+                Case(a=FS('/dir/file.1-3,5-8#.ext'), b=FS('/dir/file.1,2,3,5,6-8#.ext'), expect=True),
+                Case(a=FS('/dir/file.1-5#.ext'), b=FS('/dir/file.1-4,6#.ext'), expect=False),
+
+                # Automatic casting of other object, to string
+                Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1-5#.ext', expect=True),
+                Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1,2,3,4,5#.ext', expect=False),
+                Case(a=FS('/dir/file.1-5#.ext'), b='/dir/file.1-4#.ext', expect=False),
+            ]
+
+            for case in table:
+                fn = self.assertEqual if case.expect else self.assertNotEqual
+                fn(case.a, case.b)
+
+        def testNativeStr(self):
+            seq = self.FS("/foo/boo.1-5#.exr")
+            self.assertNativeStr(seq.dirname())
+            self.assertNativeStr(seq.basename())
+            self.assertNativeStr(seq.padding())
+            self.assertNativeStr(seq.extension())
+            self.assertNativeStr(seq.extension())
+            self.assertNativeStr(seq.format('{basename}'))
+            if self.FILE == str:
+                self.assertNativeStr(seq.frame(1))
+            else:
+                self.assertPath(seq.frame(1))
+            self.assertNativeStr(seq.frameRange())
+            if self.FILE == str:
+                self.assertNativeStr(seq.index(1))
+            else:
+                self.assertPath(seq.index(1))
+            self.assertNativeStr(seq.invertedFrameRange())
+
+            self.assertNativeStr(self.FS.conformPadding('#'))
+            self.assertNativeStr(self.FS.getPaddingChars(4))
+
+        def testSeqGettersType1(self):
+            seq = self.FS("/foo/boo.1-5#.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertNativeStr(seq.dirname())
+            self.assertEquals("boo.", seq.basename())
+            self.assertNativeStr(seq.basename())
+            self.assertEquals("#", seq.padding())
+            self.assertNativeStr(seq.padding())
+            self.assertEquals(".exr", seq.extension())
+            self.assertNativeStr(seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo.9999.exr"), seq.frame(9999))
+            if self.FILE == str:
+                self.assertNativeStr(seq.frame(9999))
+            else:
+                self.assertPath(seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq[0])
+            if self.FILE == str:
+                self.assertNativeStr(seq[0])
+            else:
+                self.assertPath(seq[0])
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq.index(0))
+            if self.FILE == str:
+                self.assertNativeStr(seq.index(0))
+            else:
+                self.assertPath(seq.index(0))
+
+        def testSeqGettersType2(self):
+            seq = self.FS("/foo/boo1-5#.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertEquals("boo", seq.basename())
+            self.assertEquals("#", seq.padding())
+            self.assertEquals(".exr", seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo9999.exr"), seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo0001.exr"), seq[0])
+            self.assertEquals(self.FILE("/foo/boo0001.exr"), seq.index(0))
+
+        def testSeqGettersPrintf(self):
+            seq = self.FS("/foo/boo.1-5%04d.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertEquals("boo.", seq.basename())
+            self.assertEquals("%04d", seq.padding())
+            self.assertEquals(".exr", seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo.9999.exr"), seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq[0])
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq.index(0))
+
+        def testSeqGettersHoudini(self):
+            seq = self.FS("/foo/boo.1-5$F.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertEquals("boo.", seq.basename())
+            self.assertEquals("$F", seq.padding())
+            self.assertEquals(".exr", seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo.9999.exr"), seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo.1.exr"), seq[0])
+            self.assertEquals(self.FILE("/foo/boo.1.exr"), seq.index(0))
+
+        def testSeqGettersHoudiniPadded(self):
+            seq = self.FS("/foo/boo.1-5$F4.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertEquals("boo.", seq.basename())
+            self.assertEquals("$F4", seq.padding())
+            self.assertEquals(".exr", seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo.9999.exr"), seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq[0])
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq.index(0))
+
+        def testSeqGettersUdim(self):
+            seq = self.FS("/foo/boo.1-5<UDIM>.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertEquals("boo.", seq.basename())
+            self.assertEquals("<UDIM>", seq.padding())
+            self.assertEquals(".exr", seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo.9999.exr"), seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq[0])
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq.index(0))
+
+        def testSeqGettersUdimD(self):
+            seq = self.FS("/foo/boo.1-5%(UDIM)d.exr")
+            self.assertEquals(5, len(seq))
+            self.assertEquals("/foo/", seq.dirname())
+            self.assertEquals("boo.", seq.basename())
+            self.assertEquals("%(UDIM)d", seq.padding())
+            self.assertEquals(".exr", seq.extension())
+
+            self.assertEquals(self.FILE("/foo/boo.9999.exr"), seq.frame(9999))
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq[0])
+            self.assertEquals(self.FILE("/foo/boo.0001.exr"), seq.index(0))
+
+        def testSetDirname(self):
+            seq = self.FS("/foo/bong.1-5@.exr")
+            seq.setDirname("/bing/")
+            self.assertEquals(self.FILE("/bing/bong.1.exr"), seq[0])
+
+            seq = self.FS("/foo/bong.1-5@.exr")
+            seq.setDirname("bing")
+            self.assertEquals(self.FILE("bing/bong.1.exr"), seq[0])
+
+        def testSetBasename(self):
+            seq = self.FS("/foo/bong.1-5@.exr")
+            seq.setBasename("bar.")
+            self.assertEquals(self.FILE("/foo/bar.1.exr"), seq[0])
+
+        def testSetPadding(self):
+            seq = self.FS("/foo/bong.1-5@.exr")
+            seq.setPadding("#")
+            self.assertEquals(self.FILE("/foo/bong.0001.exr"), seq[0])
+
+            seq.setPadding("%02d")
+            self.assertEquals(self.FILE("/foo/bong.01.exr"), seq[0])
+
+            expect = "/foo/bong.1-5#.exr"
+            seq = self.FS(expect)
+            with self.assertRaises(ValueError):
+                seq.setPadding("bad")
+            self.assertEquals(expect, str(seq))
+
+            expect = "/foo/bong.1-5#.10-20@@.exr"
+            seq = self.FS(expect)
+            with self.assertRaises(ValueError):
+                seq.setFramePadding("bad")
+            self.assertEquals(expect, str(seq))
+
+            expect = "/foo/bong.1-5#.10-20@@.exr"
+            seq = self.FS(expect)
+            with self.assertRaises(ValueError):
+                seq.setSubframePadding("bad")
+            self.assertEquals(expect, str(seq))
+
+        def testSetPadStyle(self):
+            Case = namedtuple('Case', ['input', 'to_style', 'expected_pad'])
+            H1 = fileseq.PAD_STYLE_HASH1
+            H4 = fileseq.PAD_STYLE_HASH4
+            FS = self.FS
+
+            table = [
+                Case(FS('foo.1@.exr', H4), H1, '#'),
+                Case(FS('foo.1@@@@.exr', H4), H1, '####'),
+                Case(FS('foo.1#.exr', H4), H1, '####'),
+                Case(FS('foo.1###@.exr', H4), H1, '#############'),
+                Case(FS('foo.1-5x0.25#.####.exr', H4, allow_subframes=True), H1, '####.################'),
+                Case(FS('foo.1-5x0.25###@.#.exr', H4, allow_subframes=True), H1, '#############.####'),
+
+                Case(FS('foo.1@.exr', H1), H4, '@'),
+                Case(FS('foo.1@@@@.exr', H1), H4, '#'),
+                Case(FS('foo.1#.exr', H1), H4, '@'),
+                Case(FS('foo.1####.exr', H1), H4, '#'),
+                Case(FS('foo.1-5x0.25#.####.exr', H1, allow_subframes=True), H4, '@.#'),
+                Case(FS('foo.1-5x0.25####.#.exr', H1, allow_subframes=True), H4, '#.@'),
+            ]
+
+            for case in table:
+                actual = case.input.copy()
+                actual.setPadStyle(case.to_style)
+                self.assertEqual(case.input.zfill(), actual.zfill(), msg=str(case))
+                self.assertEqual(case.input.decimalPlaces(), actual.decimalPlaces(), msg=str(case))
+                self.assertEqual(case.expected_pad, actual.padding(), msg=str(case))
+
+        def testSetPadStyleSetZfill(self):
+            Case = namedtuple('Case', ['input', 'start_zfill', 'to_style', 'expected_zfill'])
+            H1 = fileseq.PAD_STYLE_HASH1
+            H4 = fileseq.PAD_STYLE_HASH4
+            FS = self.FS
+
+            table = [
+                Case(FS('foo.1@.exr', H4), 1, H1, 1),
+                Case(FS('foo.1@@@@.exr', H4), 4, H1, 4),
+                Case(FS('foo.1#.exr', H4), 4, H1, 1),
+                Case(FS('foo.1####.exr', H4), 16, H1, 4),
+                Case(FS('foo.1-5x0.25#.####.exr', H4, allow_subframes=True), 4, H1, 1),
+                Case(FS('foo.1-5x0.25####.#.exr', H4, allow_subframes=True), 16, H1, 4),
+
+                Case(FS('foo.1@.exr', H1), 1, H4, 1),
+                Case(FS('foo.1@@@@.exr', H1), 4, H4, 4),
+                Case(FS('foo.1#.exr', H1), 1, H4, 4),
+                Case(FS('foo.1####.exr', H1), 4, H4, 16),
+                Case(FS('foo.1-5x0.25#.####.exr', H1, allow_subframes=True), 1, H4, 4),
+                Case(FS('foo.1-5x0.25####.#.exr', H1, allow_subframes=True), 4, H4, 16),
+            ]
+
+            for case in table:
+                self.assertEqual(case.start_zfill, case.input.zfill(), msg=str(case))
+                actual = case.input.copy()
+                actual.setPadStyle(case.to_style, set_zfill=True)
+                self.assertEqual(case.input.padding(), actual.padding(), msg=str(case))
+                self.assertEqual(case.expected_zfill, actual.zfill(), msg=str(case))
+
+        def testDefaultRangePadding(self):
+            """
+            Set a default pad char when a range is set
+            https://github.com/justinfx/fileseq/issues/12
+            """
+            # Should set a default pad char
+            fs = self.FS("foo.exr")
+            self.assertEqual("", fs.padding())
+            fs.setFrameRange("1-3")
+            self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
+            self.assertEqual([self.FILE("foo1.exr"), self.FILE("foo2.exr"), self.FILE("foo3.exr")], list(fs))
+
+            # Should set a default pad char
+            fs = self.FS("foo.exr")
+            self.assertEqual("", fs.padding())
+            fs.setFrameSet(FrameSet("1-3"))
+            self.assertEqual(fs._DEFAULT_PAD_CHAR, fs.padding())
+            self.assertEqual([self.FILE("foo1.exr"), self.FILE("foo2.exr"), self.FILE("foo3.exr")], list(fs))
+
+            # Should not change an existing pad char
+            fs = self.FS("foo.exr")
+            fs.setPadding("#")
+            fs.setFrameRange("1-3")
+            self.assertEqual("#", fs.padding())
+
+        def testSetFrameSet(self):
+            seq = self.FS("/cheech/chong.1-5#.exr")
+            seq.setFrameSet(FrameSet("10-20"))
+            self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
+
+        def testSetFrameRange(self):
+            seq = self.FS("/cheech/chong.1-5#.exr")
+            seq.setFrameRange("10-20")
+            self.assertEquals("/cheech/chong.10-20#.exr", str(seq))
+
+        def testFrame(self):
+            seq = self.FS("/foo/bar/bing.#.exr")
+            self.assertEquals(self.FILE("/foo/bar/bing.0001.exr"), seq.frame(1))
+            if self.FILE == str:
+                self.assertNativeStr(seq.frame(1))
+            else:
+                self.assertPath(seq.frame(1))
+            self.assertEquals(self.FILE("/foo/bar/bing.#.exr"), seq.frame("#"))
+            if self.FILE == str:
+                self.assertNativeStr(seq.frame("#"))
+            else:
+                self.assertPath(seq.frame("#"))
+
+            seq = self.FS("/foo/bar/bing.%04d.exr")
+            self.assertEquals(self.FILE("/foo/bar/bing.0001.exr"), seq.frame(1))
+            self.assertEquals(self.FILE("/foo/bar/bing.%04d.exr"), seq.frame("%04d"))
+
+        def testIter(self):
+            known = {
+                self.FILE("/cheech/chong.0001.exr"),
+                self.FILE("/cheech/chong.0003.exr"),
+                self.FILE("/cheech/chong.0005.exr")
+            }
+            seq = self.FS("/cheech/chong.1,3,5#.exr")
+            self.assertFalse(known.difference(seq))
+
+        def testSlicing(self):
+            Case = namedtuple('Case', ['input', 'slice', 'expected'])
+            table = [
+                Case('file.1-10#.ext', 1, self.FILE('file.0002.ext')),
+                Case('file.1-10#.ext', -1, self.FILE('file.0010.ext')),
+                Case('file.1-10#.ext', slice(3, 6), self.FS('file.4-6#.ext')),
+                Case('file.1-10#.ext', slice(None, 5), self.FS('file.1-5#.ext')),
+                Case('file.1-10#.ext', slice(5, None), self.FS('file.6-10#.ext')),
+                Case('file.1-10#.ext', slice(-3, None), self.FS('file.8-10#.ext')),
+                Case('file.1-10#.ext', slice(-6, None, 2), self.FS('file.5-9x2#.ext')),
+                Case('file.-5-30x3#.ext', slice(3, 8, 2), self.FS('file.4-16x6#.ext')),
+                Case('file.-5-30x3#.ext', slice(None, None, 2), self.FS('file.-5-25x6#.ext')),
+            ]
+
+            for case in table:
+                fs = self.FS(case.input)
+                actual = fs[case.slice]
+                self.assertEqual(case.expected, actual)
+
+                if self.FILE == str:
+                    if isinstance(actual, str):
+                        self.assertNativeStr(actual)
+                else:
+                    if hasattr(actual, '__fspath__'):  # pathlib.Path for single frame
+                        self.assertPath(actual)
+
+            fs = self.FS('file.1-10#.ext')
+            raises = [-20, 20, slice(11, None), slice(-200, -100)]
+            for case in raises:
+                with self.assertRaises(IndexError):
+                    ret = fs.__getitem__(case)
+                    raise RuntimeError("expected case %s to raise an IndexError; got %s" % (case, ret))
+
+        def testFormat(self):
+            seq = self.FS("/cheech/chong.1-10,30,40#.exr")
+            self.assertEquals("chong.0001-0010,0030,0040#.exr", str(seq.format()))
+            self.assertNativeStr(seq.format())
+            self.assertEquals("0011-0029,0031-0039", seq.format("{inverted}"))
+            self.assertNativeStr(seq.format("{inverted}"))
+
+            seq = self.FS.findSequencesOnDisk("broken_seq")[0]
+            self.assertEquals("0000-0002,0004,0006-0008", seq.format("{range}"))
+            self.assertEquals("broke.0000-0002,0004,0006-0008#.exr", seq.format())
+            seq = self.FS.findSequencesOnDisk("step_seq")[0]
+            self.assertEquals("step_seq/step1.1-13x4,14-17#.exr", str(seq))
+
+        def testFormatInverted(self):
+            _maxSize = constants.MAX_FRAME_SIZE
+            try:
+                maxSize = constants.MAX_FRAME_SIZE = 500
+
+                # Test catching error for large inverted range
+                seq = self.FS("/path/to/file.1,%d#.ext" % (constants.MAX_FRAME_SIZE + 3))
+                self.assertRaises(exceptions.MaxSizeException, seq.format, '{inverted}')
+
+            finally:
+                constants.MAX_FRAME_SIZE = _maxSize
+
+        def testSplit(self):
+            seqs = self.FS("/cheech/chong.1-10,30,40#.exr").split()
+            self.assertEquals("/cheech/chong.0001-0010#.exr", str(seqs[0]))
+            self.assertEquals("/cheech/chong.0030#.exr", str(seqs[1]))
+            self.assertEquals("/cheech/chong.0040#.exr", str(seqs[2]))
+
+        def testMissingPeriods(self):
+            seqs = self.FS("/path/to/something_1-10#_exr")
+            self.assertEquals(self.FILE("/path/to/something_0001_exr"), seqs.index(0))
+
+            seqs = self.FS("/path/to/something_1-10%04d_exr")
+            self.assertEquals(self.FILE("/path/to/something_0001_exr"), seqs.index(0))
+
+        def testNumericFilename(self):
+            seqs = self.FS("/path/to/1-10#.exr")
+            self.assertEquals(self.FILE("/path/to/0001.exr"), seqs.index(0))
+
+            seqs = self.FS("/path/to/1-10%04d.exr")
+            self.assertEquals(self.FILE("/path/to/0001.exr"), seqs.index(0))
+
+        def testNoPlaceholder(self):
+            expected = self.FILE("/path/to/file.mov")
+            expected_patt = "/path/to/file%d.mov"
+            seqs = self.FS("/path/to/file.mov")
+
+            self.assertEquals(expected, seqs.index(0))
+            self.assertEquals(expected, seqs.frame(0))
+            self.assertEquals(expected, seqs[0])
+            self.assertEquals(None, seqs.frameSet())
+            self.assertEquals("", seqs.frameRange())
+            self.assertEquals("", seqs.invertedFrameRange())
+            self.assertEquals(1, len(seqs))
+
+            seqs.setFrameRange("1-100")
+
+            for i in range(0, 100):
+                expected = self.FILE(expected_patt % (i+1))
+                self.assertEquals(expected, seqs.index(i))
+                self.assertEquals(expected, seqs.frame(i + 1))
+                self.assertEquals(expected, seqs[i])
+            self.assertEquals(100, len(seqs))
+
+            seqs.setPadding("#")
+            self.assertEquals(100, len(seqs))
+
+        def testNoPlaceholderNumExt(self):
+            basename = 'file'
+            exts = ('.7zip', '.mp4')
+
+            for ext in exts:
+                expected = basename + ext
+                seqs = self.FS(expected)
+
+                self.assertEquals(ext, seqs.extension())
+                self.assertEquals(basename, seqs.basename())
+                self.assertEquals(expected, str(seqs))
+
+        def testSplitXY(self):
+            seqs = self.FS("/cheech/0-9x1/chong.1-10#.exr")
+            self.assertEquals(self.FILE("/cheech/0-9x1/chong.0001.exr"), seqs.index(0))
+
+        def testSerialization(self):
+            fs = self.FS("/path/to/file.1-100x2#.exr")
+            s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
             fs2 = pickle.loads(s)
             self.assertEquals(str(fs), str(fs2))
             self.assertEquals(len(fs), len(fs2))
             self.assertEquals(list(fs), list(fs2))
 
-    def testSerializationJSON(self):
-        fs = FileSequence("/path/to/file.1-100x0.25#.@@.exr",
-                          pad_style=constants.PAD_STYLE_HASH1,
-                          allow_subframes=True)
-        s = json.dumps(fs.to_dict())
-        fs2 = FileSequence.from_dict(json.loads(s))
-        self.assertEquals(str(fs), str(fs2))
-        self.assertEquals(len(fs), len(fs2))
-        self.assertEquals(list(fs), list(fs2))
-        self.assertEquals(fs.frameSet(), fs2.frameSet())
-        self.assertEquals(fs.padStyle(), fs2.padStyle())
-        self.assertEquals(fs.__dict__, fs2.__dict__)
+            fs = self.FS("/path/to/file.1-100x2%04d.exr")
+            s = pickle.dumps(fs, pickle.HIGHEST_PROTOCOL)
+            fs2 = pickle.loads(s)
+            self.assertEquals(str(fs), str(fs2))
+            self.assertEquals(len(fs), len(fs2))
+            self.assertEquals(list(fs), list(fs2))
 
-    def testHasVersionNoFrame(self):
-        for allow_subframes in [False, True]:
-            fs = FileSequence("/path/to/file_v2.exr", allow_subframes=allow_subframes)
-            self.assertEquals(fs.start(), 0)
-            self.assertEquals(fs.end(), 0)
-            self.assertEquals(fs.padding(), '')
-            self.assertEquals(fs.framePadding(), '')
-            self.assertEquals(fs.subframePadding(), '')
-            self.assertEquals(fs.extension(), '.exr')
-            self.assertEquals(str(fs), "/path/to/file_v2.exr")
+        def testSerializationCompatablity(self):
+            fs = self.FS(PICKLE_TEST_SEQ)
+            for version, s in OLD_PICKLE_MAP.items():
+                fs2 = pickle.loads(s)
+                self.assertEquals(str(fs), str(fs2))
+                self.assertEquals(len(fs), len(fs2))
+                self.assertEquals(list(fs), [self.FILE(f) for f in list(fs2)])
 
-    def testHasFrameNoVersion(self):
-        for allow_subframes in [False, True]:
-            fs = FileSequence("/path/to/file.2.exr", allow_subframes=allow_subframes)
-            self.assertEquals(fs.start(), 2)
-            self.assertEquals(fs.end(), 2)
-            self.assertEquals(fs.padding(), '@')
+        def testSerializationJSON(self):
+            fs = self.FS("/path/to/file.1-100x0.25#.@@.exr",
+                              pad_style=constants.PAD_STYLE_HASH1,
+                              allow_subframes=True)
+            s = json.dumps(fs.to_dict())
+            fs2 = self.FS.from_dict(json.loads(s))
+            self.assertEquals(str(fs), str(fs2))
+            self.assertEquals(len(fs), len(fs2))
+            self.assertEquals(list(fs), list(fs2))
+            self.assertEquals(fs.frameSet(), fs2.frameSet())
+            self.assertEquals(fs.padStyle(), fs2.padStyle())
+            self.assertEquals(fs.__dict__, fs2.__dict__)
+
+        def testHasVersionNoFrame(self):
+            for allow_subframes in [False, True]:
+                fs = self.FS("/path/to/file_v2.exr", allow_subframes=allow_subframes)
+                self.assertEquals(fs.start(), 0)
+                self.assertEquals(fs.end(), 0)
+                self.assertEquals(fs.padding(), '')
+                self.assertEquals(fs.framePadding(), '')
+                self.assertEquals(fs.subframePadding(), '')
+                self.assertEquals(fs.extension(), '.exr')
+                self.assertEquals(str(fs), "/path/to/file_v2.exr")
+
+        def testHasFrameNoVersion(self):
+            for allow_subframes in [False, True]:
+                fs = self.FS("/path/to/file.2.exr", allow_subframes=allow_subframes)
+                self.assertEquals(fs.start(), 2)
+                self.assertEquals(fs.end(), 2)
+                self.assertEquals(fs.padding(), '@')
+                self.assertEquals(fs.framePadding(), '@')
+                self.assertEquals(fs.subframePadding(), '')
+                self.assertEquals(fs.extension(), '.exr')
+                self.assertEquals(str(fs), "/path/to/file.2@.exr")
+
+        def testHasSubFrameNoVersion(self):
+            fs = self.FS("/path/to/file.0.0005.exr", allow_subframes=True)
+            self.assertEquals(fs.start(), Decimal("0.0005"))
+            self.assertEquals(fs.end(), Decimal("0.0005"))
+            self.assertEquals(fs.padding(), '@.#')
             self.assertEquals(fs.framePadding(), '@')
-            self.assertEquals(fs.subframePadding(), '')
+            self.assertEquals(fs.subframePadding(), '#')
             self.assertEquals(fs.extension(), '.exr')
-            self.assertEquals(str(fs), "/path/to/file.2@.exr")
+            self.assertEquals(str(fs), "/path/to/file.0.0005@.#.exr")
 
-    def testHasSubFrameNoVersion(self):
-        fs = FileSequence("/path/to/file.0.0005.exr", allow_subframes=True)
-        self.assertEquals(fs.start(), Decimal("0.0005"))
-        self.assertEquals(fs.end(), Decimal("0.0005"))
-        self.assertEquals(fs.padding(), '@.#')
-        self.assertEquals(fs.framePadding(), '@')
-        self.assertEquals(fs.subframePadding(), '#')
-        self.assertEquals(fs.extension(), '.exr')
-        self.assertEquals(str(fs), "/path/to/file.0.0005@.#.exr")
+        def testHasFrameResolution(self):
+            for allow_subframes in [False, True]:
+                fs = self.FS(
+                    "/path/to/file.1920x1038.1001-1076#.exr", allow_subframes=allow_subframes
+                )
+                self.assertEquals(fs.start(), 1001)
+                self.assertEquals(fs.end(), 1076)
+                self.assertEquals(fs.padding(), '#')
+                self.assertEquals(fs.framePadding(), '#')
+                self.assertEquals(fs.subframePadding(), '')
+                self.assertEquals(fs.extension(), '.exr')
+                self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1076#.exr")
 
-    def testHasFrameResolution(self):
-        for allow_subframes in [False, True]:
-            fs = FileSequence(
-                "/path/to/file.1920x1038.1001-1076#.exr", allow_subframes=allow_subframes
-            )
-            self.assertEquals(fs.start(), 1001)
-            self.assertEquals(fs.end(), 1076)
-            self.assertEquals(fs.padding(), '#')
-            self.assertEquals(fs.framePadding(), '#')
-            self.assertEquals(fs.subframePadding(), '')
+        def testHasFrameListResolution(self):
+            for allow_subframes in [False, True]:
+                fs = self.FS(
+                    "/path/to/file.1920x1038.1001,1005,1076#.exr", allow_subframes=allow_subframes
+                )
+                self.assertEquals(fs.start(), 1001)
+                self.assertEquals(fs.end(), 1076)
+                self.assertEquals(fs.padding(), '#')
+                self.assertEquals(fs.framePadding(), '#')
+                self.assertEquals(fs.subframePadding(), '')
+                self.assertEquals(fs.extension(), '.exr')
+                self.assertEquals(str(fs), "/path/to/file.1920x1038.1001,1005,1076#.exr")
+
+        def testHasSubFrameResolution(self):
+            fs = self.FS("/path/to/file.1920x1038.1001-1002x0.25@.#.exr", allow_subframes=True)
+            self.assertEquals(fs.start(), Decimal("1001.0"))
+            self.assertEquals(fs.end(), Decimal("1002.0"))
+            self.assertEquals(fs.padding(), '@.#')
+            self.assertEquals(fs.framePadding(), '@')
+            self.assertEquals(fs.subframePadding(), '#')
             self.assertEquals(fs.extension(), '.exr')
-            self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1076#.exr")
-
-    def testHasFrameListResolution(self):
-        for allow_subframes in [False, True]:
-            fs = FileSequence(
-                "/path/to/file.1920x1038.1001,1005,1076#.exr", allow_subframes=allow_subframes
-            )
-            self.assertEquals(fs.start(), 1001)
-            self.assertEquals(fs.end(), 1076)
-            self.assertEquals(fs.padding(), '#')
-            self.assertEquals(fs.framePadding(), '#')
-            self.assertEquals(fs.subframePadding(), '')
-            self.assertEquals(fs.extension(), '.exr')
-            self.assertEquals(str(fs), "/path/to/file.1920x1038.1001,1005,1076#.exr")
-
-    def testHasSubFrameResolution(self):
-        fs = FileSequence("/path/to/file.1920x1038.1001-1002x0.25@.#.exr", allow_subframes=True)
-        self.assertEquals(fs.start(), Decimal("1001.0"))
-        self.assertEquals(fs.end(), Decimal("1002.0"))
-        self.assertEquals(fs.padding(), '@.#')
-        self.assertEquals(fs.framePadding(), '@')
-        self.assertEquals(fs.subframePadding(), '#')
-        self.assertEquals(fs.extension(), '.exr')
-        self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1002x0.25@.#.exr")
-
-    def testSubframeNotNegativeZero(self):
-        # test that a small negative subframe rounds to 0 (and not -0)
-        fs = FileSequence("#", allow_subframes=True)
-        self.assertEquals(fs.frame(-0.00000001), "0000")
-        fs = FileSequence("#.#", allow_subframes=True)
-        self.assertEquals(fs.frame(-0.00000001), "0000.0000")
-
-    def testNoFrameNoVersionNoExt(self):
-        for allow_subframes in [False, True]:
-            fs = FileSequence("/path/to/file", allow_subframes=allow_subframes)
-            self.assertEquals(fs.start(), 0)
-            self.assertEquals(fs.end(), 0)
-            self.assertEquals(fs.padding(), '')
-            self.assertEquals(fs.dirname(), '/path/to/')
-            self.assertEquals(fs.basename(), 'file')
-            self.assertEquals(fs.extension(), '')
-            self.assertEquals(str(fs), "/path/to/file")
-
-            fs = FileSequence("file", allow_subframes=allow_subframes)
-            self.assertEquals(fs.start(), 0)
-            self.assertEquals(fs.end(), 0)
-            self.assertEquals(fs.padding(), '')
-            self.assertEquals(fs.dirname(), '')
-            self.assertEquals(fs.basename(), 'file')
-            self.assertEquals(fs.extension(), '')
-            self.assertEquals(str(fs), "file")
-
-    def testEmptyBasename(self):
-        seq = FileSequence("/path/to/1-5#.exr")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(len(seq), 5)
-        self.assertEquals(seq.padding(), '#')
-
-        seq = FileSequence("/path/to/1-5%04d.exr")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(len(seq), 5)
-        self.assertEquals(seq.padding(), '%04d')
-
-        seq = FileSequence("/path/to/1-5$F4.exr")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(len(seq), 5)
-        self.assertEquals(seq.padding(), "$F4")
-
-        seq = FileSequence("/path/to/1-5<UDIM>.exr")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(len(seq), 5)
-        self.assertEquals(seq.padding(), "<UDIM>")
-
-    def testEmptyExtension(self):
-        seq = FileSequence("/path/to/")
-        self.assertEquals(seq.dirname(), "/path/to/")
-        self.assertEquals(seq.basename(), "")
-        self.assertEquals(seq.extension(), "")
-
-        seq.setBasename("bar")
-        self.assertEquals(seq.basename(), "bar")
-        self.assertEquals(seq.extension(), "")
-
-        seq.setExtension("ext")
-        self.assertEquals(seq.extension(), ".ext")
-
-        seq.setExtension("")
-        self.assertEquals(seq.extension(), "")
-
-        seq = FileSequence("/path/to/bar.ext")
-        self.assertEquals(seq.extension(), ".ext")
-        seq.setExtension("")
-        self.assertEquals(seq.extension(), "")
-
-    def testStringSubclasses(self):
-        def sep(p):
-            return p.replace("/", os.sep)
-
-        tests = [
-            ("/path/to/files.0001.ext", sep("/path/to/"), "files."),
-            ("/path/to/files.1-100#.ext", sep("/path/to/"), "files."),
-            ("/path/to/files.ext", sep("/path/to/"), "files"),
-            ("/path/to/files", sep("/path/to/"), "files"),
-        ]
-        for path, dirname, basename in tests:
-            fs = FileSequence(_CustomPathString(path))
-            self.assertTrue(fs.dirname() == dirname,
-                            "Expected '%s', got '%s' (with %s)" % (dirname, fs.dirname(), path))
-            self.assertTrue(fs.basename() == basename,
-                            "Expected '%s', got '%s' (with %s)" % (basename, fs.basename(), path))
-
-    def test_yield_sequences_in_list(self):
-        self._test_yield_sequences_in_list()
-
-    def test_yield_sequences_in_list_win(self):
-        sep = r'\\'
-        self._test_yield_sequences_in_list(sep)
-
-    def _test_yield_sequences_in_list(self, sep='/'):
-        paths = [
-            '/path/to/file20.v123.5.png',
-            '/path/to/file20.v123.1.exr',
-            '/path/to/file20.v123.2.exr',
-            '/path/to/file20.v123.3.exr',
-            '/path/to/.cruft.file',
-            '/path/to/.cruft',
-            '/path/to/file2.exr',
-            '/path/to/file2.7zip',
-            '/path/to/file.2.7zip',
-            '/path/to/file.3.7zip',
-            '/path/to/file.4.7zip',
-            '/path/to/file.4.mp4',
-            '',  # empty path test
-            "mixed_seqs/file5.ext",
-            "mixed_seqs/file20.ext",
-            "mixed_seqs/file30.ext",
-            "mixed_seqs/no_ext",
-            "mixed_seqs/no_ext.200,300@@@",
-            "mixed_seqs/no_ext_10",
-            "mixed_seqs/not_a_seq.ext",
-            "mixed_seqs/seq.0001.ext",
-            "mixed_seqs/seq.0002.ext",
-            "mixed_seqs/seq.0003.ext",
-            "mixed_seqs/seq2a.1.ext",
-            "mixed_seqs/seq2a.2.ext",
-            "mixed_seqs/seq2a.3.ext",
-            "/path/to/file4-4.exr",
-            "/path/to/file4-5.exr",
-            "/path/to/file--4.exr",
-            "path/01.exr",
-            "path/02.exr",
-            "path/03.exr",
-            "path/001.file",
-            "path/002.file",
-            "path/003.file",
-            "path/0001.jpg",
-            "path/0002.jpg",
-            "path/0003.jpg",
-            "2frames.01.jpg",
-            "2frames.02.jpg",
-            '8frames.01.jpg',
-            '8frames.02.jpg',
-            '8frames.05.jpg',
-            '8frames.07.jpg',
-            '8frames.08.jpg',
-            '8frames.10.jpg',
-            '8frames.11.jpg',
-
-            # Issue 94: ensure original padding is observed
-            'mixed_pad/file.004.jpg',
-            'mixed_pad/file.08.jpg',
-            'mixed_pad/file.009.jpg',
-            'mixed_pad/file.015.jpg',
-
-            # Issue 107: mixed case
-            'mixed_case/sub/file_foo_001.ext',
-            'mixed_case/sub/file_foo_002.ext',
-            'mixed_case/sub/file_foo_003.ext',
-            'mixed_case/sub/file_FOO_004.ext',
-            'mixed_case/sub/file_FOO_005.ext',
-            'mixed_case/sub/file_FOO_006.ext',
-        ]
-
-        expected = {
-            '/path/to/file2@.7zip',
-            '/path/to/file20.v123.1-3@.exr',
-            '/path/to/file.2-4@.7zip',
-            '/path/to/file2@.exr',
-            '/path/to/file.4@.mp4',
-            '/path/to/.cruft.file',
-            '/path/to/.cruft',
-            '/path/to/file20.v123.5@.png',
-            "mixed_seqs/file5,20,30@.ext",
-            "mixed_seqs/seq2a.1-3@.ext",
-            "mixed_seqs/seq.1-3#.ext",
-            "mixed_seqs/not_a_seq.ext",
-            "mixed_seqs/no_ext",
-            "mixed_seqs/no_ext_10@@",
-            "mixed_seqs/no_ext.200,300@@@",
-            '/path/to/file4-5--4@@.exr',
-            '/path/to/file--4@@.exr',
-            'path/1-3@@.exr',
-            'path/1-3@@@.file',
-            'path/1-3#.jpg',
-            '2frames.1-2@@.jpg',
-            '8frames.1-2,5,7-8,10-11@@.jpg',
-
-            # Issue 94: ensure original padding is observed
-            'mixed_pad/file.8@@.jpg',
-            'mixed_pad/file.4,9,15@@@.jpg',
-
-            # Issue 107: mixed case
-            'mixed_case/sub/file_foo_1-3@@@.ext',
-            'mixed_case/sub/file_FOO_4-6@@@.ext',
-        }
-
-        sub = self.RX_PATHSEP.sub
-        paths = [sub(sep, p) for p in paths]
-        expected = {sub(sep, p) for p in expected}
-
-        actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals(expected, actual)
-
-        paths = list(map(_CustomPathString, paths))
-        actual = set(str(fs) for fs in FileSequence.yield_sequences_in_list(paths))
-        self.assertEquals({str(_CustomPathString(p)) for p in expected}, actual)
-
-    def test_yield_sequences_in_list_using(self):
-        paths = [
-            'seq/file_0003.0001.exr',
-            'seq/file_0005.0001.exr',
-            'seq/file_0007.0001.exr',
-        ]
-
-        expects = [os.path.join("seq", "file_3-7x2#.0001.exr")]
-
-        template = FileSequence('seq/file_@@.0001.exr')
-        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths, using=template)}
-
-        for expect in expects:
-            self.assertIn(expect, actual)
-
-        expects = [
-            "seq/file_0003.1#.exr",
-            "seq/file_0005.1#.exr",
-            "seq/file_0007.1#.exr",
-        ]
-
-        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths)}
-
-        for expect in expects:
-            self.assertIn(expect, actual)
-
-    def test_yield_sequences_in_list_multi_pad(self):
-        paths = [
-            'mixed_pad/file.004.jpg',
-            'mixed_pad/file.08.jpg',
-            'mixed_pad/file.009.jpg',
-            'mixed_pad/file.0013.jpg',
-            'mixed_pad/file.015.jpg',
-            'mixed_pad/file.0015.jpg',
-            'mixed_pad/file.0014.jpg',
-        ]
-
-        expects = [
-            'mixed_pad/file.8##.jpg',
-            'mixed_pad/file.4,9,15###.jpg',
-            'mixed_pad/file.13-15####.jpg',
-        ]
-        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths, pad_style=constants.PAD_STYLE_HASH1)}
-        for expect in expects:
-            self.assertIn(expect, actual)
-
-        expects = [
-            'mixed_pad/file.8@@.jpg',
-            'mixed_pad/file.4,9,15@@@.jpg',
-            'mixed_pad/file.13-15#.jpg',
-        ]
-        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths, pad_style=constants.PAD_STYLE_HASH4)}
-        for expect in expects:
-            self.assertIn(expect, actual)
-
-    def test_yield_sequences_in_list_pad_style(self):
-        paths = [
-            'seq/file.0001.exr',
-            'seq/file.0002.exr',
-            'seq/file.0003.exr',
-        ]
-
-        expect = 'seq/file.1-3#.exr'
-        actual = list(FileSequence.yield_sequences_in_list(paths, pad_style=fileseq.PAD_STYLE_HASH4))[0]
-        self.assertEqual(expect, str(actual))
-        self.assertEqual(fileseq.PAD_STYLE_HASH4, actual.padStyle())
-        self.assertEqual(4, actual.zfill())
-
-        expect = 'seq/file.1-3####.exr'
-        actual = list(FileSequence.yield_sequences_in_list(paths, pad_style=fileseq.PAD_STYLE_HASH1))[0]
-        self.assertEqual(expect, str(actual))
-        self.assertEqual(fileseq.PAD_STYLE_HASH1, actual.padStyle())
-        self.assertEqual(4, actual.zfill())
-
-    def test_yield_sequences_in_list_frame_no_frame(self):
-        paths = [
-            'frame_no_frame/file02.jpg',
-            'frame_no_frame/file.jpg',
-            'frame_no_frame/name.jpg',
-        ]
-
-        expects = [
-            'frame_no_frame/file2@@.jpg',
-            'frame_no_frame/file.jpg',
-            'frame_no_frame/name.jpg',
-        ]
-        actual = {str(fs) for fs in FileSequence.yield_sequences_in_list(paths)}
-        for expect in expects:
-            self.assertIn(expect, actual)
-
-    def testIgnoreFrameSetStrings(self):
-        for char in "xy:,".split():
-            fs = FileSequence("/path/to/file{0}1-1x1#.exr".format(char))
-            self.assertEquals(fs.basename(), "file{0}".format(char))
-            self.assertEquals(fs.start(), 1)
-            self.assertEquals(fs.end(), 1)
-            self.assertEquals(fs.padding(), '#')
-            self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
-
-    def testStrUnicode(self):
-        """
-        https://github.com/justinfx/fileseq/issues/99
-        https://github.com/justinfx/fileseq/issues/100
-        """
-
-        def check(seq):
-            # make sure none of these raise a unicode exception
-            s = str(seq)
-            _ = repr(seq)
-            _ = seq.format()
-
-        utf8 = u'file_カ_Z.01.txt'
-        latin1 = b'/proj/kenny/fil\xe9'
-        latin1_to_utf8 = latin1.decode('latin1').encode(utils.FILESYSTEM_ENCODING)
-
-        check(FileSequence(utf8))
-        check(FileSequence(utf8.encode(utils.FILESYSTEM_ENCODING)))
-        check(FileSequence(latin1_to_utf8))
-        try:
-            check(FileSequence(latin1))
-        except UnicodeDecodeError:
-            # Windows os.fsdecode() uses 'strict' error handling
-            # instead of 'surrogateescape'. So just assume bytes
-            # decoding error is expected for this case.
-            if os.name != 'nt':
-                raise
-
-    def testBatchesPaths(self):
-        Case = namedtuple('Case', ['input', 'batch', 'expect'])
-        table = [
-            Case("f.1-3@.x", 0, []),
-            Case("f.1-3@.x", 1, [['f.1.x'], ['f.2.x'], ['f.3.x']]),
-            Case("f.1-3@.x", 2, [['f.1.x', 'f.2.x'], ['f.3.x']]),
-            Case("f.1-3@.x", 3, [['f.1.x', 'f.2.x', 'f.3.x']]),
-            Case("f.1-3@.x", 9, [['f.1.x', 'f.2.x', 'f.3.x']]),
-        ]
-
-        for case in table:
-            fs = FileSequence(case.input)
-            actual = [list(i) for i in fs.batches(case.batch, paths=True)]
-            self.assertEqual(case.expect, actual, msg=str(case))
-
-    def testBatches(self):
-        Case = namedtuple('Case', ['input', 'batch', 'expect'])
-        table = [
-            Case("f.1-3@.x", 0, []),
-            Case("f.1-3@.x", 1, ['f.1@.x', 'f.2@.x', 'f.3@.x']),
-            Case("f.1-3@.x", 2, ['f.1-2@.x', 'f.3@.x']),
-            Case("f.1-3@.x", 3, ['f.1-3@.x']),
-            Case("f.1-3@.x", 9, ['f.1-3@.x']),
-
-            Case("f.1-3,10-16x2@@.x", 2, ['f.1-2@@.x', 'f.3,10@@.x', 'f.12,14@@.x', 'f.16@@.x']),
-        ]
-
-        for case in table:
-            fs = FileSequence(case.input)
-            expect = [FileSequence(i) for i in case.expect]
-            actual = list(fs.batches(case.batch, paths=False))
-            self.assertEqual(expect, actual, msg=str(case))
-
-
-class TestFindSequencesOnDisk(TestBase):
-
-    def testFindSequencesOnDisk(self):
-        seqs = findSequencesOnDisk("seq", strictPadding=True)
-        self.assertEquals(len(seqs), 10)
-
-        known = {
-            "seq/bar1000-1002,1004-1006#.exr",
-            "seq/foo.1-5#.exr",
-            "seq/foo.1-5#.jpg",
-            "seq/foo.debug.1-5#.exr",
-            "seq/foo_1#.exr",
-            "seq/foo_0001_extra.exr",
-            "seq/1-3#.exr",
-            "seq/baz_left.1-3#.exr",
-            "seq/baz_right.1-3#.exr",
-            "seq/big.999-1003#.ext",
-        }
-        found = set([str(s) for s in seqs])
-        self.assertEqualPaths(found, known)
-
-    def testStrictPadding(self):
-        tests = [
-            ("seq/bar#.exr", ["seq/bar1000-1002,1004-1006#.exr"]),
-            ("seq/bar@@@@.exr", ["seq/bar1000-1002,1004-1006@@@@.exr"]),
-            ("seq/bar@@@.exr", ["seq/bar1000-1002,1004-1006@@@.exr"]),
-            ("seq/bar@@.exr", ["seq/bar1000-1002,1004-1006@@.exr"]),
-            ("seq/bar@.exr", ["seq/bar1000-1002,1004-1006@.exr"]),
-            ("seq/bar@@@@@.exr", []),
-            ("seq/bar#@.exr", []),
-            ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
-            ("seq/foo.#.jpg", ["seq/foo.1-5#.jpg"]),
-            ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
-            ("seq/foo.debug.#.exr", ["seq/foo.debug.1-5#.exr"]),
-            ("seq/#.exr", ["seq/1-3#.exr"]),
-            ("seq/foo_#.exr", ["seq/foo_1#.exr"]),
-            ("seq/foo_#_extra.exr", []),
-            ("seq/foo_##.exr", []),
-            ("seq/foo_@.exr", []),
-            ("seq/foo_#@.exr", []),
-            ("seq/foo_@@_extra.exr", []),
-            ("seq/baz_{left,right}.#.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
-            ("seq/baz_{left,right}.@@@@.exr", ["seq/baz_left.1-3@@@@.exr", "seq/baz_right.1-3@@@@.exr"]),
-            ("seq/baz_{left,right}.@@@.exr", []),
-            ("seq/baz_{left,right}.#@.exr", []),
-        ]
-
-        for pattern, expected in tests:
-            seqs = findSequencesOnDisk(pattern, strictPadding=True)
-            for seq in seqs:
-                self.assertTrue(isinstance(seq, FileSequence))
-            actual = self.toNormpaths([str(seq) for seq in seqs])
-            expected = self.toNormpaths(expected)
-            self.assertEqual(actual, expected)
-
-    def testNegSequencesOnDisk(self):
-        seqs = findSequencesOnDisk("seqneg")
-        self.assertEquals(1, len(seqs))
-
-    def testFindSequencesOnDiskNegative(self):
-        seqs = findSequencesOnDisk("seqneg")
-        self.assertEquals("seqneg/bar.-1-1#.exr", str(seqs[0]))
-        self.assertEquals("seqneg/bar.-001.exr", seqs[0].frame(-1))
-        self.assertEquals("seqneg/bar.-1001.exr", seqs[0].frame(-1001))
-        self.assertEquals("seqneg/bar.-10011.exr", seqs[0].frame(-10011))
-        self.assertEquals("seqneg/bar.1000.exr", seqs[0].frame(1000))
-
-    def testFindSequencesOnDiskSkipHiddenFiles(self):
-        seqs = findSequencesOnDisk("seqhidden")
-        self.assertEquals(3, len(seqs))
-
-        known = set(self.toNormpaths([
-            "seqhidden/bar1000-1002,1004-1006#.exr",
-            "seqhidden/foo.1-5#.exr",
-            "seqhidden/foo.1-5#.jpg",
-        ]))
-        found = set(self.toNormpaths([str(s) for s in seqs]))
-        self.assertEqual(known, found)
-        self.assertFalse(known.difference(found))
-
-    def testFindSequencesOnDiskIncludeHiddenFiles(self):
-        seqs = findSequencesOnDisk("seqhidden", include_hidden=True)
-        self.assertEquals(7, len(seqs))
-
-        known = {
-            "seqhidden/bar1000-1002,1004-1006#.exr",
-            "seqhidden/.bar1000-1002,1004-1006#.exr",
-            "seqhidden/foo.1-5#.exr",
-            "seqhidden/.foo.1-5#.exr",
-            "seqhidden/foo.1-5#.jpg",
-            "seqhidden/.foo.1-5#.jpg",
-            "seqhidden/.hidden",
-        }
-        found = set([str(s) for s in seqs])
-        self.assertEqualPaths(known, found)
-
-    def testCrossPlatformPathSep(self):
-        expected = {
-            "seqsubdirs/sub1/1-3#.exr",
-            "seqsubdirs/sub1/bar1000-1002,1004-1006#.exr",
-            "seqsubdirs/sub1/foo.1-5#.exr",
-            "seqsubdirs/sub1/foo.1-5#.jpg",
-            "seqsubdirs/sub1/foo.debug.1-5#.exr",
-            "seqsubdirs/sub1/foo_1#.exr",
-        }
-
-        import ntpath
-        _join = os.path.join
-        os.path.join = ntpath.join
-
-        try:
-            self.assertEqual(os.path.join('a', 'b'), 'a\\b')
-            seqs = findSequencesOnDisk("seqsubdirs/sub1")
-
-            self.assertEquals(len(expected), len(seqs))
-
-            actual = set(str(s) for s in seqs)
-            self.assertEqual(actual, expected)
-
-        finally:
-            os.path.join = _join
-
-    def testStrictPaddingSubFrameSeq(self):
-        tests = [
-            ("subframe_seq/foo.#.#.jpg", ['subframe_seq/foo.1-3x0.25#.#.jpg']),
-            ("subframe_seq/foo.#.#.exr", ['subframe_seq/foo.1-3x0.25#.#.exr']),
-            ("subframe_seq/foo.@@@@.@@@@.exr", ['subframe_seq/foo.1-3x0.25@@@@.@@@@.exr']),
-            ("subframe_seq/foo.@@@.@@@@.exr", []),
-            ("subframe_seq/foo.@@.@@@@.exr", []),
-            ("subframe_seq/foo.@.@@@@.exr", []),
-            ("subframe_seq/foo.@@@.@@@.exr", []),
-            ("subframe_seq/foo.@@.@@.exr", []),
-            ("subframe_seq/foo.@.@.exr", []),
-            ("subframe_seq/foo.@@@@@.@@@@@.exr", []),
-
-            ("subframe_seq/foz.#.#.exr", ['subframe_seq/foz.1001-1003x0.25#.#.exr']),
-            ("subframe_seq/foz.@@@@.@@@@.exr", ['subframe_seq/foz.1001-1003x0.25@@@@.@@@@.exr']),
-            ("subframe_seq/foz.@@@@.@@@.exr", []),
-            ("subframe_seq/foz.@@@@.@@.exr", []),
-            ("subframe_seq/foz.@@@@.@.exr", []),
-            ("subframe_seq/foz.@@@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@@@.#.exr']),
-            ("subframe_seq/foz.@@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@@.#.exr']),
-            ("subframe_seq/foz.@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@.#.exr']),
-            ("subframe_seq/foz.@.#.exr", ['subframe_seq/foz.1001-1003x0.25@.#.exr']),
-
-            ("subframe_seq/foz.debug.#.#.exr", ['subframe_seq/foz.debug.1001-1002x0.25#.#.exr']),
-
-            ("subframe_seq/baz_{left,right}.#.#.exr",
-             ['subframe_seq/baz_left.1001-1002x0.25#.#.exr', 'subframe_seq/baz_right.1001-1002x0.25#.#.exr']),
-        ]
-
-        for pattern, expected in tests:
-            seqs = findSequencesOnDisk(pattern, strictPadding=True, allow_subframes=True)
-            for seq in seqs:
-                self.assertTrue(isinstance(seq, FileSequence))
-            actual = self.toNormpaths([str(seq) for seq in seqs])
-            expected = self.toNormpaths(expected)
-            self.assertEqual(expected, actual)
-
-    def testFindSequencesOnDiskSubFrames(self):
-        seqs = findSequencesOnDisk("subframe_seq", allow_subframes=True)
-        self.assertEquals(9, len(seqs))
-        known = {
-            'subframe_seq/bar.1#.#.exr',
-            'subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr',
-            'subframe_seq/baz_left.1001-1002x0.25#.#.exr',
-            'subframe_seq/baz_right.1001-1002x0.25#.#.exr',
-            'subframe_seq/foo.1-3x0.25#.#.exr',
-            'subframe_seq/foo.1-3x0.25#.#.jpg',
-            'subframe_seq/foz.1001-1003x0.25#.#.exr',
-            'subframe_seq/foz.debug.1001-1002x0.25#.#.exr',
-            'subframe_seq/guz.1-2x0.25#.@@.exr'
-        }
-        found = set([str(s) for s in seqs])
-        self.assertEqualPaths(known, found)
-
-    def testFindSequencesOnDiskNegativeSubFrames(self):
-        seqs = findSequencesOnDisk("subframe_seqneg", allow_subframes=True)
-        self.assertEquals("subframe_seqneg/bar.-0.5-0.5x0.5#.#.exr", str(seqs[0]))
-        self.assertEquals("subframe_seqneg/bar.-001.5000.exr", seqs[0].frame("-1.5"))
-        self.assertEquals("subframe_seqneg/bar.0001.5000.exr", seqs[0].frame("1.5"))
-        self.assertEquals("subframe_seqneg/bar.0001.5000.exr", seqs[0].frame(1.5))
-        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001.0000")))
-        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001.0")))
-        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal(-1001.0)))
-        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal("-1001")))
-        self.assertEquals("subframe_seqneg/bar.-1001.0000.exr", seqs[0].frame(Decimal(-1001)))
-
-    def testCaseSensitive(self):
-        """Issue 107 - testing case-sensitive matching between windows/linux"""
-        # posix platforms are case-sensitive
-        tests = [
-            ('mixed_case/sub/file_foo_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext']),
-            ('mixed_case/sub/file_FOO_*.ext', ['mixed_case/sub/file_FOO_4-6@@@.ext']),
-            ('mixed_case/sub/file_*_*.ext',
-             ['mixed_case/sub/file_foo_1-3@@@.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext']),
-        ]
-
-        for pattern, expected in tests:
-            actual = findSequencesOnDisk(pattern)
-            self.assertEqual(len(expected), len(actual))
-
-            actual = self.toNormpaths([str(s) for s in actual])
-            expected = self.toNormpaths(expected)
-            self.assertEqual(expected, actual)
-
-
-class TestFindSequenceOnDisk(TestBase):
-
-    def testFindSequenceOnDisk(self):
-        tests = [
-            ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
-            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
-            ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
-            ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
-            ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
-            ("seq/#.exr", "seq/1-3#.exr"),
-            ("seq/bar1001.exr", "seq/bar1001.exr"),
-            ("seq/foo_0001.exr", "seq/foo_0001.exr"),
-            ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
-            ("subframe_seq/baz.#.0000.exr", "subframe_seq/baz.1-4#.0000.exr"),
-            ("subframe_seq/baz.0001.#.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
-            ("subframe_seq/baz.0001.0000.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
-            ("complex_ext/@.a.jpg", "complex_ext/1-3@.a.jpg"),
-            ("complex_ext/file.@.a.ext", "complex_ext/file.5-7@.a.ext"),
-        ]
-
-        for pattern, expected in tests:
-            seq = findSequenceOnDisk(pattern, strictPadding=False)
-            self.assertTrue(isinstance(seq, FileSequence))
-            actual = str(seq)
-            self.assertEqual(actual, expected)
-
-    def testFindSequenceOnDiskNoMatch(self):
-        tests = [
-            "subframe_seq/baz.#.exr",
-            "subframe_seq/baz.1000.exr",
-        ]
-
-        for pattern in tests:
-            with self.assertRaises(FileSeqException) as cm:
-                findSequenceOnDisk(pattern, strictPadding=False)
-            self.assertEqual(str(cm.exception), 'no sequence found on disk matching ' + pattern)
-
-    def testFindSequenceOnDiskSubFrames(self):
-        tests = [
-            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
-            ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
-            ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
-            ("subframe_seq/baz.#.#.exr", "subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr"),
-            ("subframe_seq/baz.0000.0000.exr", "subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr"),
-        ]
-
-        for pattern, expected in tests:
-            seq = findSequenceOnDisk(pattern, strictPadding=False, allow_subframes=True)
-            self.assertTrue(isinstance(seq, FileSequence))
-            actual = str(seq)
-            self.assertEqual(actual, expected)
-
-    def testStrictPadding(self):
-        tests = [
-            ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
-            ("seq/bar@@@@.exr", "seq/bar1000-1002,1004-1006@@@@.exr"),
-            ("seq/bar@@@.exr", "seq/bar1000-1002,1004-1006@@@.exr"),
-            ("seq/bar@@.exr", "seq/bar1000-1002,1004-1006@@.exr"),
-            ("seq/bar@.exr", "seq/bar1000-1002,1004-1006@.exr"),
-            ("seq/bar@@@@@.exr", None),
-            ("seq/bar#@.exr", None),
-            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
-            ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
-            ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
-            ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
-            ("seq/#.exr", "seq/1-3#.exr"),
-            ("seq/foo_#.exr", "seq/foo_1#.exr"),
-            ("seq/foo_#_extra.exr", None),
-            ("seq/foo_##.exr", None),
-            ("seq/foo_@.exr", None),
-            ("seq/big.#.ext", "seq/big.999-1003#.ext"),
-            ("seq/big.@@@.ext", "seq/big.1000-1003@@@.ext"),
-            ("seq/big.@.ext", "seq/big.1000-1003@.ext"),
-            ("seq/big.#@.ext", None),
-            ("multi_range/file_@@.0001.exr", None),
-            ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
-            ("complex_ext/#.a.jpg", None),
-            ("complex_ext/@.a.jpg", "complex_ext/1-3@.a.jpg"),
-        ]
-
-        for pattern, expected in tests:
-            if expected is None:
-                with self.assertRaises(FileSeqException, msg=pattern):
-                    findSequenceOnDisk(pattern, strictPadding=True)
-                continue
-
-            seq = findSequenceOnDisk(pattern, strictPadding=True)
-            self.assertTrue(isinstance(seq, FileSequence))
-            actual = str(seq)
-            self.assertEqual(actual, expected)
-
-    def testCrossPlatformPathSep(self):
-        tests = [
-            ("seq/bar#.exr", "seq\\bar1000-1002,1004-1006#.exr"),
-            ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
-            ("seq/foo.#.jpg", "seq\\foo.1-5#.jpg"),
-            ("seq/foo.0002.jpg", "seq\\foo.1-5#.jpg"),
-            ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
-            ("seq/foo.debug.#.exr", "seq\\foo.debug.1-5#.exr"),
-            ("seq/#.exr", "seq\\1-3#.exr"),
-            ("seq/bar1001.exr", "seq/bar1001.exr"),
-            ("seq/foo_0001.exr", "seq/foo_0001.exr"),
-        ]
-
-        import ntpath
-        _path = os.path
-        os.path = ntpath
-
-        try:
-            self.assertEqual(os.path.join('a', 'b'), 'a\\b')
+            self.assertEquals(str(fs), "/path/to/file.1920x1038.1001-1002x0.25@.#.exr")
+
+        def testSubframeNotNegativeZero(self):
+            # test that a small negative subframe rounds to 0 (and not -0)
+            fs = self.FS("#", allow_subframes=True)
+            self.assertEquals(self.FILE("0000"), fs.frame(-0.00000001))
+            fs = self.FS("#.#", allow_subframes=True)
+            self.assertEquals(self.FILE("0000.0000"), fs.frame(-0.00000001))
+
+        def testNoFrameNoVersionNoExt(self):
+            for allow_subframes in [False, True]:
+                fs = self.FS("/path/to/file", allow_subframes=allow_subframes)
+                self.assertEquals(fs.start(), 0)
+                self.assertEquals(fs.end(), 0)
+                self.assertEquals(fs.padding(), '')
+                self.assertEquals(fs.dirname(), '/path/to/')
+                self.assertEquals(fs.basename(), 'file')
+                self.assertEquals(fs.extension(), '')
+                self.assertEquals(str(fs), "/path/to/file")
+
+                fs = self.FS("file", allow_subframes=allow_subframes)
+                self.assertEquals(fs.start(), 0)
+                self.assertEquals(fs.end(), 0)
+                self.assertEquals(fs.padding(), '')
+                self.assertEquals(fs.dirname(), '')
+                self.assertEquals(fs.basename(), 'file')
+                self.assertEquals(fs.extension(), '')
+                self.assertEquals(str(fs), "file")
+
+        def testEmptyBasename(self):
+            seq = self.FS("/path/to/1-5#.exr")
+            self.assertEquals(seq.basename(), "")
+            self.assertEquals(len(seq), 5)
+            self.assertEquals(seq.padding(), '#')
+
+            seq = self.FS("/path/to/1-5%04d.exr")
+            self.assertEquals(seq.basename(), "")
+            self.assertEquals(len(seq), 5)
+            self.assertEquals(seq.padding(), '%04d')
+
+            seq = self.FS("/path/to/1-5$F4.exr")
+            self.assertEquals(seq.basename(), "")
+            self.assertEquals(len(seq), 5)
+            self.assertEquals(seq.padding(), "$F4")
+
+            seq = self.FS("/path/to/1-5<UDIM>.exr")
+            self.assertEquals(seq.basename(), "")
+            self.assertEquals(len(seq), 5)
+            self.assertEquals(seq.padding(), "<UDIM>")
+
+        def testEmptyExtension(self):
+            seq = self.FS("/path/to/")
+            self.assertEquals(seq.dirname(), "/path/to/")
+            self.assertEquals(seq.basename(), "")
+            self.assertEquals(seq.extension(), "")
+
+            seq.setBasename("bar")
+            self.assertEquals(seq.basename(), "bar")
+            self.assertEquals(seq.extension(), "")
+
+            seq.setExtension("ext")
+            self.assertEquals(seq.extension(), ".ext")
+
+            seq.setExtension("")
+            self.assertEquals(seq.extension(), "")
+
+            seq = self.FS("/path/to/bar.ext")
+            self.assertEquals(seq.extension(), ".ext")
+            seq.setExtension("")
+            self.assertEquals(seq.extension(), "")
+
+        def testStringSubclasses(self):
+            def sep(p):
+                return p.replace("/", os.sep)
+
+            tests = [
+                ("/path/to/files.0001.ext", sep("/path/to/"), "files."),
+                ("/path/to/files.1-100#.ext", sep("/path/to/"), "files."),
+                ("/path/to/files.ext", sep("/path/to/"), "files"),
+                ("/path/to/files", sep("/path/to/"), "files"),
+            ]
+            for path, dirname, basename in tests:
+                fs = self.FS(_CustomPathString(path))
+                self.assertTrue(fs.dirname() == dirname,
+                                "Expected '%s', got '%s' (with %s)" % (dirname, fs.dirname(), path))
+                self.assertTrue(fs.basename() == basename,
+                                "Expected '%s', got '%s' (with %s)" % (basename, fs.basename(), path))
+
+        def test_yield_sequences_in_list(self):
+            self._test_yield_sequences_in_list()
+
+        def test_yield_sequences_in_list_win(self):
+            sep = r'\\'
+            self._test_yield_sequences_in_list(sep)
+
+        def _test_yield_sequences_in_list(self, sep='/'):
+            paths = [
+                '/path/to/file20.v123.5.png',
+                '/path/to/file20.v123.1.exr',
+                '/path/to/file20.v123.2.exr',
+                '/path/to/file20.v123.3.exr',
+                '/path/to/.cruft.file',
+                '/path/to/.cruft',
+                '/path/to/file2.exr',
+                '/path/to/file2.7zip',
+                '/path/to/file.2.7zip',
+                '/path/to/file.3.7zip',
+                '/path/to/file.4.7zip',
+                '/path/to/file.4.mp4',
+                '',  # empty path test
+                "mixed_seqs/file5.ext",
+                "mixed_seqs/file20.ext",
+                "mixed_seqs/file30.ext",
+                "mixed_seqs/no_ext",
+                "mixed_seqs/no_ext.200,300@@@",
+                "mixed_seqs/no_ext_10",
+                "mixed_seqs/not_a_seq.ext",
+                "mixed_seqs/seq.0001.ext",
+                "mixed_seqs/seq.0002.ext",
+                "mixed_seqs/seq.0003.ext",
+                "mixed_seqs/seq2a.1.ext",
+                "mixed_seqs/seq2a.2.ext",
+                "mixed_seqs/seq2a.3.ext",
+                "/path/to/file4-4.exr",
+                "/path/to/file4-5.exr",
+                "/path/to/file--4.exr",
+                "path/01.exr",
+                "path/02.exr",
+                "path/03.exr",
+                "path/001.file",
+                "path/002.file",
+                "path/003.file",
+                "path/0001.jpg",
+                "path/0002.jpg",
+                "path/0003.jpg",
+                "2frames.01.jpg",
+                "2frames.02.jpg",
+                '8frames.01.jpg',
+                '8frames.02.jpg',
+                '8frames.05.jpg',
+                '8frames.07.jpg',
+                '8frames.08.jpg',
+                '8frames.10.jpg',
+                '8frames.11.jpg',
+
+                # Issue 94: ensure original padding is observed
+                'mixed_pad/file.004.jpg',
+                'mixed_pad/file.08.jpg',
+                'mixed_pad/file.009.jpg',
+                'mixed_pad/file.015.jpg',
+
+                # Issue 107: mixed case
+                'mixed_case/sub/file_foo_001.ext',
+                'mixed_case/sub/file_foo_002.ext',
+                'mixed_case/sub/file_foo_003.ext',
+                'mixed_case/sub/file_FOO_004.ext',
+                'mixed_case/sub/file_FOO_005.ext',
+                'mixed_case/sub/file_FOO_006.ext',
+            ]
+
+            expected = {
+                '/path/to/file2@.7zip',
+                '/path/to/file20.v123.1-3@.exr',
+                '/path/to/file.2-4@.7zip',
+                '/path/to/file2@.exr',
+                '/path/to/file.4@.mp4',
+                '/path/to/.cruft.file',
+                '/path/to/.cruft',
+                '/path/to/file20.v123.5@.png',
+                "mixed_seqs/file5,20,30@.ext",
+                "mixed_seqs/seq2a.1-3@.ext",
+                "mixed_seqs/seq.1-3#.ext",
+                "mixed_seqs/not_a_seq.ext",
+                "mixed_seqs/no_ext",
+                "mixed_seqs/no_ext_10@@",
+                "mixed_seqs/no_ext.200,300@@@",
+                '/path/to/file4-5--4@@.exr',
+                '/path/to/file--4@@.exr',
+                'path/1-3@@.exr',
+                'path/1-3@@@.file',
+                'path/1-3#.jpg',
+                '2frames.1-2@@.jpg',
+                '8frames.1-2,5,7-8,10-11@@.jpg',
+
+                # Issue 94: ensure original padding is observed
+                'mixed_pad/file.8@@.jpg',
+                'mixed_pad/file.4,9,15@@@.jpg',
+
+                # Issue 107: mixed case
+                'mixed_case/sub/file_foo_1-3@@@.ext',
+                'mixed_case/sub/file_FOO_4-6@@@.ext',
+            }
+
+            sub = self.RX_PATHSEP.sub
+            paths = [sub(sep, p) for p in paths]
+            expected = {sub(sep, p) for p in expected}
+
+            actual = set(str(fs) for fs in self.FS.yield_sequences_in_list(paths))
+            self.assertEquals(expected, actual)
+
+            paths = list(map(_CustomPathString, paths))
+            actual = set(str(fs) for fs in self.FS.yield_sequences_in_list(paths))
+            self.assertEquals({str(_CustomPathString(p)) for p in expected}, actual)
+
+        def test_yield_sequences_in_list_using(self):
+            paths = [
+                'seq/file_0003.0001.exr',
+                'seq/file_0005.0001.exr',
+                'seq/file_0007.0001.exr',
+            ]
+
+            expects = [os.path.join("seq", "file_3-7x2#.0001.exr")]
+
+            template = self.FS('seq/file_@@.0001.exr')
+            actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths, using=template)}
+
+            for expect in expects:
+                self.assertIn(expect, actual)
+
+            expects = [
+                "seq/file_0003.1#.exr",
+                "seq/file_0005.1#.exr",
+                "seq/file_0007.1#.exr",
+            ]
+
+            actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths)}
+
+            for expect in expects:
+                self.assertIn(expect, actual)
+
+        def test_yield_sequences_in_list_multi_pad(self):
+            paths = [
+                'mixed_pad/file.004.jpg',
+                'mixed_pad/file.08.jpg',
+                'mixed_pad/file.009.jpg',
+                'mixed_pad/file.0013.jpg',
+                'mixed_pad/file.015.jpg',
+                'mixed_pad/file.0015.jpg',
+                'mixed_pad/file.0014.jpg',
+            ]
+
+            expects = [
+                'mixed_pad/file.8##.jpg',
+                'mixed_pad/file.4,9,15###.jpg',
+                'mixed_pad/file.13-15####.jpg',
+            ]
+            actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths, pad_style=constants.PAD_STYLE_HASH1)}
+            for expect in expects:
+                self.assertIn(expect, actual)
+
+            expects = [
+                'mixed_pad/file.8@@.jpg',
+                'mixed_pad/file.4,9,15@@@.jpg',
+                'mixed_pad/file.13-15#.jpg',
+            ]
+            actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths, pad_style=constants.PAD_STYLE_HASH4)}
+            for expect in expects:
+                self.assertIn(expect, actual)
+
+        def test_yield_sequences_in_list_pad_style(self):
+            paths = [
+                'seq/file.0001.exr',
+                'seq/file.0002.exr',
+                'seq/file.0003.exr',
+            ]
+
+            expect = 'seq/file.1-3#.exr'
+            actual = list(self.FS.yield_sequences_in_list(paths, pad_style=fileseq.PAD_STYLE_HASH4))[0]
+            self.assertEqual(expect, str(actual))
+            self.assertEqual(fileseq.PAD_STYLE_HASH4, actual.padStyle())
+            self.assertEqual(4, actual.zfill())
+
+            expect = 'seq/file.1-3####.exr'
+            actual = list(self.FS.yield_sequences_in_list(paths, pad_style=fileseq.PAD_STYLE_HASH1))[0]
+            self.assertEqual(expect, str(actual))
+            self.assertEqual(fileseq.PAD_STYLE_HASH1, actual.padStyle())
+            self.assertEqual(4, actual.zfill())
+
+        def test_yield_sequences_in_list_frame_no_frame(self):
+            paths = [
+                'frame_no_frame/file02.jpg',
+                'frame_no_frame/file.jpg',
+                'frame_no_frame/name.jpg',
+            ]
+
+            expects = [
+                'frame_no_frame/file2@@.jpg',
+                'frame_no_frame/file.jpg',
+                'frame_no_frame/name.jpg',
+            ]
+            actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths)}
+            for expect in expects:
+                self.assertIn(expect, actual)
+
+        def testIgnoreFrameSetStrings(self):
+            for char in "xy:,".split():
+                fs = self.FS("/path/to/file{0}1-1x1#.exr".format(char))
+                self.assertEquals(fs.basename(), "file{0}".format(char))
+                self.assertEquals(fs.start(), 1)
+                self.assertEquals(fs.end(), 1)
+                self.assertEquals(fs.padding(), '#')
+                self.assertEquals(str(fs), "/path/to/file{0}1-1x1#.exr".format(char))
+
+        def testStrUnicode(self):
+            """
+            https://github.com/justinfx/fileseq/issues/99
+            https://github.com/justinfx/fileseq/issues/100
+            """
+
+            def check(seq):
+                # make sure none of these raise a unicode exception
+                s = str(seq)
+                _ = repr(seq)
+                _ = seq.format()
+
+            utf8 = u'file_カ_Z.01.txt'
+            latin1 = b'/proj/kenny/fil\xe9'
+            latin1_to_utf8 = latin1.decode('latin1').encode(utils.FILESYSTEM_ENCODING)
+
+            check(self.FS(utf8))
+            check(self.FS(utf8.encode(utils.FILESYSTEM_ENCODING)))
+            check(self.FS(latin1_to_utf8))
+            try:
+                check(self.FS(latin1))
+            except UnicodeDecodeError:
+                # Windows os.fsdecode() uses 'strict' error handling
+                # instead of 'surrogateescape'. So just assume bytes
+                # decoding error is expected for this case.
+                if os.name != 'nt':
+                    raise
+
+        def testBatchesPaths(self):
+            Case = namedtuple('Case', ['input', 'batch', 'expect'])
+            table = [
+                Case("f.1-3@.x", 0, []),
+                Case("f.1-3@.x", 1, [[self.FILE('f.1.x')], [self.FILE('f.2.x')], [self.FILE('f.3.x')]]),
+                Case("f.1-3@.x", 2, [[self.FILE('f.1.x'), self.FILE('f.2.x')], [self.FILE('f.3.x')]]),
+                Case("f.1-3@.x", 3, [[self.FILE('f.1.x'), self.FILE('f.2.x'), self.FILE('f.3.x')]]),
+                Case("f.1-3@.x", 9, [[self.FILE('f.1.x'), self.FILE('f.2.x'), self.FILE('f.3.x')]]),
+            ]
+
+            for case in table:
+                fs = self.FS(case.input)
+                actual = [list(i) for i in fs.batches(case.batch, paths=True)]
+                self.assertEqual(case.expect, actual, msg=str(case))
+
+        def testBatches(self):
+            Case = namedtuple('Case', ['input', 'batch', 'expect'])
+            table = [
+                Case("f.1-3@.x", 0, []),
+                Case("f.1-3@.x", 1, ['f.1@.x', 'f.2@.x', 'f.3@.x']),
+                Case("f.1-3@.x", 2, ['f.1-2@.x', 'f.3@.x']),
+                Case("f.1-3@.x", 3, ['f.1-3@.x']),
+                Case("f.1-3@.x", 9, ['f.1-3@.x']),
+
+                Case("f.1-3,10-16x2@@.x", 2, ['f.1-2@@.x', 'f.3,10@@.x', 'f.12,14@@.x', 'f.16@@.x']),
+            ]
+
+            for case in table:
+                fs = self.FS(case.input)
+                expect = [self.FS(i) for i in case.expect]
+                actual = list(fs.batches(case.batch, paths=False))
+                self.assertEqual(expect, actual, msg=str(case))
+
+    class BaseTestFindSequencesOnDisk(TestBase):
+
+        FS = None
+        FILE = None
+
+        def testFindSequencesOnDisk(self):
+            seqs = self.FS.findSequencesOnDisk("seq", strictPadding=True)
+            self.assertEquals(len(seqs), 10)
+
+            known = {
+                "seq/bar1000-1002,1004-1006#.exr",
+                "seq/foo.1-5#.exr",
+                "seq/foo.1-5#.jpg",
+                "seq/foo.debug.1-5#.exr",
+                "seq/foo_1#.exr",
+                "seq/foo_0001_extra.exr",
+                "seq/1-3#.exr",
+                "seq/baz_left.1-3#.exr",
+                "seq/baz_right.1-3#.exr",
+                "seq/big.999-1003#.ext",
+            }
+            found = set([str(s) for s in seqs])
+            self.assertEqualPaths(found, known)
+
+        def testStrictPadding(self):
+            tests = [
+                ("seq/bar#.exr", ["seq/bar1000-1002,1004-1006#.exr"]),
+                ("seq/bar@@@@.exr", ["seq/bar1000-1002,1004-1006@@@@.exr"]),
+                ("seq/bar@@@.exr", ["seq/bar1000-1002,1004-1006@@@.exr"]),
+                ("seq/bar@@.exr", ["seq/bar1000-1002,1004-1006@@.exr"]),
+                ("seq/bar@.exr", ["seq/bar1000-1002,1004-1006@.exr"]),
+                ("seq/bar@@@@@.exr", []),
+                ("seq/bar#@.exr", []),
+                ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
+                ("seq/foo.#.jpg", ["seq/foo.1-5#.jpg"]),
+                ("seq/foo.#.exr", ["seq/foo.1-5#.exr"]),
+                ("seq/foo.debug.#.exr", ["seq/foo.debug.1-5#.exr"]),
+                ("seq/#.exr", ["seq/1-3#.exr"]),
+                ("seq/foo_#.exr", ["seq/foo_1#.exr"]),
+                ("seq/foo_#_extra.exr", []),
+                ("seq/foo_##.exr", []),
+                ("seq/foo_@.exr", []),
+                ("seq/foo_#@.exr", []),
+                ("seq/foo_@@_extra.exr", []),
+                ("seq/baz_{left,right}.#.exr", ["seq/baz_left.1-3#.exr", "seq/baz_right.1-3#.exr"]),
+                ("seq/baz_{left,right}.@@@@.exr", ["seq/baz_left.1-3@@@@.exr", "seq/baz_right.1-3@@@@.exr"]),
+                ("seq/baz_{left,right}.@@@.exr", []),
+                ("seq/baz_{left,right}.#@.exr", []),
+            ]
 
             for pattern, expected in tests:
-                seq = findSequenceOnDisk(pattern)
-                self.assertTrue(isinstance(seq, FileSequence))
+                seqs = self.FS.findSequencesOnDisk(pattern, strictPadding=True)
+                for seq in seqs:
+                    self.assertTrue(isinstance(seq, self.FS))
+                actual = self.toNormpaths([str(seq) for seq in seqs])
+                expected = self.toNormpaths(expected)
+                self.assertEqual(actual, expected)
+
+        def testNegSequencesOnDisk(self):
+            seqs = self.FS.findSequencesOnDisk("seqneg")
+            self.assertEquals(1, len(seqs))
+
+        def testFindSequencesOnDiskNegative(self):
+            seqs = self.FS.findSequencesOnDisk("seqneg")
+            self.assertEquals("seqneg/bar.-1-1#.exr", str(seqs[0]))
+            self.assertEquals(self.FILE("seqneg/bar.-001.exr"), seqs[0].frame(-1))
+            self.assertEquals(self.FILE("seqneg/bar.-1001.exr"), seqs[0].frame(-1001))
+            self.assertEquals(self.FILE("seqneg/bar.-10011.exr"), seqs[0].frame(-10011))
+            self.assertEquals(self.FILE("seqneg/bar.1000.exr"), seqs[0].frame(1000))
+
+        def testFindSequencesOnDiskSkipHiddenFiles(self):
+            seqs = self.FS.findSequencesOnDisk("seqhidden")
+            self.assertEquals(3, len(seqs))
+
+            known = set(self.toNormpaths([
+                "seqhidden/bar1000-1002,1004-1006#.exr",
+                "seqhidden/foo.1-5#.exr",
+                "seqhidden/foo.1-5#.jpg",
+            ]))
+            found = set(self.toNormpaths([str(s) for s in seqs]))
+            self.assertEqual(known, found)
+            self.assertFalse(known.difference(found))
+
+        def testFindSequencesOnDiskIncludeHiddenFiles(self):
+            seqs = self.FS.findSequencesOnDisk("seqhidden", include_hidden=True)
+            self.assertEquals(7, len(seqs))
+
+            known = {
+                "seqhidden/bar1000-1002,1004-1006#.exr",
+                "seqhidden/.bar1000-1002,1004-1006#.exr",
+                "seqhidden/foo.1-5#.exr",
+                "seqhidden/.foo.1-5#.exr",
+                "seqhidden/foo.1-5#.jpg",
+                "seqhidden/.foo.1-5#.jpg",
+                "seqhidden/.hidden",
+            }
+            found = set([str(s) for s in seqs])
+            self.assertEqualPaths(known, found)
+
+        def testCrossPlatformPathSep(self):
+            expected = {
+                "seqsubdirs/sub1/1-3#.exr",
+                "seqsubdirs/sub1/bar1000-1002,1004-1006#.exr",
+                "seqsubdirs/sub1/foo.1-5#.exr",
+                "seqsubdirs/sub1/foo.1-5#.jpg",
+                "seqsubdirs/sub1/foo.debug.1-5#.exr",
+                "seqsubdirs/sub1/foo_1#.exr",
+            }
+
+            import ntpath
+            _join = os.path.join
+            os.path.join = ntpath.join
+
+            try:
+                self.assertEqual(os.path.join('a', 'b'), 'a\\b')
+                seqs = self.FS.findSequencesOnDisk("seqsubdirs/sub1")
+
+                self.assertEquals(len(expected), len(seqs))
+
+                actual = set(str(s) for s in seqs)
+                self.assertEqual(actual, expected)
+
+            finally:
+                os.path.join = _join
+
+        def testStrictPaddingSubFrameSeq(self):
+            tests = [
+                ("subframe_seq/foo.#.#.jpg", ['subframe_seq/foo.1-3x0.25#.#.jpg']),
+                ("subframe_seq/foo.#.#.exr", ['subframe_seq/foo.1-3x0.25#.#.exr']),
+                ("subframe_seq/foo.@@@@.@@@@.exr", ['subframe_seq/foo.1-3x0.25@@@@.@@@@.exr']),
+                ("subframe_seq/foo.@@@.@@@@.exr", []),
+                ("subframe_seq/foo.@@.@@@@.exr", []),
+                ("subframe_seq/foo.@.@@@@.exr", []),
+                ("subframe_seq/foo.@@@.@@@.exr", []),
+                ("subframe_seq/foo.@@.@@.exr", []),
+                ("subframe_seq/foo.@.@.exr", []),
+                ("subframe_seq/foo.@@@@@.@@@@@.exr", []),
+
+                ("subframe_seq/foz.#.#.exr", ['subframe_seq/foz.1001-1003x0.25#.#.exr']),
+                ("subframe_seq/foz.@@@@.@@@@.exr", ['subframe_seq/foz.1001-1003x0.25@@@@.@@@@.exr']),
+                ("subframe_seq/foz.@@@@.@@@.exr", []),
+                ("subframe_seq/foz.@@@@.@@.exr", []),
+                ("subframe_seq/foz.@@@@.@.exr", []),
+                ("subframe_seq/foz.@@@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@@@.#.exr']),
+                ("subframe_seq/foz.@@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@@.#.exr']),
+                ("subframe_seq/foz.@@.#.exr", ['subframe_seq/foz.1001-1003x0.25@@.#.exr']),
+                ("subframe_seq/foz.@.#.exr", ['subframe_seq/foz.1001-1003x0.25@.#.exr']),
+
+                ("subframe_seq/foz.debug.#.#.exr", ['subframe_seq/foz.debug.1001-1002x0.25#.#.exr']),
+
+                ("subframe_seq/baz_{left,right}.#.#.exr",
+                 ['subframe_seq/baz_left.1001-1002x0.25#.#.exr', 'subframe_seq/baz_right.1001-1002x0.25#.#.exr']),
+            ]
+
+            for pattern, expected in tests:
+                seqs = self.FS.findSequencesOnDisk(pattern, strictPadding=True, allow_subframes=True)
+                for seq in seqs:
+                    self.assertTrue(isinstance(seq, self.FS))
+                actual = self.toNormpaths([str(seq) for seq in seqs])
+                expected = self.toNormpaths(expected)
+                self.assertEqual(expected, actual)
+
+        def testFindSequencesOnDiskSubFrames(self):
+            seqs = self.FS.findSequencesOnDisk("subframe_seq", allow_subframes=True)
+            self.assertEquals(9, len(seqs))
+            known = {
+                'subframe_seq/bar.1#.#.exr',
+                'subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr',
+                'subframe_seq/baz_left.1001-1002x0.25#.#.exr',
+                'subframe_seq/baz_right.1001-1002x0.25#.#.exr',
+                'subframe_seq/foo.1-3x0.25#.#.exr',
+                'subframe_seq/foo.1-3x0.25#.#.jpg',
+                'subframe_seq/foz.1001-1003x0.25#.#.exr',
+                'subframe_seq/foz.debug.1001-1002x0.25#.#.exr',
+                'subframe_seq/guz.1-2x0.25#.@@.exr'
+            }
+            found = set([str(s) for s in seqs])
+            self.assertEqualPaths(known, found)
+
+        def testFindSequencesOnDiskNegativeSubFrames(self):
+            seqs = self.FS.findSequencesOnDisk("subframe_seqneg", allow_subframes=True)
+            self.assertEquals("subframe_seqneg/bar.-0.5-0.5x0.5#.#.exr", str(seqs[0]))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.-001.5000.exr"), seqs[0].frame("-1.5"))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.0001.5000.exr"), seqs[0].frame("1.5"))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.0001.5000.exr"), seqs[0].frame(1.5))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.-1001.0000.exr"), seqs[0].frame(Decimal("-1001.0000")))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.-1001.0000.exr"), seqs[0].frame(Decimal("-1001.0")))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.-1001.0000.exr"), seqs[0].frame(Decimal(-1001.0)))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.-1001.0000.exr"), seqs[0].frame(Decimal("-1001")))
+            self.assertEquals(self.FILE("subframe_seqneg/bar.-1001.0000.exr"), seqs[0].frame(Decimal(-1001)))
+
+        def testCaseSensitive(self):
+            """Issue 107 - testing case-sensitive matching between windows/linux"""
+            # posix platforms are case-sensitive
+            tests = [
+                ('mixed_case/sub/file_foo_*.ext', ['mixed_case/sub/file_foo_1-3@@@.ext']),
+                ('mixed_case/sub/file_FOO_*.ext', ['mixed_case/sub/file_FOO_4-6@@@.ext']),
+                ('mixed_case/sub/file_*_*.ext',
+                 ['mixed_case/sub/file_foo_1-3@@@.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext']),
+            ]
+
+            for pattern, expected in tests:
+                actual = self.FS.findSequencesOnDisk(pattern)
+                self.assertEqual(len(expected), len(actual))
+
+                actual = self.toNormpaths([str(s) for s in actual])
+                expected = self.toNormpaths(expected)
+                self.assertEqual(expected, actual)
+
+
+    class BaseTestFindSequenceOnDisk(TestBase):
+
+        FS = None
+
+        def testFindSequenceOnDisk(self):
+            tests = [
+                ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
+                ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+                ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
+                ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
+                ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
+                ("seq/#.exr", "seq/1-3#.exr"),
+                ("seq/bar1001.exr", "seq/bar1001.exr"),
+                ("seq/foo_0001.exr", "seq/foo_0001.exr"),
+                ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
+                ("subframe_seq/baz.#.0000.exr", "subframe_seq/baz.1-4#.0000.exr"),
+                ("subframe_seq/baz.0001.#.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
+                ("subframe_seq/baz.0001.0000.exr", "subframe_seq/baz.0001.0-7500x2500#.exr"),
+                ("complex_ext/@.a.jpg", "complex_ext/1-3@.a.jpg"),
+                ("complex_ext/file.@.a.ext", "complex_ext/file.5-7@.a.ext"),
+            ]
+
+            for pattern, expected in tests:
+                seq = self.FS.findSequenceOnDisk(pattern, strictPadding=False)
+                self.assertTrue(isinstance(seq, self.FS))
                 actual = str(seq)
                 self.assertEqual(actual, expected)
 
-        finally:
-            os.path = _path
-
-    def testPaddingMatch(self):
-        tests = [
-            ("mixed/seq.#.ext", "mixed/seq.-1-5#.ext"),
-            ("mixed/seq.@@.ext", "mixed/seq.-1-5@@.ext"),
-            ("mixed/seq.@@@@@.ext", "mixed/seq.-1-5@@@@@.ext"),
-            ("mixed/seq.@.ext", "mixed/seq.-1@.ext"),
-            ("mixed/seq.##.ext", None),
-            ("mixed/seq.%04d.ext", "mixed/seq.-1-5#.ext"),
-            ("mixed/seq.%02d.ext", "mixed/seq.-1-5@@.ext"),
-            ("mixed/seq.%05d.ext", "mixed/seq.-1-5@@@@@.ext"),
-            ("mixed/seq.%01d.ext", "mixed/seq.-1@.ext"),
-            ("mixed/seq.%08d.ext", None),
-        ]
-
-        for pattern, expected in tests:
-            if expected is None:
-                with self.assertRaises(FileSeqException):
-                    findSequenceOnDisk(pattern, strictPadding=True)
-                continue
-
-            seq = findSequenceOnDisk(pattern, strictPadding=True)
-            self.assertTrue(isinstance(seq, FileSequence))
-
-            actual = str(seq)
-            self.assertEqual(actual, expected)
-
-    def testCaseSensitive(self):
-        """Issue 107 - testing case-sensitive matching between windows/linux"""
-        # posix platforms are case-sensitive
-        if sys.platform == 'win32':
+        def testFindSequenceOnDiskNoMatch(self):
             tests = [
-                ('mixed_case\\sub\\file_foo_#.ext', 'mixed_case\\sub\\file_foo_1-3@@@.ext'),
-                ('mixed_case\\sub\\file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
-                ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
-                ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
-                ('mixed_case/sub\\file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
-                ('mixed_case\\sub/file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
-            ]
-        else:
-            tests = [
-                ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
-                ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                "subframe_seq/baz.#.exr",
+                "subframe_seq/baz.1000.exr",
             ]
 
-        for pattern, expected in tests:
-            seq = findSequenceOnDisk(pattern)
-            unittest.TestCase.assertTrue(self, isinstance(seq, FileSequence))
+            for pattern in tests:
+                with self.assertRaises(FileSeqException) as cm:
+                    self.FS.findSequenceOnDisk(pattern, strictPadding=False)
+                self.assertEqual(str(cm.exception), 'no sequence found on disk matching ' + pattern)
 
-            actual = str(seq)
-            unittest.TestCase.assertEqual(self, expected, actual)
+        def testFindSequenceOnDiskSubFrames(self):
+            tests = [
+                ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+                ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
+                ("seq/foo.0002.jpg", "seq/foo.1-5#.jpg"),
+                ("subframe_seq/baz.#.#.exr", "subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr"),
+                ("subframe_seq/baz.0000.0000.exr", "subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr"),
+            ]
 
-    def testPreservePadding(self):
-        class Case(object):
-            def __init__(self, pat, expected, strict=False):
-                self.pat = pat
-                self.expected = expected
-                self.strict = strict
+            for pattern, expected in tests:
+                seq = self.FS.findSequenceOnDisk(pattern, strictPadding=False, allow_subframes=True)
+                self.assertTrue(isinstance(seq, self.FS))
+                actual = str(seq)
+                self.assertEqual(actual, expected)
 
-            def __repr__(self):
-                return "Case(pat={!r}, expect={!r}, strict={})".format(self.pat, self.expected, self.strict)
+        def testStrictPadding(self):
+            tests = [
+                ("seq/bar#.exr", "seq/bar1000-1002,1004-1006#.exr"),
+                ("seq/bar@@@@.exr", "seq/bar1000-1002,1004-1006@@@@.exr"),
+                ("seq/bar@@@.exr", "seq/bar1000-1002,1004-1006@@@.exr"),
+                ("seq/bar@@.exr", "seq/bar1000-1002,1004-1006@@.exr"),
+                ("seq/bar@.exr", "seq/bar1000-1002,1004-1006@.exr"),
+                ("seq/bar@@@@@.exr", None),
+                ("seq/bar#@.exr", None),
+                ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+                ("seq/foo.#.jpg", "seq/foo.1-5#.jpg"),
+                ("seq/foo.#.exr", "seq/foo.1-5#.exr"),
+                ("seq/foo.debug.#.exr", "seq/foo.debug.1-5#.exr"),
+                ("seq/#.exr", "seq/1-3#.exr"),
+                ("seq/foo_#.exr", "seq/foo_1#.exr"),
+                ("seq/foo_#_extra.exr", None),
+                ("seq/foo_##.exr", None),
+                ("seq/foo_@.exr", None),
+                ("seq/big.#.ext", "seq/big.999-1003#.ext"),
+                ("seq/big.@@@.ext", "seq/big.1000-1003@@@.ext"),
+                ("seq/big.@.ext", "seq/big.1000-1003@.ext"),
+                ("seq/big.#@.ext", None),
+                ("multi_range/file_@@.0001.exr", None),
+                ("multi_range/file_#.0001.exr", "multi_range/file_3-5#.0001.exr"),
+                ("complex_ext/#.a.jpg", None),
+                ("complex_ext/@.a.jpg", "complex_ext/1-3@.a.jpg"),
+            ]
 
-        strict_tests = [
-            Case("seq/big.@.ext", "seq/big.1000-1003@.ext", strict=True),
-            Case("seq/big.@@.ext", "seq/big.1000-1003@@.ext", strict=True),
-            Case("seq/big.@@@.ext", "seq/big.1000-1003@@@.ext", strict=True),
-            Case("seq/big.#.ext", "seq/big.999-1003#.ext", strict=True),
-            Case("seq/big.#@.ext", None, strict=True),
-            Case("seq/foo.#.exr", "seq/foo.1-5#.exr", strict=True),
-            Case("seq/foo.@.exr", None, strict=True),
+            for pattern, expected in tests:
+                if expected is None:
+                    with self.assertRaises(FileSeqException, msg=pattern):
+                        self.FS.findSequenceOnDisk(pattern, strictPadding=True)
+                    continue
 
-            Case("seq/big.%02d.ext", "seq/big.1000-1003%02d.ext", strict=True),
-            Case("seq/big.%04d.ext", "seq/big.999-1003%04d.ext", strict=True),
-            Case("seq/big.%08d.ext", None, strict=True),
-            Case("seq/foo.%04d.exr", "seq/foo.1-5%04d.exr", strict=True),
-            Case("seq/foo.%02d.exr", None, strict=True),
+                seq = self.FS.findSequenceOnDisk(pattern, strictPadding=True)
+                self.assertTrue(isinstance(seq, self.FS))
+                actual = str(seq)
+                self.assertEqual(actual, expected)
 
-            Case("seq/big.$F.ext", "seq/big.1000-1003$F.ext", strict=True),
-            Case("seq/big.$F4.ext", "seq/big.999-1003$F4.ext", strict=True),
-            Case("seq/big.$F8.ext", None, strict=True),
-            Case("seq/foo.$F4.exr", "seq/foo.1-5$F4.exr", strict=True),
-            Case("seq/foo.$F.exr", None, strict=True),
-        ]
+        def testCrossPlatformPathSep(self):
+            tests = [
+                ("seq/bar#.exr", "seq\\bar1000-1002,1004-1006#.exr"),
+                ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
+                ("seq/foo.#.jpg", "seq\\foo.1-5#.jpg"),
+                ("seq/foo.0002.jpg", "seq\\foo.1-5#.jpg"),
+                ("seq/foo.#.exr", "seq\\foo.1-5#.exr"),
+                ("seq/foo.debug.#.exr", "seq\\foo.debug.1-5#.exr"),
+                ("seq/#.exr", "seq\\1-3#.exr"),
+                ("seq/bar1001.exr", "seq/bar1001.exr"),
+                ("seq/foo_0001.exr", "seq/foo_0001.exr"),
+            ]
 
-        nonstrict_tests = [
-            Case("seq/foo.@.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.@@.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.@@@.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.#.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.#@.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/bar#@.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+            import ntpath
+            _path = os.path
+            os.path = ntpath
 
-            Case("seq/foo.%04d.exr", "seq/foo.1-5%04d.exr", strict=False),
-            Case("seq/foo.%02d.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.%08d.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/bar%03d.exr", "seq/bar1000-1002,1004-1006%03d.exr", strict=False),
-            Case("seq/bar%04d.exr", "seq/bar1000-1002,1004-1006%04d.exr", strict=False),
-            Case("seq/bar%05d.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+            try:
+                self.assertEqual(os.path.join('a', 'b'), 'a\\b')
 
-            Case("seq/foo.$F4.exr", "seq/foo.1-5$F4.exr", strict=False),
-            Case("seq/foo.$F.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.$F3.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/foo.$F8.exr", "seq/foo.1-5#.exr", strict=False),
-            Case("seq/bar$F.exr", "seq/bar1000-1002,1004-1006$F.exr", strict=False),
-            Case("seq/bar$F3.exr", "seq/bar1000-1002,1004-1006$F3.exr", strict=False),
-            Case("seq/bar$F4.exr", "seq/bar1000-1002,1004-1006$F4.exr", strict=False),
-            Case("seq/bar$F5.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
-        ]
+                for pattern, expected in tests:
+                    seq = self.FS.findSequenceOnDisk(pattern)
+                    self.assertTrue(isinstance(seq, self.FS))
+                    actual = str(seq)
+                    self.assertEqual(actual, expected)
 
-        for case in strict_tests + nonstrict_tests:
-            if case.expected is None:
-                with self.assertRaises(FileSeqException, msg=case):
-                    findSequenceOnDisk(case.pat, strictPadding=case.strict, preserve_padding=True)
-                continue
+            finally:
+                os.path = _path
 
-            seq = findSequenceOnDisk(case.pat, strictPadding=case.strict, preserve_padding=True)
-            self.assertTrue(isinstance(seq, FileSequence), msg=case)
+        def testPaddingMatch(self):
+            tests = [
+                ("mixed/seq.#.ext", "mixed/seq.-1-5#.ext"),
+                ("mixed/seq.@@.ext", "mixed/seq.-1-5@@.ext"),
+                ("mixed/seq.@@@@@.ext", "mixed/seq.-1-5@@@@@.ext"),
+                ("mixed/seq.@.ext", "mixed/seq.-1@.ext"),
+                ("mixed/seq.##.ext", None),
+                ("mixed/seq.%04d.ext", "mixed/seq.-1-5#.ext"),
+                ("mixed/seq.%02d.ext", "mixed/seq.-1-5@@.ext"),
+                ("mixed/seq.%05d.ext", "mixed/seq.-1-5@@@@@.ext"),
+                ("mixed/seq.%01d.ext", "mixed/seq.-1@.ext"),
+                ("mixed/seq.%08d.ext", None),
+            ]
 
-            actual = str(seq)
-            self.assertEqual(case.expected, actual, msg=case)
+            for pattern, expected in tests:
+                if expected is None:
+                    with self.assertRaises(FileSeqException):
+                        self.FS.findSequenceOnDisk(pattern, strictPadding=True)
+                    continue
+
+                seq = self.FS.findSequenceOnDisk(pattern, strictPadding=True)
+                self.assertTrue(isinstance(seq, self.FS))
+
+                actual = str(seq)
+                self.assertEqual(actual, expected)
+
+        def testCaseSensitive(self):
+            """Issue 107 - testing case-sensitive matching between windows/linux"""
+            # posix platforms are case-sensitive
+            if sys.platform == 'win32':
+                tests = [
+                    ('mixed_case\\sub\\file_foo_#.ext', 'mixed_case\\sub\\file_foo_1-3@@@.ext'),
+                    ('mixed_case\\sub\\file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
+                    ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
+                    ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                    ('mixed_case/sub\\file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                    ('mixed_case\\sub/file_FOO_#.ext', 'mixed_case\\sub\\file_FOO_4-6@@@.ext'),
+                ]
+            else:
+                tests = [
+                    ('mixed_case/sub/file_foo_#.ext', 'mixed_case/sub/file_foo_1-3@@@.ext'),
+                    ('mixed_case/sub/file_FOO_#.ext', 'mixed_case/sub/file_FOO_4-6@@@.ext'),
+                ]
+
+            for pattern, expected in tests:
+                seq = self.FS.findSequenceOnDisk(pattern)
+                unittest.TestCase.assertTrue(self, isinstance(seq, self.FS))
+
+                actual = str(seq)
+                unittest.TestCase.assertEqual(self, expected, actual)
+
+        def testPreservePadding(self):
+            class Case(object):
+                def __init__(self, pat, expected, strict=False):
+                    self.pat = pat
+                    self.expected = expected
+                    self.strict = strict
+
+                def __repr__(self):
+                    return "Case(pat={!r}, expect={!r}, strict={})".format(self.pat, self.expected, self.strict)
+
+            strict_tests = [
+                Case("seq/big.@.ext", "seq/big.1000-1003@.ext", strict=True),
+                Case("seq/big.@@.ext", "seq/big.1000-1003@@.ext", strict=True),
+                Case("seq/big.@@@.ext", "seq/big.1000-1003@@@.ext", strict=True),
+                Case("seq/big.#.ext", "seq/big.999-1003#.ext", strict=True),
+                Case("seq/big.#@.ext", None, strict=True),
+                Case("seq/foo.#.exr", "seq/foo.1-5#.exr", strict=True),
+                Case("seq/foo.@.exr", None, strict=True),
+
+                Case("seq/big.%02d.ext", "seq/big.1000-1003%02d.ext", strict=True),
+                Case("seq/big.%04d.ext", "seq/big.999-1003%04d.ext", strict=True),
+                Case("seq/big.%08d.ext", None, strict=True),
+                Case("seq/foo.%04d.exr", "seq/foo.1-5%04d.exr", strict=True),
+                Case("seq/foo.%02d.exr", None, strict=True),
+
+                Case("seq/big.$F.ext", "seq/big.1000-1003$F.ext", strict=True),
+                Case("seq/big.$F4.ext", "seq/big.999-1003$F4.ext", strict=True),
+                Case("seq/big.$F8.ext", None, strict=True),
+                Case("seq/foo.$F4.exr", "seq/foo.1-5$F4.exr", strict=True),
+                Case("seq/foo.$F.exr", None, strict=True),
+            ]
+
+            nonstrict_tests = [
+                Case("seq/foo.@.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.@@.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.@@@.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.#.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.#@.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/bar#@.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+
+                Case("seq/foo.%04d.exr", "seq/foo.1-5%04d.exr", strict=False),
+                Case("seq/foo.%02d.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.%08d.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/bar%03d.exr", "seq/bar1000-1002,1004-1006%03d.exr", strict=False),
+                Case("seq/bar%04d.exr", "seq/bar1000-1002,1004-1006%04d.exr", strict=False),
+                Case("seq/bar%05d.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+
+                Case("seq/foo.$F4.exr", "seq/foo.1-5$F4.exr", strict=False),
+                Case("seq/foo.$F.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.$F3.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/foo.$F8.exr", "seq/foo.1-5#.exr", strict=False),
+                Case("seq/bar$F.exr", "seq/bar1000-1002,1004-1006$F.exr", strict=False),
+                Case("seq/bar$F3.exr", "seq/bar1000-1002,1004-1006$F3.exr", strict=False),
+                Case("seq/bar$F4.exr", "seq/bar1000-1002,1004-1006$F4.exr", strict=False),
+                Case("seq/bar$F5.exr", "seq/bar1000-1002,1004-1006#.exr", strict=False),
+            ]
+
+            for case in strict_tests + nonstrict_tests:
+                if case.expected is None:
+                    with self.assertRaises(FileSeqException, msg=case):
+                        self.FS.findSequenceOnDisk(case.pat, strictPadding=case.strict, preserve_padding=True)
+                    continue
+
+                seq = self.FS.findSequenceOnDisk(case.pat, strictPadding=case.strict, preserve_padding=True)
+                self.assertTrue(isinstance(seq, self.FS), msg=case)
+
+                actual = str(seq)
+                self.assertEqual(case.expected, actual, msg=case)
+
+
+class TestFileSequence_str(AbstractBaseTests.BaseFileSequenceTest):
+
+    FS = FileSequence
+    FILE = str
+
+
+class TestFileSequence_path(AbstractBaseTests.BaseFileSequenceTest):
+
+    FS = FilePathSequence
+    FILE = pathlib.Path
+
+
+class TestFindSequencesOnDisk_str(AbstractBaseTests.BaseTestFindSequencesOnDisk):
+
+    FS = FileSequence
+    FILE = str
+
+
+class TestFindSequencesOnDisk_path(AbstractBaseTests.BaseTestFindSequencesOnDisk):
+
+    FS = FilePathSequence
+    FILE = pathlib.Path
+
+
+class TestFindSequenceOnDisk_str(AbstractBaseTests.BaseTestFindSequenceOnDisk):
+
+    FS = FileSequence
+
+
+class TestFindSequenceOnDisk_path(AbstractBaseTests.BaseTestFindSequenceOnDisk):
+
+    FS = FilePathSequence
 
 
 class TestPaddingFunctions(TestBase):

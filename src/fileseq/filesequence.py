@@ -9,11 +9,20 @@ import fnmatch
 import functools
 import operator
 import os
+import pathlib
 import re
 import sys
 import typing
 from typing import overload
 from glob import iglob
+
+if typing.TYPE_CHECKING:
+    # in order to satisfy mypy without adding typing_extensions as a dependency
+    # we don't import Self at runtime
+    from typing_extensions import Self
+else:
+    # at runtime we create a placeholder object.
+    Self = object()
 
 from . import constants, utils
 from .constants import (
@@ -24,8 +33,11 @@ from .constants import (
 from .exceptions import ParseException, FileSeqException
 from .frameset import FrameSet
 
+# Type variables for generic base class
+T = typing.TypeVar('T', covariant=True)
 
-class FileSequence:
+
+class BaseFileSequence(typing.Generic[T]):
     """:class:`FileSequence` represents an ordered sequence of files.
 
         Args:
@@ -148,7 +160,20 @@ class FileSequence:
                 for frame in self._frameSet
             ])
 
-    def copy(self) -> FileSequence:
+    def _create_path(self, path_str: str) -> T:
+        """
+        Abstract method to create the appropriate path type from a string.
+        Must be implemented by subclasses.
+
+        Args:
+            path_str (str): The path as a string
+            
+        Returns:
+            T: The path in the appropriate type for this sequence
+        """
+        raise NotImplementedError("Subclasses must implement _create_path")
+    
+    def copy(self) -> Self:
         """
         Create a deep copy of this sequence
 
@@ -210,7 +235,7 @@ class FileSequence:
             inverted=inverted,
             dirname=self.dirname())
 
-    def split(self) -> list[FileSequence]:
+    def split(self) -> list[BaseFileSequence[T]]:
         """
         Split the :class:`FileSequence` into contiguous pieces and return them
         as a list of :class:`FileSequence` instances.
@@ -561,7 +586,7 @@ class FileSequence:
         """
         return self._decimal_places
 
-    def frame(self, frame: int|float|decimal.Decimal|str) -> str:
+    def frame(self, frame: int|float|decimal.Decimal|str) -> T:
         """
         Return a path for the given frame in the sequence.  Numeric values or
         numeric strings are treated as a frame number and padding is applied,
@@ -599,9 +624,9 @@ class FileSequence:
             if zframe is None:
                 zframe = utils.pad(frame, self._zfill, self._decimal_places)
 
-        return str("".join((self._dir, self._base, str(zframe), self._ext)))
+        return self._create_path("".join((self._dir, self._base, str(zframe), self._ext)))
 
-    def index(self, idx: int) -> str:
+    def index(self, idx: int) -> T:
         """
         Return the path to the file at the given index.
 
@@ -614,14 +639,14 @@ class FileSequence:
         return self.__getitem__(idx)
 
     @overload
-    def batches(self, batch_size: int, paths: typing.Literal[True]) -> typing.Iterator[utils._islice[str]]:
+    def batches(self, batch_size: int, paths: typing.Literal[True]) -> typing.Iterator[utils._islice[T]]:
         ...
 
     @overload
-    def batches(self, batch_size: int, paths: typing.Literal[False] = ...) -> typing.Iterator[FileSequence]:
+    def batches(self, batch_size: int, paths: typing.Literal[False] = ...) -> typing.Iterator[Self]:
         ...
 
-    def batches(self, batch_size: int, paths: bool = False) -> typing.Iterator[utils._islice[str]] | typing.Iterator[FileSequence]:
+    def batches(self, batch_size: int, paths: bool = False) -> typing.Iterator[utils._islice[T]] | typing.Iterator[Self]:
         """
         Returns a generator that yields groups of file paths, up to ``batch_size``.
         Convenience method for ``fileseq.utils.batchIterable(self, batch_size)``
@@ -677,7 +702,7 @@ class FileSequence:
         return state
 
     @classmethod
-    def from_dict(cls, state: dict[str, typing.Any]) -> FileSequence:
+    def from_dict(cls, state: dict[str, typing.Any]) -> Self:
         """
         Constructor to create a new sequence object from a state
         that was previously returned by :meth:`FileSequence.to_dict`
@@ -686,7 +711,7 @@ class FileSequence:
             state (dict): state returned from :meth:`FileSequence.to_dict`
 
         Returns:
-            :obj:`FileSequence`
+            :obj:`Self`
         """
         state = state.copy()
         frameSet = FrameSet.__new__(FrameSet)
@@ -700,7 +725,7 @@ class FileSequence:
         fs.__setstate__(state)
         return fs
 
-    def __iter__(self) -> typing.Iterator[str]:
+    def __iter__(self) -> typing.Iterator[T]:
         """
         Allow iteration over the path or paths this :class:`FileSequence`
         represents.
@@ -711,21 +736,21 @@ class FileSequence:
         # If there is no frame range, or there is no padding
         # characters, then we only want to represent a single path
         if not self._frameSet or not self._zfill:
-            yield utils.asString(self)
+            yield self._create_path(utils.asString(self))
             return
 
         for f in self._frameSet:
             yield self.frame(f)
 
     @typing.overload
-    def __getitem__(self, idx: slice) -> FileSequence:
+    def __getitem__(self, idx: slice) -> Self:
         pass
 
     @typing.overload
-    def __getitem__(self, idx: int) -> str:
+    def __getitem__(self, idx: int) -> T:
         pass
 
-    def __getitem__(self, idx: typing.Any) -> str | FileSequence:
+    def __getitem__(self, idx: typing.Any) -> T | Self:
         """
         Allows indexing and slicing into the underlying :class:`.FrameSet`
 
@@ -745,7 +770,7 @@ class FileSequence:
             :class:`IndexError`: If slice is outside the range of the sequence
         """
         if not self._frameSet:
-            return str(self)
+            return self._create_path(str(self))
 
         frames = self._frameSet[idx]
 
@@ -796,7 +821,7 @@ class FileSequence:
             return super(self.__class__, self).__repr__()
 
     def __eq__(self, other: typing.Any) -> bool:
-        if not isinstance(other, FileSequence):
+        if not isinstance(other, BaseFileSequence):
             return str(self) == str(other)
 
         a = self.__components()
@@ -830,10 +855,10 @@ class FileSequence:
     @classmethod
     def yield_sequences_in_list(
             cls,
-            paths: typing.Iterable[str],
-            using: 'FileSequence | None' = None,
+            paths: typing.Iterable[str | pathlib.Path],
+            using: BaseFileSequence[T] | None = None,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
-            allow_subframes: bool = False) -> typing.Iterator[FileSequence]:
+            allow_subframes: bool = False) -> typing.Iterator[Self]:
         """
         Yield the discrete sequences within paths.  This does not try to
         determine if the files actually exist on disk, it assumes you already
@@ -874,7 +899,7 @@ class FileSequence:
         else:
             _check = cls.DISK_RE.match
 
-        if isinstance(using, FileSequence):
+        if isinstance(using, BaseFileSequence):
             dirname, basename, ext = using.dirname(), using.basename(), using.extension()
             head: int = len(dirname + basename)
             tail: int = -len(ext)
@@ -910,19 +935,20 @@ class FileSequence:
                 if frame:
                     seqs[key].add(frame)
 
-        def start_new_seq() -> FileSequence:
-            seq: FileSequence = cls.__new__(cls)
+        def start_new_seq() -> Self:
+            seq: Self = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
             return seq
 
-        def finish_new_seq(seq: FileSequence) -> None:
+        def finish_new_seq(seq: Self) -> None:
             if seq._subframe_pad:
                 seq._pad = '.'.join([seq._frame_pad, seq._subframe_pad])
             else:
                 seq._pad = seq._frame_pad
 
+            # Use a type: ignore to suppress the mypy warning about calling __init__ on instance
             seq.__init__(utils.asString(seq), pad_style=pad_style,  # type: ignore[misc]
                          allow_subframes=allow_subframes)
 
@@ -940,8 +966,8 @@ class FileSequence:
                 return 1
             return size
 
-        def frames_to_seq(frames: typing.Iterable[str], pad_length: int, decimal_places: int) -> FileSequence:
-            seq = start_new_seq()
+        def frames_to_seq(frames: typing.Iterable[str], pad_length: int, decimal_places: int) -> BaseFileSequence[T]:
+            seq: BaseFileSequence[typing.Any] = start_new_seq()
             seq._frameSet = FrameSet(sorted(decimal.Decimal(f) for f in frames))
             seq._frame_pad = cls.getPaddingChars(pad_length, pad_style=pad_style)
             if decimal_places:
@@ -955,12 +981,12 @@ class FileSequence:
             # Short-circuit logic if we do not have multiple frames, since we
             # only need to build and return a single simple sequence
             if not frames:
-                seq = start_new_seq()
+                seq: BaseFileSequence[T] = start_new_seq()
                 seq._frameSet = None
                 seq._frame_pad = ''
                 seq._subframe_pad = ''
                 finish_new_seq(seq)
-                yield seq
+                yield typing.cast(Self, seq)
                 continue
 
             # If we have multiple frames, then we need to check them for different
@@ -980,7 +1006,7 @@ class FileSequence:
                 if width != current_width and get_frame_minwidth(frame) > current_width:
                     # We have a new padding length.
                     # Commit the current sequence, and then start a new one.
-                    yield frames_to_seq(current_frames, current_width, decimal_places)
+                    yield typing.cast(Self, frames_to_seq(current_frames, current_width, decimal_places))
 
                     # Start tracking the next group of frames using the new length
                     current_frames = [frame]
@@ -991,20 +1017,20 @@ class FileSequence:
 
             # Commit the remaining frames as a sequence
             if current_frames:
-                yield frames_to_seq(current_frames, current_width, decimal_places)
+                yield typing.cast(Self, frames_to_seq(current_frames, current_width, decimal_places))
 
     @classmethod
     def findSequencesInList(cls,
-                            paths: typing.Iterable[str],
+                            paths: typing.Iterable[str | pathlib.Path],
                             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
-                            allow_subframes: bool = False) -> list[FileSequence]:
+                            allow_subframes: bool = False) -> list[Self]:
         """
         Returns the list of discrete sequences within paths.  This does not try
         to determine if the files actually exist on disk, it assumes you
         already know that.
 
         Args:
-            paths (list[str]): a list of paths
+            paths (list[str | pathlib.Path]): a list of paths
             pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
 
@@ -1022,7 +1048,7 @@ class FileSequence:
             include_hidden: bool = False,
             strictPadding: bool = False,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
-            allow_subframes: bool = False) -> list[FileSequence]:
+            allow_subframes: bool = False) -> list[Self]:
         """
         Yield the sequences found in the given directory.
 
@@ -1160,7 +1186,7 @@ class FileSequence:
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
             allow_subframes: bool = False,
             force_case_sensitive: bool = True,
-            preserve_padding: bool = False) -> FileSequence:
+            preserve_padding: bool = False) -> Self:
         """
         Search for a specific sequence on disk.
 
@@ -1209,7 +1235,7 @@ class FileSequence:
                 sequence, if the padding length matches. Default: conform padding to "#@" style.
 
         Returns:
-            FileSequence: A single matching file sequence existing on disk
+            Self: A single matching file sequence existing on disk
 
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
@@ -1540,3 +1566,41 @@ class FileSequence:
             num = cls.getPaddingNum(pad, pad_style=pad_style)
             pad = cls.getPaddingChars(num, pad_style=pad_style)
         return pad
+
+
+class FileSequence(BaseFileSequence[str]):
+    """:class:`FileSequence` represents an ordered sequence of files as strings.
+
+        Args:
+            sequence (str): (ie: dir/path.1-100#.ext)
+
+        Returns:
+            :class:`FileSequence`:
+
+        Raises:
+            :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
+            ``fileseq.constants.MAX_FRAME_SIZE``
+    """
+    
+    def _create_path(self, path_str: str) -> str:
+        """Create a string path from a string."""
+        return path_str
+
+
+class FilePathSequence(BaseFileSequence[pathlib.Path]):
+    """:class:`FilePathSequence` represents an ordered sequence of files as pathlib.Path objects.
+
+        Args:
+            sequence (str): (ie: dir/path.1-100#.ext)
+
+        Returns:
+            :class:`FilePathSequence`:
+
+        Raises:
+            :class:`fileseq.exceptions.MaxSizeException`: If frame size exceeds
+            ``fileseq.constants.MAX_FRAME_SIZE``
+    """
+    
+    def _create_path(self, path_str: str) -> pathlib.Path:
+        """Create a pathlib.Path from a string."""
+        return pathlib.Path(path_str)
