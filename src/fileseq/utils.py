@@ -328,7 +328,7 @@ def normalizeFrame(frame: int | float | decimal.Decimal | str) -> int | float | 
                 return normalizeFrame(frame)
 
 
-def normalizeFrames(frames: typing.Iterable[typing.Any]) -> list[int | float | decimal.Decimal]:
+def normalizeFrames(frames: typing.Iterable[typing.Any]) -> list[int] | list[float] | list[decimal.Decimal]:
     """
     Convert a sequence of frame numbers to the most appropriate type for the
     overall sequence, where all members of the result are of the same type.

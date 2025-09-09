@@ -1249,6 +1249,185 @@ class FrameSet(Set):  # type:ignore[type-arg]
         return FrameSet._build_frange_part(start, stop, stride, zfill=zfill)
 
     @staticmethod
+    def _framesToFrameRangesFloat(
+            frames: list[int | float],
+            zfill: int = 0
+        ) -> typing.Iterator[str]:
+        """
+        Converts a sequence of int/float frames to a series of padded
+        frame range strings.
+
+        Args:
+            frames (list[int | float]): sequence of frames to process
+            zfill (int): width for zero padding
+
+        Yields:
+            str:
+        """
+        _build = FrameSet._build_frange_part
+
+        curr_start: int | float | None = None
+        curr_stride: int | float | None = None
+        curr_frame: int | float
+        last_frame: int | float | None = None
+        curr_count = 0
+        
+        for curr_frame in frames:
+            if curr_start is None:
+                curr_start = curr_frame
+                last_frame = curr_frame
+                curr_count += 1
+                continue
+            if curr_stride is None:
+                curr_stride = abs(curr_frame - curr_start)
+            assert last_frame is not None
+            new_stride = abs(curr_frame - last_frame)
+
+            if curr_stride == new_stride:
+                curr_count += 1
+            elif curr_count == 2 and curr_stride != 1:
+                yield _build(curr_start, curr_start, None, zfill)
+                curr_start = last_frame
+                curr_stride = new_stride
+            else:
+                yield _build(curr_start, last_frame, curr_stride, zfill)
+                curr_stride = None
+                curr_start = curr_frame
+                curr_count = 1
+
+            last_frame = curr_frame
+
+        if curr_count == 2 and curr_stride != 1:
+            yield _build(curr_start, curr_start, None, zfill)
+            yield _build(curr_frame, curr_frame, None, zfill)
+        else:
+            yield _build(curr_start, curr_frame, curr_stride, zfill)
+
+    @staticmethod
+    def _framesToFrameRangesDecimal(
+            frames: list[decimal.Decimal],
+            zfill: int = 0
+        ) -> typing.Iterator[str]:
+        """
+        Converts a sequence of Decimal frames to a series of padded
+        frame range strings.
+
+        Args:
+            frames (list[decimal.Decimal]): sequence of frames to process
+            zfill (int): width for zero padding
+
+        Yields:
+            str:
+        """
+        _build_decimal = FrameSet._build_frange_part_decimal
+
+        curr_start: decimal.Decimal | None = None
+        curr_stride: decimal.Decimal | None = None
+        curr_strides: set[decimal.Decimal]  = set()
+        curr_min_stride: decimal.Decimal | None = None
+        curr_max_stride: decimal.Decimal | None = None
+        curr_frame: decimal.Decimal
+        last_frame: decimal.Decimal | None = None
+        curr_count = 0
+        
+        for curr_frame in frames:
+            if curr_start is None:
+                curr_start = curr_frame
+                last_frame = curr_frame
+                curr_count += 1
+                continue
+            if curr_stride is None:
+                curr_stride = abs(curr_frame - curr_start)
+                curr_strides = {curr_stride}
+            assert last_frame is not None
+            new_stride = abs(curr_frame - last_frame)
+
+            # Handle decimal strides and frame rounding
+            # Check whether stride difference could be caused by rounding
+            if len(curr_strides) == 1:
+                stride_delta = abs(curr_stride - new_stride)
+                exponent = stride_delta.as_tuple().exponent
+                # Handle case where exponent might be a string literal
+                exp_value = int(exponent) if isinstance(exponent, str) else exponent
+                max_stride_delta = decimal.Decimal(1).scaleb(exp_value)
+                if stride_delta <= max_stride_delta:
+                    curr_strides.add(new_stride)
+
+            if new_stride in curr_strides:
+                # Find minimum frame value that rounds to current
+                min_frame = (curr_frame - max_stride_delta / 2)
+                while min_frame.quantize(curr_frame) != curr_frame:
+                    min_frame = min_frame.next_plus()
+
+                # Find maximum frame value that rounds to current
+                max_frame = (curr_frame + max_stride_delta / 2)
+                while max_frame.quantize(curr_frame) != curr_frame:
+                    max_frame = max_frame.next_minus()
+
+                # Adjust min stride limit until frame rounds to current
+                while True:
+                    new_min_stride = (min_frame - curr_start) / curr_count
+                    test_frame = curr_start + new_min_stride * curr_count
+                    if test_frame.quantize(curr_frame) == curr_frame:
+                        break
+                    min_frame = min_frame.next_plus()
+
+                # Adjust max stride limit until frame rounds to current
+                while True:
+                    new_max_stride = (max_frame - curr_start) / curr_count
+                    test_frame = curr_start + new_max_stride * curr_count
+                    if test_frame.quantize(curr_frame) == curr_frame:
+                        break
+                    max_frame = max_frame.next_minus()
+
+                # Update minimum and maximum stride values for overall range
+                if curr_min_stride is not None:
+                    new_min_stride = max(curr_min_stride, new_min_stride)
+                if curr_max_stride is not None:
+                    new_max_stride = min(curr_max_stride, new_max_stride)
+
+                # A stride exists that rounds all frame values correctly
+                if new_min_stride <= new_max_stride:
+                    new_stride = curr_stride
+                    curr_min_stride = new_min_stride
+                    curr_max_stride = new_max_stride
+
+            if curr_stride == new_stride:
+                curr_count += 1
+            elif curr_count == 2 and curr_stride != 1:
+                yield FrameSet._build_frange_part(curr_start, curr_start, None, zfill)
+                curr_start = last_frame
+                curr_stride = new_stride
+                curr_strides = {new_stride}
+                curr_min_stride = None
+                curr_max_stride = None
+            else:
+                stride = curr_strides.pop() if len(curr_strides) == 1 else None
+                assert curr_min_stride is not None
+                assert curr_max_stride is not None
+                yield _build_decimal(curr_start, last_frame, curr_count,
+                                     stride, curr_min_stride, curr_max_stride, zfill)
+                curr_stride = None
+                curr_strides = set()
+                curr_min_stride = None
+                curr_max_stride = None
+                curr_start = curr_frame
+                curr_count = 1
+
+            last_frame = curr_frame
+
+        if curr_count == 2 and curr_stride != 1:
+            yield FrameSet._build_frange_part(curr_start, curr_start, None, zfill)
+            yield FrameSet._build_frange_part(curr_frame, curr_frame, None, zfill)
+        else:
+            stride = curr_strides.pop() if len(curr_strides) == 1 else None
+            assert curr_start is not None
+            assert curr_min_stride is not None
+            assert curr_max_stride is not None
+            yield _build_decimal(curr_start, curr_frame, curr_count,
+                                 stride, curr_min_stride, curr_max_stride, zfill)
+
+    @staticmethod
     def framesToFrameRanges(
             frames: typing.Iterable[typing.Any],
             zfill: int = 0
@@ -1264,115 +1443,15 @@ class FrameSet(Set):  # type:ignore[type-arg]
         Yields:
             str:
         """
-        _build = FrameSet._build_frange_part
-        _build_decimal = FrameSet._build_frange_part_decimal
-
         # Ensure all frame values are of same type
         frames = normalizeFrames(frames)
 
-        curr_start = None
-        curr_stride = None
-        curr_strides = None  # used for decimal frame handling only
-        curr_min_stride = None  # used for decimal frame handling only
-        curr_max_stride = None  # used for decimal frame handling only
-        curr_frame = None
-        last_frame = None
-        curr_count = 0
-        for curr_frame in frames:
-            if curr_start is None:
-                curr_start = curr_frame
-                last_frame = curr_frame
-                curr_count += 1
-                continue
-            if curr_stride is None:
-                curr_stride = abs(curr_frame - curr_start)
-                curr_strides = {curr_stride}
-            new_stride = abs(curr_frame - last_frame)
-
-            # Handle decimal strides and frame rounding
-            if isinstance(curr_stride, decimal.Decimal):
-                # Check whether stride difference could be caused by rounding
-                if len(curr_strides) == 1:
-                    stride_delta = abs(curr_stride - new_stride)
-                    exponent = stride_delta.as_tuple().exponent
-                    max_stride_delta = decimal.Decimal(1).scaleb(exponent)
-                    if stride_delta <= max_stride_delta:
-                        curr_strides.add(new_stride)
-
-                if new_stride in curr_strides:
-                    # Find minimum frame value that rounds to current
-                    min_frame = (curr_frame - max_stride_delta / 2)
-                    while min_frame.quantize(curr_frame) != curr_frame:
-                        min_frame = min_frame.next_plus()
-
-                    # Find maximum frame value that rounds to current
-                    max_frame = (curr_frame + max_stride_delta / 2)
-                    while max_frame.quantize(curr_frame) != curr_frame:
-                        max_frame = max_frame.next_minus()
-
-                    # Adjust min stride limit until frame rounds to current
-                    while True:
-                        new_min_stride = (min_frame - curr_start) / curr_count
-                        test_frame = curr_start + new_min_stride * curr_count
-                        if test_frame.quantize(curr_frame) == curr_frame:
-                            break
-                        min_frame = min_frame.next_plus()
-
-                    # Adjust max stride limit until frame rounds to current
-                    while True:
-                        new_max_stride = (max_frame - curr_start) / curr_count
-                        test_frame = curr_start + new_max_stride * curr_count
-                        if test_frame.quantize(curr_frame) == curr_frame:
-                            break
-                        max_frame = max_frame.next_minus()
-
-                    # Update minimum and maximum stride values for overall range
-                    if curr_min_stride is not None:
-                        new_min_stride = max(curr_min_stride, new_min_stride)
-                    if curr_max_stride is not None:
-                        new_max_stride = min(curr_max_stride, new_max_stride)
-
-                    # A stride exists that rounds all frame values correctly
-                    if new_min_stride <= new_max_stride:
-                        new_stride = curr_stride
-                        curr_min_stride = new_min_stride
-                        curr_max_stride = new_max_stride
-
-            if curr_stride == new_stride:
-                curr_count += 1
-            elif curr_count == 2 and curr_stride != 1:
-                yield _build(curr_start, curr_start, None, zfill)
-                curr_start = last_frame
-                curr_stride = new_stride
-                curr_strides = {new_stride}
-                curr_min_stride = None
-                curr_max_stride = None
-            else:
-                if isinstance(curr_stride, decimal.Decimal):
-                    stride = curr_strides.pop() if len(curr_strides) == 1 else None
-                    yield _build_decimal(curr_start, last_frame, curr_count,
-                                         stride, curr_min_stride, curr_max_stride, zfill)
-                else:
-                    yield _build(curr_start, last_frame, curr_stride, zfill)
-                curr_stride = None
-                curr_strides = None
-                curr_min_stride = None
-                curr_max_stride = None
-                curr_start = curr_frame
-                curr_count = 1
-
-            last_frame = curr_frame
-
-        if curr_count == 2 and curr_stride != 1:
-            yield _build(curr_start, curr_start, None, zfill)
-            yield _build(curr_frame, curr_frame, None, zfill)
+        # Dispatch to appropriate specialized method based on frame type
+        # Handle empty frames by defaulting to float method
+        if frames and isinstance(frames[0], decimal.Decimal):
+            yield from FrameSet._framesToFrameRangesDecimal(frames, zfill)  # type: ignore[arg-type]
         else:
-            if isinstance(curr_stride, decimal.Decimal):
-                stride = curr_strides.pop() if len(curr_strides) == 1 else None
-                yield _build_decimal(curr_start, curr_frame, curr_count,
-                                     stride, curr_min_stride, curr_max_stride, zfill)
-            else:
-                yield _build(curr_start, curr_frame, curr_stride, zfill)
+            yield from FrameSet._framesToFrameRangesFloat(frames, zfill)  # type: ignore[arg-type]
 
     @staticmethod
     def framesToFrameRange(
