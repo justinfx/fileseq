@@ -3,7 +3,6 @@ filesequence - A parsing object representing sequential files for fileseq.
 """
 from __future__ import annotations
 
-import collections.abc
 import dataclasses
 import decimal
 import fnmatch
@@ -13,6 +12,7 @@ import os
 import re
 import sys
 import typing
+from typing import overload
 from glob import iglob
 
 from . import constants, utils
@@ -144,7 +144,7 @@ class FileSequence:
         # Round subframes to match sequence
         if self._frameSet is not None and self._frameSet.hasSubFrames():
             self._frameSet = FrameSet([
-                utils.quantize(frame, self._decimal_places)
+                utils.quantize(frame, self._decimal_places)  # type: ignore[arg-type]
                 for frame in self._frameSet
             ])
 
@@ -436,7 +436,7 @@ class FileSequence:
         if frameSet is not None and frameSet.hasSubFrames():
             if all(isinstance(frame, decimal.Decimal) for frame in frameSet):
                 frameSet = FrameSet([
-                    utils.quantize(frame, self._decimal_places)
+                    utils.quantize(frame, self._decimal_places)  # type: ignore[arg-type]
                     for frame in frameSet
                 ])
         self._frameSet = frameSet
@@ -519,25 +519,25 @@ class FileSequence:
             return ''
         return self._frameSet.invertedFrameRange(self._zfill)
 
-    def start(self) -> int:
+    def start(self) -> int | float | decimal.Decimal:
         """
         Returns the start frame of the sequence's :class:`.FrameSet`.
         Will return 0 if the sequence has no frame pattern.
 
         Returns:
-            int:
+            int | float | decimal.Decimal:
         """
         if not self._frameSet:
             return 0
         return self._frameSet.start()
 
-    def end(self) -> int:
+    def end(self) -> int | float | decimal.Decimal:
         """
         Returns the end frame of the sequences :class:`.FrameSet`.
         Will return 0 if the sequence has no frame pattern.
 
         Returns:
-            int:
+            int | float | decimal.Decimal:
         """
         if not self._frameSet:
             return 0
@@ -611,9 +611,17 @@ class FileSequence:
         Returns:
             str:
         """
-        return self.__getitem__(idx)  # type: ignore
+        return self.__getitem__(idx)
 
-    def batches(self, batch_size: int, paths: bool = False) -> typing.Iterable[str | FileSequence]:
+    @overload
+    def batches(self, batch_size: int, paths: typing.Literal[True]) -> typing.Iterator[utils._islice[str]]:
+        ...
+
+    @overload
+    def batches(self, batch_size: int, paths: typing.Literal[False] = ...) -> typing.Iterator[FileSequence]:
+        ...
+
+    def batches(self, batch_size: int, paths: bool = False) -> typing.Iterator[utils._islice[str]] | typing.Iterator[FileSequence]:
         """
         Returns a generator that yields groups of file paths, up to ``batch_size``.
         Convenience method for ``fileseq.utils.batchIterable(self, batch_size)``
@@ -629,7 +637,7 @@ class FileSequence:
             generator: yields batches of file paths or FileSequence subranges of sequence
         """
         if len(self) == 0:
-            return []
+            return iter([])
 
         if paths:
             # They just want batches of the individual file paths
@@ -692,7 +700,7 @@ class FileSequence:
         fs.__setstate__(state)
         return fs
 
-    def __iter__(self) -> collections.abc.Generator[str, None, None]:
+    def __iter__(self) -> typing.Iterator[str]:
         """
         Allow iteration over the path or paths this :class:`FileSequence`
         represents.
@@ -709,7 +717,15 @@ class FileSequence:
         for f in self._frameSet:
             yield self.frame(f)
 
-    def __getitem__(self, idx: typing.Any) -> str|FileSequence:
+    @typing.overload
+    def __getitem__(self, idx: slice) -> FileSequence:
+        pass
+
+    @typing.overload
+    def __getitem__(self, idx: int) -> str:
+        pass
+
+    def __getitem__(self, idx: typing.Any) -> str | FileSequence:
         """
         Allows indexing and slicing into the underlying :class:`.FrameSet`
 
@@ -815,7 +831,7 @@ class FileSequence:
     def yield_sequences_in_list(
             cls,
             paths: typing.Iterable[str],
-            using: FileSequence|None = None,
+            using: 'FileSequence | None' = None,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
             allow_subframes: bool = False) -> typing.Iterator[FileSequence]:
         """
@@ -895,7 +911,7 @@ class FileSequence:
                     seqs[key].add(frame)
 
         def start_new_seq() -> FileSequence:
-            seq = cls.__new__(cls)
+            seq: FileSequence = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
@@ -1329,7 +1345,7 @@ class FileSequence:
                      zfill: int|None,
                      decimal_places: typing.Optional[int] = 0,
                      get_frame: typing.Optional[typing.Callable[[str], str]] = None
-                     ) -> collections.abc.Generator[str, None, None]:
+                     ) -> typing.Iterator[str]:
             """
             Yield only path elements from iterable which have a frame padding that
             matches the given target padding numbers. If zfill is None only the
@@ -1424,9 +1440,14 @@ class FileSequence:
                     continue
 
     @classmethod
-    def _filterByPaddingNum(cls, *args, **kwargs) -> typing.Generator[str]:  # type: ignore
+    def _filterByPaddingNum(cls,
+                            iterable: typing.Iterable[str],
+                            zfill: int | None,
+                            decimal_places: typing.Optional[int] = 0,
+                            get_frame: typing.Optional[typing.Callable[[str], str]] = None
+                            ) -> typing.Iterator[str]:
         ctx = cls._FilterByPaddingNum()
-        return ctx(*args, **kwargs)
+        return ctx(iterable, zfill, decimal_places, get_frame)
 
     @classmethod
     def getPaddingChars(cls, num: int, pad_style: constants._PadStyle = PAD_STYLE_DEFAULT) -> str:
