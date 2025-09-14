@@ -854,7 +854,7 @@ class BaseFileSequence(typing.Generic[T]):
 
     @classmethod
     def yield_sequences_in_list(
-            cls,
+            cls: type[Self],
             paths: typing.Iterable[str | pathlib.Path],
             using: BaseFileSequence[T] | None = None,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
@@ -935,7 +935,7 @@ class BaseFileSequence(typing.Generic[T]):
                 if frame:
                     seqs[key].add(frame)
 
-        def start_new_seq() -> Self:
+        def start_new_seq(cls: type[Self]) -> Self:
             seq: Self = cls.__new__(cls)
             seq._dir = dirname or ''
             seq._base = basename or ''
@@ -966,8 +966,8 @@ class BaseFileSequence(typing.Generic[T]):
                 return 1
             return size
 
-        def frames_to_seq(frames: typing.Iterable[str], pad_length: int, decimal_places: int) -> BaseFileSequence[T]:
-            seq: BaseFileSequence[typing.Any] = start_new_seq()
+        def frames_to_seq(cls: type[Self], frames: typing.Iterable[str], pad_length: int, decimal_places: int) -> Self:
+            seq = start_new_seq(cls)
             seq._frameSet = FrameSet(sorted(decimal.Decimal(f) for f in frames))
             seq._frame_pad = cls.getPaddingChars(pad_length, pad_style=pad_style)
             if decimal_places:
@@ -981,12 +981,12 @@ class BaseFileSequence(typing.Generic[T]):
             # Short-circuit logic if we do not have multiple frames, since we
             # only need to build and return a single simple sequence
             if not frames:
-                seq: BaseFileSequence[T] = start_new_seq()
+                seq = start_new_seq(cls)
                 seq._frameSet = None
                 seq._frame_pad = ''
                 seq._subframe_pad = ''
                 finish_new_seq(seq)
-                yield typing.cast(Self, seq)
+                yield seq
                 continue
 
             # If we have multiple frames, then we need to check them for different
@@ -1006,7 +1006,7 @@ class BaseFileSequence(typing.Generic[T]):
                 if width != current_width and get_frame_minwidth(frame) > current_width:
                     # We have a new padding length.
                     # Commit the current sequence, and then start a new one.
-                    yield typing.cast(Self, frames_to_seq(current_frames, current_width, decimal_places))
+                    yield frames_to_seq(cls, current_frames, current_width, decimal_places)
 
                     # Start tracking the next group of frames using the new length
                     current_frames = [frame]
@@ -1017,7 +1017,7 @@ class BaseFileSequence(typing.Generic[T]):
 
             # Commit the remaining frames as a sequence
             if current_frames:
-                yield typing.cast(Self, frames_to_seq(current_frames, current_width, decimal_places))
+                yield frames_to_seq(cls, current_frames, current_width, decimal_places)
 
     @classmethod
     def findSequencesInList(cls,
