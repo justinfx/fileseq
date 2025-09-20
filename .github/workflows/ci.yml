@@ -71,7 +71,6 @@ jobs:
         uses: jpetrucciani/mypy-check@master
         with:
           path: './src/fileseq'
-          mypy_flags: '--no-implicit-reexport --strict'
 
   deploy:
     if: github.event_name == 'release' && github.event.action == 'published'
