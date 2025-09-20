@@ -125,11 +125,35 @@ fileseq.FileSequence("/foo/bar.1-10x0.25#.#.exr", allow_subframes=True)
  '/foo/bar.0010.exr']
 ```
 
+### Get List of File Paths as `pathlib.Path` instances
+`fileseq.FilePathSequence` supports the same semantics as `fileseq.FileSequence` but represents result paths as [`pathlib.Path`](https://docs.python.org/3/library/pathlib.html) instances instead of strings.
+
+```python
+>>> seq = fileseq.FilePathSequence("/foo/bar.1-10#.exr")
+>>> [seq[idx] for idx, fr in enumerate(seq.frameSet())]
+[PosixPath('/foo/bar.0001.exr'),
+ PosixPath('/foo/bar.0002.exr'),
+ PosixPath('/foo/bar.0003.exr'),
+ PosixPath('/foo/bar.0004.exr'),
+ PosixPath('/foo/bar.0005.exr'),
+ PosixPath('/foo/bar.0006.exr'),
+ PosixPath('/foo/bar.0007.exr'),
+ PosixPath('/foo/bar.0008.exr'),
+ PosixPath('/foo/bar.0009.exr'),
+ PosixPath('/foo/bar.0010.exr')]
+```
+
 ## Finding Sequences on Disk
 
 ### Check a Directory for All Existing Sequences
 ```python
 seqs = fileseq.findSequencesOnDisk("/show/shot/renders/bty_foo/v1")
+```
+
+Or, to get results as `pathlib.Path`, use the `FilePathSequence` classmethod:
+
+```python
+seqs = fileseq.FilePathSequence.findSequencesOnDisk("/show/shot/renders/bty_foo/v1")
 ```
 
 ### Check a Directory for One Existing Sequence.
