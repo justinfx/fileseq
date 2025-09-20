@@ -27,8 +27,13 @@ FrameSetInput = Union[
     FrameValue,                            # Individual frame number
 ]
 
+if typing.TYPE_CHECKING:
+    BaseFrameSet = Set[FrameValue]
+else:
+    BaseFrameSet = Set
 
-class FrameSet(Set[FrameValue]):
+
+class FrameSet(BaseFrameSet):
     """
     A ``FrameSet`` is an immutable representation of the ordered, unique
     set of frames in a given frame range.
@@ -505,7 +510,7 @@ class FrameSet(Set[FrameValue]):
         result: list[int] = []
         frames = sorted(self.items)
         # We already checked that all items are integers above
-        int_frames = typing.cast(list[int], frames)
+        int_frames = typing.cast("list[int]", frames)
         for idx, frame in enumerate(int_frames[:-1]):
             next_frame = int_frames[idx + 1]
             if next_frame - frame != 1:
