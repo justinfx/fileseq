@@ -174,7 +174,7 @@ No:
 from .constants import PAD_STYLE_DEFAULT, PAD_STYLE_HASH1, PAD_STYLE_HASH4
 from .exceptions import ParseException, MaxSizeException, FileSeqException
 from .frameset import FrameSet
-from .filesequence import FileSequence
+from .filesequence import BaseFileSequence, FileSequence, FilePathSequence
 
 padFrameRange = FrameSet.padFrameRange
 framesToFrameRange = FrameSet.framesToFrameRange
