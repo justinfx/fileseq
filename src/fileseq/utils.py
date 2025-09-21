@@ -3,7 +3,6 @@ utils - General tools of use to fileseq operations.
 """
 from __future__ import annotations
 
-import collections.abc
 import decimal
 import os
 import typing
@@ -13,6 +12,7 @@ from itertools import chain, count, islice
 
 from . import exceptions
 
+T = typing.TypeVar("T")
 
 FILESYSTEM_ENCODING = sys.getfilesystemencoding() or 'utf-8'
 
@@ -121,9 +121,8 @@ else:
     xrange = range
 
 
-class _islice(object):
-
-    def __init__(self, gen: typing.Iterable[typing.Any], start: int, stop: int, step: int = 1):
+class _islice(typing.Generic[T]):
+    def __init__(self, gen: typing.Iterable[T], start: int, stop: int, step: int = 1):
         self._gen = gen
         self._start = start
         self._stop = stop
@@ -132,12 +131,11 @@ class _islice(object):
     def __len__(self) -> int:
         return lenRange(self._start, self._stop, self._step)
 
-    def __next__(self) -> typing.Any:
-        # noinspection PyTypeChecker
-        return next(self._gen)  # type:ignore
+    def __next__(self) -> T:
+        return next(iter(self._gen))
 
-    def __iter__(self) -> typing.Iterable[typing.Any]:
-        return self._gen.__iter__()
+    def __iter__(self) -> typing.Iterator[T]:
+        return iter(self._gen)
 
     @property
     def start(self) -> int:
@@ -152,14 +150,14 @@ class _islice(object):
         return self._step
 
 
-class _xfrange(_islice):
+class _xfrange(_islice[int]):
 
     def __len__(self) -> int:
         stop = self._stop + (1 if self._start <= self._stop else -1)
         return lenRange(self._start, stop, self._step)
 
 
-def xfrange(start: int, stop: int, step: int = 1, maxSize: int = -1) -> typing.Generator[typing.Any, None, None]:
+def xfrange(start: int, stop: int, step: int = 1, maxSize: int = -1) -> _xfrange:
     """
     Returns a generator that yields the frames from start to stop, inclusive.
     In other words it adds or subtracts a frame, as necessary, to return the
@@ -204,10 +202,10 @@ def xfrange(start: int, stop: int, step: int = 1, maxSize: int = -1) -> typing.G
     else:
         gen = (start + i * step for i in range(size))
 
-    return _xfrange(gen, start, stop, step)  # type:ignore
+    return _xfrange(gen, start, stop, step)
 
 
-def batchFrames(start: int, stop: int, batch_size: int) -> typing.Iterable[typing.Any]:
+def batchFrames(start: int, stop: int, batch_size: int) -> typing.Iterator[_xfrange]:
     """
     Returns a generator that yields batches of frames from start to stop, inclusive.
     Each batch value is a ``range`` generator object, also providing start, stop, and
@@ -236,7 +234,7 @@ def batchFrames(start: int, stop: int, batch_size: int) -> typing.Iterable[typin
         yield xfrange(i, sub_stop)
 
 
-def batchIterable(it: typing.Iterable[typing.Any], batch_size: int) -> typing.Iterable[typing.Any]:
+def batchIterable(it: typing.Iterable[T], batch_size: int) -> typing.Iterator[_islice[T]]:
     """
     Returns a generator that yields batches of items returned by the given iterable.
     The last batch frame length may be smaller if the batches cannot be divided evenly.
@@ -268,7 +266,7 @@ def batchIterable(it: typing.Iterable[typing.Any], batch_size: int) -> typing.It
         yield _islice(gen, start, stop)
 
 
-def _batchGenerator(gen: typing.Iterable[typing.Any], batch_size: int) -> typing.Generator[typing.Any, None, None]:
+def _batchGenerator(gen: typing.Iterable[T], batch_size: int) -> typing.Generator[_islice[T], None, None]:
     """
     A batching generator function that handles a generator
     type, where the length isn't known.
@@ -281,16 +279,20 @@ def _batchGenerator(gen: typing.Iterable[typing.Any], batch_size: int) -> typing
         iterable: a subset of batched items
     """
     batch = []
+    start = 0
     for item in gen:
         batch.append(item)
         if len(batch) == batch_size:
-            yield batch
+            yield _islice(iter(batch), start, start + len(batch))
+            start += len(batch)
             batch = []
     if batch:
-        yield batch
+        yield _islice(iter(batch), start, start + len(batch))
 
 
-def normalizeFrame(frame: int | float | decimal.Decimal | str) -> int | float | decimal.Decimal | None:
+def normalizeFrame(
+        frame: int | float | decimal.Decimal | str | None
+    ) -> int | float | decimal.Decimal | None:
     """
     Convert a frame number to the most appropriate type - the most compact type
     that doesn't affect precision, for example numbers that convert exactly
@@ -328,7 +330,9 @@ def normalizeFrame(frame: int | float | decimal.Decimal | str) -> int | float | 
                 return normalizeFrame(frame)
 
 
-def normalizeFrames(frames: typing.Iterable[typing.Any]) -> list[int | float | decimal.Decimal]:
+def normalizeFrames(
+        frames: typing.Iterable[int | float | decimal.Decimal | str]
+    ) -> list[int] | list[float] | list[decimal.Decimal]:
     """
     Convert a sequence of frame numbers to the most appropriate type for the
     overall sequence, where all members of the result are of the same type.
@@ -342,39 +346,40 @@ def normalizeFrames(frames: typing.Iterable[typing.Any]) -> list[int | float | d
     """
 
     # Normalise all frame values and find their type
-    frames = [normalizeFrame(frame) for frame in frames]
-    frame_types = set(type(frame) for frame in frames)
-
-    FrameType: object
+    norm_frames = [normalizeFrame(frame) for frame in frames]
+    frame_types = set(type(frame) for frame in norm_frames)
 
     # Determine best overall type for frames
     if float in frame_types:
-        FrameType = float
+        FrameType: type = float
     elif decimal.Decimal in frame_types:
         FrameType = decimal.Decimal
     else:
         FrameType = int
 
     if len(frame_types) == 1:
-        return frames
+        return norm_frames  # type: ignore[return-value]
 
     # Convert all frames to chosen type
-    frames = [FrameType(frame) for frame in frames]
+    uniform_frames = typing.cast(
+        "list[int] | list[float] | list[decimal.Decimal]",
+        [FrameType(frame) for frame in norm_frames])
 
     # Ensure all decimal frames have same exponent
     if FrameType is decimal.Decimal:
+        uniform_frames = typing.cast("list[decimal.Decimal]", uniform_frames)
         maximum_decimal_places = max(
-            -frame.as_tuple().exponent for frame in frames
+            -frame.as_tuple().exponent for frame in uniform_frames  # type: ignore[operator]
         )
-        frames = [quantize(frame, maximum_decimal_places) for frame in frames]
+        uniform_frames = [quantize(frame, maximum_decimal_places) for frame in uniform_frames]
 
-    return frames
+    return uniform_frames
 
 
 def unique(
-        seen: typing.Set[typing.Any],
-        *iterables: typing.Iterable[typing.Any]
-    ) -> typing.Generator[typing.Any, None, None]:
+        seen: typing.Set[T],
+        *iterables: typing.Iterable[T]
+    ) -> typing.Iterator[T]:
     """
     Get the unique items in iterables while preserving order.  Note that this
     mutates the seen set provided only when the returned generator is used.
