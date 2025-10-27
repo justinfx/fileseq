@@ -1769,7 +1769,7 @@ class AbstractBaseTests:
 
         def testFindSequencesOnDiskSubFrames(self):
             seqs = self.FS.findSequencesOnDisk("subframe_seq", allow_subframes=True)
-            self.assertEquals(9, len(seqs))
+            self.assertEquals(11, len(seqs))
             known = {
                 'subframe_seq/bar.1#.#.exr',
                 'subframe_seq/baz.1-2x0.25,3-4x0.25#.#.exr',
@@ -1779,7 +1779,9 @@ class AbstractBaseTests:
                 'subframe_seq/foo.1-3x0.25#.#.jpg',
                 'subframe_seq/foz.1001-1003x0.25#.#.exr',
                 'subframe_seq/foz.debug.1001-1002x0.25#.#.exr',
-                'subframe_seq/guz.1-2x0.25#.@@.exr'
+                'subframe_seq/guz.1-2x0.25#.@@.exr',
+                'subframe_seq/quux.2.3333-3.0001x0.33336,3.3333@@.#.exr',
+                'subframe_seq/qux.0-2x0.333333@@.#.exr'
             }
             found = set([str(s) for s in seqs])
             self.assertEqualPaths(known, found)

@@ -1203,8 +1203,8 @@ class FrameSet(BaseFrameSet):
         Private method: builds a proper and padded frame range string.
 
         Args:
-            start (int): first frame
-            stop (int or None): last frame
+            start (int or decimal.Decimal): first frame
+            stop (int or or decimal.Decimal or None): last frame
             stride (int or None): increment
             zfill (int): width for zero padding
 
@@ -1347,6 +1347,7 @@ class FrameSet(BaseFrameSet):
         Yields:
             str:
         """
+        _build = FrameSet._build_frange_part
         _build_decimal = FrameSet._build_frange_part_decimal
 
         curr_start: decimal.Decimal | None = None
@@ -1374,10 +1375,8 @@ class FrameSet(BaseFrameSet):
             # Check whether stride difference could be caused by rounding
             if len(curr_strides) == 1:
                 stride_delta = abs(curr_stride - new_stride)
-                exponent = stride_delta.as_tuple().exponent
-                # Handle case where exponent might be a string literal
-                exp_value = int(exponent) if isinstance(exponent, str) else exponent
-                max_stride_delta = decimal.Decimal(1).scaleb(exp_value)
+                exponent = int(stride_delta.as_tuple().exponent)
+                max_stride_delta = decimal.Decimal(1).scaleb(exponent)
                 if stride_delta <= max_stride_delta:
                     curr_strides.add(new_stride)
 
@@ -1423,7 +1422,7 @@ class FrameSet(BaseFrameSet):
             if curr_stride == new_stride:
                 curr_count += 1
             elif curr_count == 2 and curr_stride != 1:
-                yield FrameSet._build_frange_part(curr_start, curr_start, None, zfill)
+                yield _build(curr_start, curr_start, None, zfill)
                 curr_start = last_frame
                 curr_stride = new_stride
                 curr_strides = {new_stride}
@@ -1431,10 +1430,14 @@ class FrameSet(BaseFrameSet):
                 curr_max_stride = None
             else:
                 stride = curr_strides.pop() if len(curr_strides) == 1 else None
-                assert curr_min_stride is not None
-                assert curr_max_stride is not None
-                yield _build_decimal(curr_start, last_frame, curr_count,
-                                     stride, curr_min_stride, curr_max_stride, zfill)
+                assert curr_start is not None
+                if curr_stride is None:
+                    yield _build(curr_start, curr_frame, curr_stride, zfill)
+                else:
+                    assert curr_min_stride is not None
+                    assert curr_max_stride is not None
+                    yield _build_decimal(curr_start, last_frame, curr_count,
+                                         stride, curr_min_stride, curr_max_stride, zfill)
                 curr_stride = None
                 curr_strides = set()
                 curr_min_stride = None
@@ -1445,15 +1448,18 @@ class FrameSet(BaseFrameSet):
             last_frame = curr_frame
 
         if curr_count == 2 and curr_stride != 1:
-            yield FrameSet._build_frange_part(curr_start, curr_start, None, zfill)
-            yield FrameSet._build_frange_part(curr_frame, curr_frame, None, zfill)
+            yield _build(curr_start, curr_start, None, zfill)
+            yield _build(curr_frame, curr_frame, None, zfill)
         else:
             stride = curr_strides.pop() if len(curr_strides) == 1 else None
             assert curr_start is not None
-            assert curr_min_stride is not None
-            assert curr_max_stride is not None
-            yield _build_decimal(curr_start, curr_frame, curr_count,
-                                 stride, curr_min_stride, curr_max_stride, zfill)
+            if curr_stride is None:
+                yield _build(curr_start, curr_frame, curr_stride, zfill)
+            else:
+                assert curr_min_stride is not None
+                assert curr_max_stride is not None
+                yield _build_decimal(curr_start, curr_frame, curr_count,
+                                     stride, curr_min_stride, curr_max_stride, zfill)
 
     @staticmethod
     def framesToFrameRanges(
