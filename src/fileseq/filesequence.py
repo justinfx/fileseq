@@ -82,9 +82,24 @@ class BaseFileSequence(typing.Generic[T]):
                  allow_subframes: bool = False):
         """Init the class
         """
+        self._init_impl(sequence, pad_style, allow_subframes, skip_parse=False)
+
+    def _init_impl(self,
+                    sequence: str,
+                    pad_style: constants._PadStyle,
+                    allow_subframes: bool,
+                    skip_parse: bool):
+        """Internal initialization implementation.
+
+        Args:
+            sequence: The sequence string or pattern
+            pad_style: Padding style to use
+            allow_subframes: Whether to allow subframes
+            skip_parse: If True, skip parsing and use existing component values
+        """
         sequence = utils.asString(sequence)
 
-        if not hasattr(self, '_frameSet'):
+        if not skip_parse and not hasattr(self, '_frameSet'):
 
             self._frameSet = None
 
@@ -879,7 +894,7 @@ class BaseFileSequence(typing.Generic[T]):
                     '/dir/file_003.0001.ext',
                 ]
                 template = FileSequence('/dir/file_#.0001.ext')
-                seqs = FileSequence.yield_sequences_in_list(paths, using)
+                seqs = FileSequence.yield_sequences_in_list(paths, template)
                 # [<FileSequence: '/dir/file_1-3@@@.0001.ext'>]
 
         Args:
@@ -948,9 +963,9 @@ class BaseFileSequence(typing.Generic[T]):
             else:
                 seq._pad = seq._frame_pad
 
-            # Use a type: ignore to suppress the mypy warning about calling __init__ on instance
-            seq.__init__(utils.asString(seq), pad_style=pad_style,  # type: ignore[misc]
-                         allow_subframes=allow_subframes)
+            # Use standard init, but skip parsing since we already have components
+            # (re-parsing would lose Decimal('-0') sign information)
+            seq._init_impl(utils.asString(seq), pad_style, allow_subframes, skip_parse=True)
 
         def get_frame_width(frame_str: str) -> int:
             frame_num, _, _ = frame_str.partition(".")

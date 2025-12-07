@@ -1535,6 +1535,42 @@ class AbstractBaseTests:
             for expect in expects:
                 self.assertIn(expect, actual)
 
+        def test_yield_sequences_in_list_negative_zero(self):
+            """
+            Test that negative zero frames are preserved correctly.
+            GitHub issue #143: Files like '434-0000.exr' should reconstruct
+            the same way as '455-0001.exr' (preserving the hyphen).
+            """
+            test_paths = [
+                '/my/path/434-0000.exr',
+                '/my/path/455-0001.exr',
+                '/render/shot.-0010.exr',
+            ]
+
+            # Test that paths reconstruct correctly
+            for path_str in test_paths:
+                path = self.FILE(path_str)
+                seqs = list(self.FS.yield_sequences_in_list([path]))
+                self.assertEquals(len(seqs), 1)
+                seq = seqs[0]
+                reconstructed = seq[0]
+                self.assertEquals(path, reconstructed,
+                    f"Path reconstruction failed: '{path}' != '{reconstructed}'")
+
+            # Test that negative zero is distinguished from positive zero
+            neg_zero_path = self.FILE('/test/file-0000.exr')
+            pos_zero_path = self.FILE('/test/file0000.exr')
+
+            neg_seq = list(self.FS.yield_sequences_in_list([neg_zero_path]))[0]
+            pos_seq = list(self.FS.yield_sequences_in_list([pos_zero_path]))[0]
+
+            # They should have different string representations
+            self.assertNotEqual(str(neg_seq), str(pos_seq))
+            # Negative zero should show as '-0' in the pattern
+            self.assertIn('-0', str(neg_seq))
+            # Positive zero should not have a negative sign
+            self.assertNotIn('-', str(pos_seq))
+
         def testIgnoreFrameSetStrings(self):
             for char in "xy:,".split():
                 fs = self.FS("/path/to/file{0}1-1x1#.exr".format(char))
