@@ -21,8 +21,8 @@ if typing.TYPE_CHECKING:
     # we don't import Self at runtime
     from typing_extensions import Self
 else:
-    # at runtime we create a placeholder object.
-    Self = object()
+    # at runtime we use Any as a placeholder type
+    Self = typing.Any
 
 from . import constants, utils
 from .constants import (
