@@ -424,12 +424,12 @@ def pad(number: typing.Any, width: typing.Optional[int] = 0, decimal_places: typ
     if decimal_places == 0:
         # Preserve negative zero for correct formatting
         if isinstance(number, decimal.Decimal) and number == 0 and number.is_signed():
-            return str(number).partition(".")[0].zfill(width)
+            return str(number).partition(".")[0].zfill(width or 0)
         try:
             number = round(number) or 0
         except TypeError:
             pass
-        return str(number).partition(".")[0].zfill(width)  # type:ignore[arg-type]
+        return str(number).partition(".")[0].zfill(width or 0)
 
     # USD ultimately uses vsnprintf to format floats for templateAssetPath:
     # _DeriveClipTimeString -> TfStringPrintf -> ArchVStringPrintf -> ArchVsnprintf -> vsnprintf

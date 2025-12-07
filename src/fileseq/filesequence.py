@@ -88,7 +88,7 @@ class BaseFileSequence(typing.Generic[T]):
                     sequence: str,
                     pad_style: constants._PadStyle,
                     allow_subframes: bool,
-                    skip_parse: bool):
+                    skip_parse: bool) -> None:
         """Internal initialization implementation.
 
         Args:
