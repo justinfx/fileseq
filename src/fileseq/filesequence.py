@@ -56,9 +56,10 @@ class BaseFileSequence(typing.Generic[T]):
     _ext: str
     _frameSet: FrameSet|None
     _frame_pad: str
+    _has_negative_zero: bool = False
     _pad: str
     _subframe_pad: str
-    
+
     DISK_RE = DISK_RE
     DISK_SUB_RE = DISK_SUB_RE
     PAD_MAP = PAD_MAP
@@ -115,6 +116,13 @@ class BaseFileSequence(typing.Generic[T]):
                 path, frames, self._pad, self._ext = split_re.split(sequence, 1)
                 self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
                 self._dir, self._base = os.path.split(path)
+                # Detect if this sequence uses negative zero formatting
+                # Check for -0 in the frames string (before FrameSet normalization)
+                if frames and '-0' in frames:
+                    # More precise check: ensure -0 is a frame number, not part of another number
+                    import re
+                    if re.search(r'(?:^|[,\s])-0+(?:[,\s\-x:y]|$)', frames):
+                        self._has_negative_zero = True
                 self._frameSet = FrameSet(frames)
             except ValueError:
                 # edge case 1; we've got an invalid pad
@@ -138,6 +146,11 @@ class BaseFileSequence(typing.Generic[T]):
                         self._subframe_pad = ''
                         self._frameSet = None
                     else:
+                        # Detect negative zero in single frame case
+                        if frames and frames.lstrip().startswith('-0'):
+                            import re
+                            if re.match(r'^-0+(?:\.\d+)?$', frames.lstrip()):
+                                self._has_negative_zero = True
                         self._frameSet = FrameSet(frames)
                         if self._frameSet:
                             frame_num, _, subframe_num = frames.partition('.')
@@ -637,6 +650,9 @@ class BaseFileSequence(typing.Generic[T]):
                     except decimal.DecimalException:
                         zframe = frame
             if zframe is None:
+                # Convert to Decimal('-0') if this sequence uses negative zero formatting
+                if self._has_negative_zero and frame == 0:
+                    frame = decimal.Decimal('-0')
                 zframe = utils.pad(frame, self._zfill, self._decimal_places)
 
         return self._create_path("".join((self._dir, self._base, str(zframe), self._ext)))
@@ -826,7 +842,11 @@ class BaseFileSequence(typing.Generic[T]):
             str:
         """
         cmpts = self.__components()
-        cmpts.frameSet = utils.asString(cmpts.frameSet or "")
+        frameSet_str = utils.asString(cmpts.frameSet or "")
+        # If this sequence uses negative zero formatting, adjust the frameSet string
+        if self._has_negative_zero and frameSet_str == '0':
+            frameSet_str = '-0'
+        cmpts.frameSet = frameSet_str
         return "".join(dataclasses.astuple(cmpts))
 
     def __repr__(self) -> str:
@@ -983,6 +1003,14 @@ class BaseFileSequence(typing.Generic[T]):
 
         def frames_to_seq(cls: type[Self], frames: typing.Iterable[str], pad_length: int, decimal_places: int) -> Self:
             seq = start_new_seq(cls)
+            # Detect negative zero before creating FrameSet
+            for frame_str in frames:
+                if frame_str.lstrip().startswith('-0'):
+                    # Check if it's actually a negative zero (not -01, -02, etc.)
+                    frame_num = frame_str.partition('.')[0].lstrip()
+                    if re.match(r'^-0+$', frame_num):
+                        seq._has_negative_zero = True
+                        break
             seq._frameSet = FrameSet(sorted(decimal.Decimal(f) for f in frames))
             seq._frame_pad = cls.getPaddingChars(pad_length, pad_style=pad_style)
             if decimal_places:

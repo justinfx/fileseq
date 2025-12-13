@@ -321,8 +321,9 @@ def normalizeFrame(
         return frame
     elif isinstance(frame, decimal.Decimal):
         frame_int = int(frame)
-        # Preserve Decimal('-0') to maintain negative sign for formatting
-        if frame == frame_int and not (frame == 0 and frame.is_signed()):
+        # Convert all integer-valued Decimals to int (including -0)
+        # FileSequence will handle -0 formatting separately
+        if frame == frame_int:
             return frame_int
         return frame.normalize()
     else:

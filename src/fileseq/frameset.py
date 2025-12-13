@@ -692,7 +692,9 @@ class FrameSet(BaseFrameSet):
         Returns:
             int:
         """
-        return hash(self.frange) | hash(self.items) | hash(self.order)
+        # Match __eq__ behavior: only use items and order, not frange
+        # This ensures equal FrameSets have equal hashes
+        return hash(self.items) | hash(self.order)
 
     def __lt__(self, other: object) -> typing.Any:
         """
