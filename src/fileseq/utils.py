@@ -36,7 +36,13 @@ def quantize(
     """
     quantize_exponent = decimal.Decimal(1).scaleb(-decimal_places)
     nq = number.quantize(quantize_exponent, rounding=rounding)
+    # Preserve negative zero only if input was already exactly zero
+    # (not from rounding a non-zero value to zero)
     if nq.is_zero():
+        if number.is_zero() and number.is_signed():
+            # Input was already negative zero - preserve it
+            return nq
+        # Input was non-zero or positive zero - return positive zero
         return nq.copy_abs()
     return nq
 
@@ -315,6 +321,8 @@ def normalizeFrame(
         return frame
     elif isinstance(frame, decimal.Decimal):
         frame_int = int(frame)
+        # Convert all integer-valued Decimals to int (including -0)
+        # FileSequence will handle -0 formatting separately
         if frame == frame_int:
             return frame_int
         return frame.normalize()
@@ -415,11 +423,14 @@ def pad(number: typing.Any, width: typing.Optional[int] = 0, decimal_places: typ
     # See _DeriveClipTimeString for formatting of templateAssetPath
     # https://github.com/PixarAnimationStudios/USD/blob/release/pxr/usd/usd/clipSetDefinition.cpp
     if decimal_places == 0:
+        # Preserve negative zero for correct formatting
+        if isinstance(number, decimal.Decimal) and number == 0 and number.is_signed():
+            return str(number).partition(".")[0].zfill(width or 0)
         try:
             number = round(number) or 0
         except TypeError:
             pass
-        return str(number).partition(".")[0].zfill(width)  # type:ignore[arg-type]
+        return str(number).partition(".")[0].zfill(width or 0)
 
     # USD ultimately uses vsnprintf to format floats for templateAssetPath:
     # _DeriveClipTimeString -> TfStringPrintf -> ArchVStringPrintf -> ArchVsnprintf -> vsnprintf

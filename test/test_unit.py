@@ -272,6 +272,50 @@ class TestFrameSet(unittest.TestCase):
             fn = self.assertEqual if case.expect else self.assertNotEqual
             fn(case.a, case.b)
 
+    def testHashEqualityContract(self):
+        """
+        Test that FrameSet maintains the hash/equality contract:
+        objects which compare equal must have the same hash value.
+        This is critical for correct behavior in dicts, sets, etc.
+        """
+        # Create FrameSets that should be equal
+        fs1 = FrameSet('0')
+        fs2 = FrameSet([0])
+        fs3 = FrameSet([Decimal('0')])
+        fs4 = FrameSet([Decimal('-0')])
+
+        # All should be equal
+        self.assertEqual(fs1, fs2, "FrameSet('0') should equal FrameSet([0])")
+        self.assertEqual(fs1, fs3, "FrameSet('0') should equal FrameSet([Decimal('0')])")
+        self.assertEqual(fs1, fs4, "FrameSet('0') should equal FrameSet([Decimal('-0')])")
+
+        # All should have the same hash (critical for hash/equality contract)
+        self.assertEqual(hash(fs1), hash(fs2),
+                         "Equal FrameSets must have equal hashes")
+        self.assertEqual(hash(fs1), hash(fs3),
+                         "Equal FrameSets must have equal hashes")
+        self.assertEqual(hash(fs1), hash(fs4),
+                         "Equal FrameSets must have equal hashes")
+
+        # Should work correctly in sets and dicts
+        frameset_set = {fs1, fs2, fs3, fs4}
+        self.assertEqual(len(frameset_set), 1,
+                         "Equal FrameSets should deduplicate in sets")
+
+        d = {fs1: "value"}
+        d[fs4] = "updated"  # Should overwrite, not create new key
+        self.assertEqual(len(d), 1,
+                         "Equal FrameSets should be treated as same dict key")
+        self.assertEqual(d[fs1], "updated",
+                         "Value should be updated, not duplicated")
+
+        # Test with different frame values too
+        fs_a = FrameSet('1-5')
+        fs_b = FrameSet('1,2,3,4,5')
+        self.assertEqual(fs_a, fs_b, "Different representations should be equal")
+        self.assertEqual(hash(fs_a), hash(fs_b),
+                         "Equal FrameSets must have equal hashes")
+
     def testFrameValues(self):
         class Case:
             def __init__(self, src, expected=None, has_subframes=False, err=None):
@@ -1534,6 +1578,61 @@ class AbstractBaseTests:
             actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths)}
             for expect in expects:
                 self.assertIn(expect, actual)
+
+        def test_yield_sequences_in_list_negative_zero(self):
+            """
+            Test that negative zero frames are preserved correctly.
+            GitHub issue #143: Files like '434-0000.exr' should reconstruct
+            the same way as '455-0001.exr' (preserving the hyphen).
+            """
+            test_paths = [
+                '/my/path/434-0000.exr',
+                '/my/path/455-0001.exr',
+                '/render/shot.-0010.exr',
+            ]
+
+            # Test that paths reconstruct correctly
+            for path_str in test_paths:
+                path = self.FILE(path_str)
+                seqs = list(self.FS.yield_sequences_in_list([path]))
+                self.assertEquals(len(seqs), 1)
+                seq = seqs[0]
+                reconstructed = seq[0]
+                self.assertEquals(path, reconstructed,
+                    f"Path reconstruction failed: '{path}' != '{reconstructed}'")
+
+            # Test that negative zero is distinguished from positive zero
+            neg_zero_path = self.FILE('/test/file-0000.exr')
+            pos_zero_path = self.FILE('/test/file0000.exr')
+
+            neg_seq = list(self.FS.yield_sequences_in_list([neg_zero_path]))[0]
+            pos_seq = list(self.FS.yield_sequences_in_list([pos_zero_path]))[0]
+
+            # They should have different string representations
+            self.assertNotEqual(str(neg_seq), str(pos_seq))
+            # Negative zero should show as '-0' in the pattern
+            self.assertIn('-0', str(neg_seq))
+            # Positive zero should not have a negative sign
+            self.assertNotIn('-', str(pos_seq))
+
+            # Verify internal FrameSet representation
+            # Both should now contain int(0), not Decimal('-0')
+            neg_frame = list(neg_seq.frameSet().items)[0]
+            pos_frame = list(pos_seq.frameSet().items)[0]
+            self.assertEqual(type(neg_frame), int,
+                             "Negative zero should be stored as int in FrameSet")
+            self.assertEqual(type(pos_frame), int,
+                             "Positive zero should be stored as int in FrameSet")
+            self.assertEqual(neg_frame, 0)
+            self.assertEqual(pos_frame, 0)
+
+            # Verify that the formatting flag is set correctly
+            # Negative zero sequence should have the flag set to True
+            self.assertTrue(neg_seq._has_negative_zero,
+                            "Negative zero sequence should have flag set to True")
+            # Positive zero sequence should not have the flag set
+            self.assertFalse(pos_seq._has_negative_zero,
+                             "Positive zero sequence should not have negative zero flag")
 
         def testIgnoreFrameSetStrings(self):
             for char in "xy:,".split():
