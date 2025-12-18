@@ -452,20 +452,26 @@ def pad(number: typing.Any, width: typing.Optional[int] = 0, decimal_places: typ
 
 def _getPathSep(path: str) -> str:
     """
-    Abstracts returning the appropriate path separator
-    for the given path string.
+    Detect the path separator used in the given path string.
 
-    This implementation always returns ``os.sep``
-
-    Abstracted to make test mocking easier.
+    Counts occurrences of '/' vs '\\' and returns the most common.
+    Returns os.sep if no separators are found.
 
     Args:
         path (str): A path to check for the most common sep
 
     Returns:
-        str:
+        str: '/' or '\\' (or os.sep as fallback)
     """
-    return os.sep
+    forward_count = path.count('/')
+    backward_count = path.count('\\')
+
+    if forward_count > backward_count:
+        return '/'
+    elif backward_count > forward_count:
+        return '\\'
+    else:
+        return os.sep
 
 
 _STR_TYPES = frozenset((str, bytes))

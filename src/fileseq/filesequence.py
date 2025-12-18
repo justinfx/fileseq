@@ -100,6 +100,9 @@ class BaseFileSequence(typing.Generic[T]):
         """
         sequence = utils.asString(sequence)
 
+        # Detect and store the path separator from input
+        self._sep = utils._getPathSep(sequence)
+
         if not skip_parse and not hasattr(self, '_frameSet'):
 
             self._frameSet = None
@@ -195,12 +198,22 @@ class BaseFileSequence(typing.Generic[T]):
 
         Args:
             path_str (str): The path as a string
-            
+
         Returns:
             T: The path in the appropriate type for this sequence
         """
         raise NotImplementedError("Subclasses must implement _create_path")
-    
+
+    @property
+    def _sep(self) -> str:
+        """Path separator, defaults to os.sep if not explicitly set."""
+        sep = self.__dict__.get('_sep')
+        return sep if sep is not None else os.sep
+
+    @_sep.setter
+    def _sep(self, value: str) -> None:
+        self.__dict__['_sep'] = value
+
     def copy(self) -> Self:
         """
         Create a deep copy of this sequence
@@ -290,13 +303,20 @@ class BaseFileSequence(typing.Generic[T]):
         """
         Set a new directory name for the sequence.
 
+        The path separator will be detected from the new dirname,
+        allowing you to change the path style (POSIX ↔ Windows).
+
         Args:
             dirname (str): the new directory name
         """
         # Make sure the dirname always ends in
         # a path separator character
         dirname = utils.asString(dirname)
-        sep = utils._getPathSep(dirname)
+
+        # Detect separator from the new dirname
+        # This allows changing path semantics
+        sep = self._sep = utils._getPathSep(dirname)
+
         if not dirname.endswith(sep):
             dirname = str(dirname) + sep
 
@@ -975,6 +995,9 @@ class BaseFileSequence(typing.Generic[T]):
             seq._dir = dirname or ''
             seq._base = basename or ''
             seq._ext = ext or ''
+            # Detect separator from dirname (which came from parsed paths)
+            if dirname:
+                seq._sep = utils._getPathSep(dirname)
             return seq
 
         def finish_new_seq(seq: Self) -> None:

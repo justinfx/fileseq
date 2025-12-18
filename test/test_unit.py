@@ -69,7 +69,7 @@ def _getCommonPathSep(path):
     return sep
 
 
-utils._getPathSep = _getCommonPathSep
+# No longer need to mock _getPathSep - it now detects separators natively
 
 
 class TestUtils(unittest.TestCase):
@@ -918,6 +918,93 @@ class AbstractBaseTests:
             seq = self.FS("/foo/bong.1-5@.exr")
             seq.setBasename("bar.")
             self.assertEquals(self.FILE("/foo/bar.1.exr"), seq[0])
+
+        def testSeparatorDetection(self):
+            # POSIX paths
+            seq = self.FS("/mnt/Shows/test.1-100#.exr")
+            self.assertEqual(seq._sep, '/')
+
+            # Windows paths
+            seq = self.FS("Z:\\Shows\\test.1-100#.exr")
+            self.assertEqual(seq._sep, '\\')
+
+            # Mixed (forward wins)
+            seq = self.FS("/mnt/Shows\\test/file.#.exr")
+            self.assertEqual(seq._sep, '/')
+
+            # Equal counts (fallback to os.sep)
+            seq = self.FS("foo/bar\\baz.#.exr")
+            self.assertEqual(seq._sep, os.sep)
+
+            # No separators
+            seq = self.FS("test.1-100#.exr")
+            self.assertEqual(seq._sep, os.sep)
+
+        def testSeparatorPreservation(self):
+            # POSIX
+            seq = self.FS("/mnt/Shows/test.1-100#.exr")
+            self.assertEqual(str(seq), "/mnt/Shows/test.1-100#.exr")
+            self.assertEqual(str(seq[0]), "/mnt/Shows/test.0001.exr")
+
+            # Windows
+            seq = self.FS("Z:\\Shows\\test.1-100#.exr")
+            self.assertEqual(str(seq), "Z:\\Shows\\test.1-100#.exr")
+            self.assertEqual(str(seq[0]), "Z:\\Shows\\test.0001.exr")
+
+        def testSetDirnameDetectsSeparator(self):
+            # POSIX sequence keeps POSIX separator when setting POSIX dirname
+            seq = self.FS("/foo/bar.1-5#.exr")
+            seq.setDirname("/baz/qux")
+            self.assertEqual(seq._sep, '/')
+            self.assertEqual(seq.dirname(), "/baz/qux/")
+            self.assertEqual(str(seq[0]), "/baz/qux/bar.0001.exr")
+
+            # Changing separator is detected from new dirname
+            seq = self.FS("/foo/bar.1-5#.exr")
+            self.assertEqual(seq._sep, '/')
+            seq.setDirname("C:\\Windows\\Path")
+            self.assertEqual(seq._sep, '\\')
+            # Note: basename still has POSIX format from original parse
+            # Full cross-platform reconstruction is limited by os.path.split()
+
+        def testCopyPreservesSeparator(self):
+            seq = self.FS("/mnt/Shows/test.1-100#.exr")
+            seq2 = seq.copy()
+            self.assertEqual(seq2._sep, '/')
+            self.assertEqual(str(seq2), str(seq))
+
+            seq = self.FS("Z:\\Shows\\test.1-100#.exr")
+            seq2 = seq.copy()
+            self.assertEqual(seq2._sep, '\\')
+            self.assertEqual(str(seq2), str(seq))
+
+        def testSplitPreservesSeparator(self):
+            seq = self.FS("/mnt/Shows/test.1-100#.exr")
+            parts = seq.split()
+            for part in parts:
+                self.assertEqual(part._sep, '/')
+                self.assertTrue(str(part).startswith('/'))
+
+            seq = self.FS("Z:\\Shows\\test.1-100#.exr")
+            parts = seq.split()
+            for part in parts:
+                self.assertEqual(part._sep, '\\')
+                self.assertTrue(str(part).startswith('Z:'))
+
+        def testSerializationPreservesSeparator(self):
+            # POSIX path
+            seq = self.FS("/mnt/Shows/test.1-100#.exr")
+            state = seq.to_dict()
+            seq2 = self.FS.from_dict(state)
+            self.assertEqual(seq2._sep, '/')
+            self.assertEqual(str(seq2), str(seq))
+
+            # Windows path
+            seq = self.FS("Z:\\Shows\\test.1-100#.exr")
+            state = seq.to_dict()
+            seq2 = self.FS.from_dict(state)
+            self.assertEqual(seq2._sep, '\\')
+            self.assertEqual(str(seq2), str(seq))
 
         def testSetPadding(self):
             seq = self.FS("/foo/bong.1-5@.exr")
