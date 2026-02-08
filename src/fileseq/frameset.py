@@ -177,6 +177,7 @@ class FrameSet(BaseFrameSet):
         frange = str(frange)
         for key in self.PAD_MAP:
             frange = frange.replace(key, '')
+        frange = ''.join(frange.split())  # https://github.com/justinfx/fileseq/issues/137: strip all whitespace
         self._frange = asString(frange)
 
         # because we're acting like a set, we need to support the empty set

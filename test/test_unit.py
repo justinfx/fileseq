@@ -657,6 +657,175 @@ class TestFrameSet(unittest.TestCase):
             actual = list(FrameSet(case.input).batches(case.batch, frames=False))
             self.assertListEqual(expect, actual, msg=str(case))
 
+    def testWhitespaceHandling(self):
+        """
+        Issue #137: Whitespace tolerance in frame range parsing.
+
+        Test that FrameSet correctly handles whitespace in various positions:
+        - Spaces after commas
+        - Spaces around range operators
+        - Leading/trailing spaces
+        - Spaces with modifiers (x, y, :)
+        - Tabs and newlines
+        """
+        @dataclasses.dataclass
+        class Case:
+            input: str
+            expected_frange: str
+            expected_frames: list[int]
+            description: str
+
+        table = [
+            # Basic whitespace after commas
+            Case(
+                input='1, 2, 3',
+                expected_frange='1,2,3',
+                expected_frames=[1, 2, 3],
+                description='spaces after commas'
+            ),
+            Case(
+                input='1 , 2 , 3',
+                expected_frange='1,2,3',
+                expected_frames=[1, 2, 3],
+                description='spaces before and after commas'
+            ),
+
+            # Whitespace around range operators
+            Case(
+                input='1 - 10',
+                expected_frange='1-10',
+                expected_frames=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                description='spaces around dash'
+            ),
+            Case(
+                input='1  -  10',
+                expected_frange='1-10',
+                expected_frames=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                description='multiple spaces around dash'
+            ),
+
+            # Leading and trailing whitespace
+            Case(
+                input='  1-5  ',
+                expected_frange='1-5',
+                expected_frames=[1, 2, 3, 4, 5],
+                description='leading and trailing spaces'
+            ),
+            Case(
+                input=' 1 ',
+                expected_frange='1',
+                expected_frames=[1],
+                description='spaces around single frame'
+            ),
+
+            # Whitespace with x modifier (step)
+            Case(
+                input='1-10 x 2',
+                expected_frange='1-10x2',
+                expected_frames=[1, 3, 5, 7, 9],
+                description='spaces with x modifier'
+            ),
+            Case(
+                input='1 - 10 x 2',
+                expected_frange='1-10x2',
+                expected_frames=[1, 3, 5, 7, 9],
+                description='spaces in range and x modifier'
+            ),
+
+            # Whitespace with y modifier (fill)
+            Case(
+                input='1-10 y 2',
+                expected_frange='1-10y2',
+                expected_frames=[2, 4, 6, 8, 10],
+                description='spaces with y modifier'
+            ),
+
+            # Whitespace with : modifier (stagger)
+            Case(
+                input='1-6 : 3',
+                expected_frange='1-6:3',
+                expected_frames=[1, 4, 3, 5, 2, 6],
+                description='spaces with : modifier'
+            ),
+
+            # Complex case with multiple comma-separated ranges
+            Case(
+                input='1 , 2 , 3 , 5-10 , 20-30',
+                expected_frange='1,2,3,5-10,20-30',
+                expected_frames=[1, 2, 3, 5, 6, 7, 8, 9, 10, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+                description='complex multi-range with spaces'
+            ),
+            Case(
+                input='  1  ,  5-10  ,  20  ',
+                expected_frange='1,5-10,20',
+                expected_frames=[1, 5, 6, 7, 8, 9, 10, 20],
+                description='multiple spaces in complex range'
+            ),
+
+            # Tabs (should also be removed)
+            Case(
+                input='1\t,\t2\t,\t3',
+                expected_frange='1,2,3',
+                expected_frames=[1, 2, 3],
+                description='tabs instead of spaces'
+            ),
+            Case(
+                input='1\t-\t10',
+                expected_frange='1-10',
+                expected_frames=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                description='tabs around dash'
+            ),
+
+            # Newlines (should also be removed)
+            Case(
+                input='1\n-\n10',
+                expected_frange='1-10',
+                expected_frames=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                description='newlines in range'
+            ),
+
+            # Mixed whitespace characters
+            Case(
+                input=' \t1\n,\r2 , 3\t ',
+                expected_frange='1,2,3',
+                expected_frames=[1, 2, 3],
+                description='mixed whitespace types'
+            ),
+
+            # Edge case: all whitespace
+            Case(
+                input='   ',
+                expected_frange='',
+                expected_frames=[],
+                description='only whitespace (empty range)'
+            ),
+
+            # Negative frames with whitespace
+            Case(
+                input=' -10 - -5 ',
+                expected_frange='-10--5',
+                expected_frames=[-10, -9, -8, -7, -6, -5],
+                description='negative frames with spaces'
+            ),
+        ]
+
+        for case in table:
+            with self.subTest(case.description):
+                fs = FrameSet(case.input)
+
+                # Check normalized frange string
+                self.assertEqual(fs.frange, case.expected_frange,
+                               f"frange mismatch for {case.description}")
+
+                # Check actual frame values
+                actual_frames = list(fs)
+                self.assertEqual(actual_frames, case.expected_frames,
+                               f"frames mismatch for {case.description}")
+
+                # Check length
+                self.assertEqual(len(fs), len(case.expected_frames),
+                               f"length mismatch for {case.description}")
+
 class TestBase(unittest.TestCase):
     RX_PATHSEP = re.compile(r'[/\\]')
 
