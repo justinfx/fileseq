@@ -26,7 +26,7 @@ class ParseResult:
     is_single_frame: bool = False  # Single frame file: /path/file.100.exr
     is_plain_file: bool = False    # No frame pattern: /path/file.txt
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate that exactly one type flag is set."""
         flags = [self.is_sequence, self.is_single_frame, self.is_plain_file]
         if sum(flags) != 1:

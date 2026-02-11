@@ -5,9 +5,9 @@ from the ANTLR parse tree.
 
 Based on Go implementation at gofileseq/internal/parser/parse.go
 """
-from typing import List, Optional
+from typing import Any, List, Optional
 
-from antlr4 import ParseTreeVisitor
+from antlr4 import ParseTreeVisitor  # type: ignore[import-untyped]
 
 from .parse_result import ParseResult
 
@@ -19,7 +19,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
     Based on Go implementation at gofileseq/internal/parser/parse.go
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # Don't initialize result here - let visitor methods create it with proper flags
 
@@ -27,7 +27,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
     # Main Entry Points (one of these will be called based on parse tree)
     # ========================================================================
 
-    def visitInput(self, ctx):
+    def visitInput(self, ctx: Any) -> Optional[ParseResult]:
         """Visit input rule - delegates to specific rule visitors."""
         # The input rule matches one of: sequence, patternOnly, singleFrame, plainFile
         # Delegate to the appropriate child
@@ -35,7 +35,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             return self.visit(ctx.getChild(0))
         return None
 
-    def visitSequence(self, ctx):
+    def visitSequence(self, ctx: Any) -> ParseResult:
         """
         Visit sequence rule: /path/file.1-100#.exr
 
@@ -106,7 +106,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             result.extension = self._visit_extensions(ctx.extension())
         return result
 
-    def visitPatternOnly(self, ctx):
+    def visitPatternOnly(self, ctx: Any) -> ParseResult:
         """
         Visit patternOnly rule: /path/file.@@.ext
 
@@ -143,7 +143,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         # No frame_range for pattern-only
         return result
 
-    def visitSingleFrame(self, ctx):
+    def visitSingleFrame(self, ctx: Any) -> ParseResult:
         """
         Visit singleFrame rule: /path/file.100.exr
 
@@ -170,7 +170,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             result.extension = self._visit_extensions(ctx.extension())
         return result
 
-    def visitPlainFile(self, ctx):
+    def visitPlainFile(self, ctx: Any) -> ParseResult:
         """
         Visit plainFile rule: /path/file.txt
 
@@ -188,7 +188,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
     # Helper Methods - Extract Text from Contexts
     # ========================================================================
 
-    def _visit_directory(self, ctx) -> str:
+    def _visit_directory(self, ctx: Any) -> str:
         """
         Extract directory path from directory context.
 
@@ -198,13 +198,13 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             return ""
         return ctx.getText()
 
-    def _visit_basename(self, ctx) -> str:
+    def _visit_basename(self, ctx: Any) -> str:
         """Extract basename from basename context (various rules)."""
         if not ctx:
             return ""
         return ctx.getText()
 
-    def _visit_frame_range(self, ctx) -> str:
+    def _visit_frame_range(self, ctx: Any) -> str:
         """
         Extract frame range from frameRange context.
 
@@ -218,7 +218,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         # Note: Leading dot will be moved to basename in post-processing
         return text
 
-    def _visit_padding(self, ctx) -> str:
+    def _visit_padding(self, ctx: Any) -> str:
         """
         Extract padding string from padding context.
 
@@ -228,7 +228,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             return ""
         return ctx.getText()
 
-    def _visit_extensions(self, ctx: List) -> str:
+    def _visit_extensions(self, ctx: List[Any]) -> str:
         """
         Extract concatenated extensions from list of extension contexts.
 

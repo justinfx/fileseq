@@ -1347,9 +1347,9 @@ class BaseFileSequence(typing.Generic[T]):
             # Match patterns like "basename.NNNN.NNNN.ext" (two consecutive dot-numbers)
             # This regex finds: (prefix)(dot+digits)(dot+digits)(extension)
             double_frame_pattern = re.compile(r'^(.*?)(\.\d+)(\.\d+)((?:\.[^.]+)+)$')
-            match = double_frame_pattern.match(pattern)
-            if match:
-                prefix, frame1, frame2, ext = match.groups()
+            regex_match = double_frame_pattern.match(pattern)
+            if regex_match:
+                prefix, frame1, frame2, ext = regex_match.groups()
                 # Convert to padding syntax: replace digits with padding chars
                 pad1 = cls.getPaddingChars(len(frame1) - 1, pad_style=pad_style)  # -1 for dot
                 pad2 = cls.getPaddingChars(len(frame2) - 1, pad_style=pad_style)
@@ -1532,7 +1532,7 @@ class BaseFileSequence(typing.Generic[T]):
             for item in iterable:
                 # Use DISK_RE to extract frame from disk file path
                 # (Grammar can't handle files without explicit syntax like "bar1000.exr")
-                _check = constants.DISK_SUB_RE if decimal_places > 0 else constants.DISK_RE
+                _check = constants.DISK_SUB_RE if decimal_places and decimal_places > 0 else constants.DISK_RE
                 match = _check.match(item)
                 if not match:
                     # Path doesn't match pattern

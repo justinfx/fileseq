@@ -3,11 +3,11 @@ Main parser entry point using ANTLR4.
 
 Based on Go implementation at gofileseq/fileseq.go
 """
-from typing import Optional
+from typing import Any, List, Dict, Optional
 
-from antlr4 import InputStream, CommonTokenStream, ParseTreeVisitor
-from antlr4.error.ErrorListener import ErrorListener
-from antlr4.atn.PredictionMode import PredictionMode
+from antlr4 import InputStream, CommonTokenStream, ParseTreeVisitor  # type: ignore[import-untyped]
+from antlr4.error.ErrorListener import ErrorListener  # type: ignore[import-untyped]
+from antlr4.atn.PredictionMode import PredictionMode  # type: ignore[import-untyped]
 
 from .fileseqLexer import fileseqLexer
 from .fileseqParser import fileseqParser
@@ -16,14 +16,22 @@ from .parse_postprocess import post_process
 from .parse_result import ParseResult
 
 
-class FileSeqErrorListener(ErrorListener):
+class FileSeqErrorListener(ErrorListener):  # type: ignore[misc]
     """Custom error listener for ANTLR parsing errors."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.errors = []
+        self.errors: List[Dict[str, Any]] = []
 
-    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+    def syntaxError(  # type: ignore[no-untyped-def]
+        self,
+        recognizer: Any,
+        offendingSymbol: Any,
+        line: int,
+        column: int,
+        msg: str,
+        e: Any
+    ) -> None:
         """Record syntax errors."""
         self.errors.append({
             'line': line,

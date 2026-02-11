@@ -42,6 +42,8 @@ def parse_sequence_string(
     """
     # Parse using ANTLR
     result = parse_file_sequence(sequence)
+    if result is None:
+        raise ValueError(f"Failed to parse sequence: {sequence}")
 
     # Check for negative zero in frame range (semantic check for formatting preference)
     # Grammar parses "-0" but can't know if user wants negative zero formatting
