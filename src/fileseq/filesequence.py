@@ -331,7 +331,11 @@ class BaseFileSequence(typing.Generic[T]):
         # This allows changing path semantics
         sep = self._sep = utils._getPathSep(dirname)
 
-        if not dirname.endswith(sep):
+        # Strip any trailing separators (both / and \) to avoid double separators
+        # This handles mixed separator paths like 'path/sub\'
+        dirname = dirname.rstrip('/\\')
+
+        if dirname:
             dirname = str(dirname) + sep
 
         self._dir = dirname
@@ -918,8 +922,16 @@ class BaseFileSequence(typing.Generic[T]):
         # For Python subframes: include subframe range in output (e.g., ".10-20")
         if self._subframe_range:
             pad_str = f"{self._frame_pad}{self._subframe_range}{self._subframe_pad}"
+
+        # Normalize directory separators to match detected separator
+        # This ensures consistent output on Windows where os.path.join uses backslash
+        dirname = self._dir
+        if dirname and self._sep:
+            # Replace any separator (/ or \) with the detected separator
+            dirname = dirname.replace('/', self._sep).replace('\\', self._sep)
+
         return self._Components(
-            self._dir,
+            dirname,
             self._base,
             self._frameSet or "",
             pad_str,

@@ -1752,7 +1752,8 @@ class AbstractBaseTests:
                 'seq/file_0007.0001.exr',
             ]
 
-            expects = [os.path.join("seq", "file_3-7x2#.0001.exr")]
+            # Paths use forward slashes, so output should preserve that separator style
+            expects = ["seq/file_3-7x2#.0001.exr"]
 
             template = self.FS('seq/file_@@.0001.exr')
             actual = {str(fs) for fs in self.FS.yield_sequences_in_list(paths, using=template)}
