@@ -27,11 +27,11 @@ else:
 from . import constants, utils
 from .constants import (
     PAD_STYLE_DEFAULT, PAD_MAP, REVERSE_PAD_MAP,
-    DISK_RE, DISK_SUB_RE, SPLIT_RE, SPLIT_SUB_RE,
     PRINTF_SYNTAX_PADDING_RE, HOUDINI_SYNTAX_PADDING_RE,
     UDIM_PADDING_PATTERNS)
 from .exceptions import ParseException, FileSeqException
 from .frameset import FrameSet
+from .parser.sequence_parser import parse_sequence_string
 
 # Type variables for generic base class
 T = typing.TypeVar('T', covariant=True)
@@ -59,15 +59,31 @@ class BaseFileSequence(typing.Generic[T]):
     _has_negative_zero: bool = False
     _pad: str
     _subframe_pad: str
+    _subframe_range: str = ""  # Python-specific: second frame range for dual-range subframes
 
-    DISK_RE = DISK_RE
-    DISK_SUB_RE = DISK_SUB_RE
     PAD_MAP = PAD_MAP
     REVERSE_PAD_MAP = REVERSE_PAD_MAP
-    SPLIT_RE = SPLIT_RE
-    SPLIT_SUB_RE = SPLIT_SUB_RE
 
     _DEFAULT_PAD_CHAR = '@'
+
+    @staticmethod
+    def _is_padding_only_pattern(pattern: str) -> bool:
+        """Check if pattern is padding-only (e.g., '#', '#.#', '@@')."""
+        # Simple check: pattern contains only padding chars and dots
+        return all(c in '#@.' for c in pattern) and any(c in '#@' for c in pattern)
+
+    @staticmethod
+    def _has_mixed_padding(pattern: str) -> bool:
+        """Check if pattern has mixed padding characters (e.g., '#@')."""
+        has_hash = '#' in pattern
+        has_at = '@' in pattern
+        return has_hash and has_at
+
+    @staticmethod
+    def _normalize_mixed_padding(pattern: str) -> str:
+        """Normalize mixed padding to use only '#' for non-strict matching."""
+        # Replace all padding chars with # for uniform matching
+        return pattern.replace('@', '#')
 
     @dataclasses.dataclass
     class _Components:
@@ -107,75 +123,73 @@ class BaseFileSequence(typing.Generic[T]):
 
             self._frameSet = None
 
-            if allow_subframes:
-                split_re = self.SPLIT_SUB_RE
-                disk_re = self.DISK_SUB_RE
-            else:
-                split_re = self.SPLIT_RE
-                disk_re = self.DISK_RE
+            # Special case: padding-only patterns (e.g., "#", "#.#", "@@")
+            # These are Python-specific templates with no directory/basename/extension
+            is_padding_only = self._is_padding_only_pattern(sequence)
 
             try:
-                # the main case, padding characters in the path.1-100#.exr
-                path, frames, self._pad, self._ext = split_re.split(sequence, 1)
-                self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
-                self._dir, self._base = os.path.split(path)
-                # Detect if this sequence uses negative zero formatting
-                # Check for -0 in the frames string (before FrameSet normalization)
-                if frames and '-0' in frames:
-                    # More precise check: ensure -0 is a frame number, not part of another number
-                    import re
-                    if re.search(r'(?:^|[,\s])-0+(?:[,\s\-x:y]|$)', frames):
-                        self._has_negative_zero = True
-                self._frameSet = FrameSet(frames)
-            except ValueError:
-                # edge case 1; we've got an invalid pad
+                if is_padding_only:
+                    # Handle padding-only pattern without parser
+                    self._dir = ""
+                    self._base = ""
+                    self._ext = ""
+                    self._pad = sequence
+                    self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
+                    self._has_negative_zero = False
+                    self._subframe_range = ""
+                else:
+                    # Parse using ANTLR4 grammar-based parser
+                    parse_result = parse_sequence_string(sequence, allow_subframes=allow_subframes)
+
+                    # Extract parsed components
+                    basename = parse_result.basename
+                    frame_range = parse_result.frame_range
+
+                    # For single-frame subframe files (e.g., file.0.0005.exr),
+                    # the grammar puts the first DOT_NUM in the basename.
+                    # Recombine: basename="file.0." + frame="0005" → "file." + "0.0005"
+                    if (allow_subframes and parse_result.is_single_frame
+                            and frame_range and basename):
+                        m = re.match(r'^(.*\.)(\d+)\.$', basename)
+                        if m:
+                            basename = m.group(1)
+                            frame_range = m.group(2) + '.' + frame_range
+
+                    self._dir = parse_result.directory
+                    self._base = basename
+                    self._ext = parse_result.extension
+                    self._pad = parse_result.padding
+                    self._frame_pad, _, self._subframe_pad = self._pad.partition('.')
+                    self._has_negative_zero = parse_result.has_negative_zero
+                    self._subframe_range = parse_result.subframe_range
+
+                    # Handle frame range if present
+                    if frame_range:
+                        self._frameSet = FrameSet(frame_range)
+                        # Auto-padding ONLY for singleFrame grammar rule (e.g., foo.100.exr)
+                        # NOT for sequence patterns with explicit padding (e.g., foo.1@@@@.exr)
+                        if parse_result.is_single_frame:
+                            # Single frame file with no explicit padding - apply auto-padding
+                            frame_num, _, subframe_num = frame_range.partition('.')
+                            if frame_num:
+                                self._frame_pad = self.getPaddingChars(len(frame_num), pad_style=pad_style)
+                            if subframe_num:
+                                self._subframe_pad = self.getPaddingChars(len(subframe_num), pad_style=pad_style)
+                            if subframe_num:
+                                self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+                            else:
+                                self._pad = self._frame_pad
+                    else:
+                        self._frameSet = None
+
+            except (ValueError, Exception) as e:
+                # Check for invalid padding characters
                 for placeholder in self.PAD_MAP:
                     if placeholder in sequence:
                         msg = "Failed to parse FileSequence: {!r}"
                         raise ParseException(msg.format(sequence))
-                # edge case 2; we've got a single frame of a sequence
-                a_frame = disk_re.match(sequence)
-                if a_frame:
-                    self._dir, self._base, frames, self._ext = a_frame.groups()
-                    # edge case 3: we've got a single versioned file, not a sequence
-                    if frames and not self._base.endswith('.'):
-                        self._base = self._base + frames
-                        self._pad = ''
-                        self._frame_pad = ''
-                        self._subframe_pad = ''
-                    elif not frames:
-                        self._pad = ''
-                        self._frame_pad = ''
-                        self._subframe_pad = ''
-                        self._frameSet = None
-                    else:
-                        # Detect negative zero in single frame case
-                        if frames and frames.lstrip().startswith('-0'):
-                            import re
-                            if re.match(r'^-0+(?:\.\d+)?$', frames.lstrip()):
-                                self._has_negative_zero = True
-                        self._frameSet = FrameSet(frames)
-                        if self._frameSet:
-                            frame_num, _, subframe_num = frames.partition('.')
-                            self._frame_pad = self.getPaddingChars(len(frame_num), pad_style=pad_style)
-                            if subframe_num:
-                                self._subframe_pad = self.getPaddingChars(len(subframe_num), pad_style=pad_style)
-                                self._pad = '.'.join([self._frame_pad, self._subframe_pad])
-                            else:
-                                self._pad = self._frame_pad
-                                self._subframe_pad = ''
-                        else:
-                            self._pad = ''
-                            self._frame_pad = ''
-                            self._subframe_pad = ''
-                            self._frameSet = None
-                # edge case 4; we've got a solitary file, not a sequence
-                else:
-                    path, self._ext = os.path.splitext(sequence)
-                    self._dir, self._base = os.path.split(path)
-                    self._pad = ''
-                    self._frame_pad = ''
-                    self._subframe_pad = ''
+                # Re-raise parse exceptions from the parser
+                raise ParseException(f"Failed to parse FileSequence: {sequence!r}: {e}")
 
         if self._dir:
             self.setDirname(self._dir)
@@ -899,11 +913,16 @@ class BaseFileSequence(typing.Generic[T]):
         return id(self)
 
     def __components(self) -> _Components:
+        # Build padding string including subframe range if present
+        pad_str = self._pad if self._frameSet else ""
+        # For Python subframes: include subframe range in output (e.g., ".10-20")
+        if self._subframe_range:
+            pad_str = f"{self._frame_pad}{self._subframe_range}{self._subframe_pad}"
         return self._Components(
             self._dir,
             self._base,
             self._frameSet or "",
-            self._pad if self._frameSet else "",
+            pad_str,
             self._ext,
         )
 
@@ -949,10 +968,6 @@ class BaseFileSequence(typing.Generic[T]):
         seqs: dict[tuple[str, str, str, int, int], set[str]] = {}
         variant_seq = 0
         variant_single = 1
-        if allow_subframes:
-            _check = cls.DISK_SUB_RE.match
-        else:
-            _check = cls.DISK_RE.match
 
         if isinstance(using, BaseFileSequence):
             dirname, basename, ext = using.dirname(), using.basename(), using.extension()
@@ -977,15 +992,30 @@ class BaseFileSequence(typing.Generic[T]):
                 seqs.setdefault(key, frames).add(frame)
 
         else:
-            for match in filter(None, map(_check, map(utils.asString, paths))):
-                dirname, basename, frame, ext = match.groups()
-                if not basename and not ext:
+            # Use DISK_RE to extract frame numbers from disk file paths
+            # (Grammar can't handle files without explicit syntax like "bar1000.exr")
+            _check = constants.DISK_SUB_RE if allow_subframes else constants.DISK_RE
+            for item in filter(None, map(utils.asString, paths)):
+                match = _check.match(item)
+                if not match:
                     continue
+
+                dirname, basename, frame, ext = match.groups()
+                if basename is None:
+                    basename = ""
+                if ext is None:
+                    ext = ""
+
+                # Remove trailing separator from dirname if present
+                if dirname:
+                    dirname = dirname.rstrip(os.sep)
+
                 if frame:
                     _, _, subframe = frame.partition(".")
                     key = (dirname, basename, ext, len(subframe), variant_seq)
                 else:
                     key = (dirname, basename, ext, 0, variant_single)
+
                 seqs.setdefault(key, set())
                 if frame:
                     seqs[key].add(frame)
@@ -1166,7 +1196,11 @@ class BaseFileSequence(typing.Generic[T]):
                 return []
 
             # Start building a regex for filtering files
-            seq = cls(filepat, pad_style=pad_style, allow_subframes=allow_subframes)
+            try:
+                seq = cls(filepat, pad_style=pad_style, allow_subframes=allow_subframes)
+            except ParseException:
+                # Invalid pattern (e.g., mixed padding like #@) - return empty list
+                return []
             patt = r'\A'
             patt += cls._globCharsToRegex(seq.basename())
             if seq.padding():
@@ -1306,7 +1340,31 @@ class BaseFileSequence(typing.Generic[T]):
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
         """
-        seq = cls(pattern, allow_subframes=allow_subframes, pad_style=pad_style)
+        # Pre-process pattern: convert double-frame patterns like "baz.0000.0000.exr"
+        # to padding syntax "baz.#.#.exr" when allow_subframes=True
+        original_pattern = pattern
+        if allow_subframes:
+            # Match patterns like "basename.NNNN.NNNN.ext" (two consecutive dot-numbers)
+            # This regex finds: (prefix)(dot+digits)(dot+digits)(extension)
+            double_frame_pattern = re.compile(r'^(.*?)(\.\d+)(\.\d+)((?:\.[^.]+)+)$')
+            match = double_frame_pattern.match(pattern)
+            if match:
+                prefix, frame1, frame2, ext = match.groups()
+                # Convert to padding syntax: replace digits with padding chars
+                pad1 = cls.getPaddingChars(len(frame1) - 1, pad_style=pad_style)  # -1 for dot
+                pad2 = cls.getPaddingChars(len(frame2) - 1, pad_style=pad_style)
+                pattern = f"{prefix}.{pad1}.{pad2}{ext}"
+
+        try:
+            seq = cls(pattern, allow_subframes=allow_subframes, pad_style=pad_style)
+        except ParseException as e:
+            # Handle mixed padding (like #@) when strictPadding=False
+            if not strictPadding and cls._has_mixed_padding(pattern):
+                # Normalize mixed padding to single character for non-strict matching
+                normalized = cls._normalize_mixed_padding(pattern)
+                seq = cls(normalized, allow_subframes=allow_subframes, pad_style=pad_style)
+            else:
+                raise
 
         if seq.frameRange() == '' and seq.padding() == '':
             if os.path.isfile(pattern):
@@ -1454,11 +1512,6 @@ class BaseFileSequence(typing.Generic[T]):
             Yields:
                 str:
             """
-            if decimal_places == 0:
-                _check = FileSequence.DISK_RE.match
-            else:
-                _check = FileSequence.DISK_SUB_RE.match
-
             self.has_padded_frames = False
             self.has_padded_subframes = False
 
@@ -1477,26 +1530,32 @@ class BaseFileSequence(typing.Generic[T]):
                     self.has_padded_subframes = True
 
             for item in iterable:
-                # Add a filter for paths that don't match the frame
-                # padding of a given number
-                matches = _check(item)
-                if not matches:
+                # Use DISK_RE to extract frame from disk file path
+                # (Grammar can't handle files without explicit syntax like "bar1000.exr")
+                _check = constants.DISK_SUB_RE if decimal_places > 0 else constants.DISK_RE
+                match = _check.match(item)
+                if not match:
+                    # Path doesn't match pattern
                     if zfill is None or zfill <= 0:
-                        # Not a sequence pattern, but we were asked
-                        # to match on a zero padding
                         yield item
-
                     continue
 
-                # Ensure DISK_RE matches before calling optional get_frame function
-                frame = matches.group(3) or ''
-                if frame and get_frame is not None:
-                    frame = get_frame(item) or ''
+                _, _, frame, _ = match.groups()
+                frame = frame or ''
 
                 if not frame:
                     if zfill is None or zfill <= 0:
                         # No frame value was parsed, but we were asked
                         # to match on a zero padding
+                        yield item
+                    continue
+
+                # Apply get_frame callback if provided
+                if get_frame is not None:
+                    frame = get_frame(item) or frame
+
+                if not frame:
+                    if zfill is None or zfill <= 0:
                         yield item
                     continue
 

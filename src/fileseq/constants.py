@@ -1,5 +1,7 @@
 """
-constants - General constants of use to fileseq operations.
+fileseq constants module.
+
+Defines constant values used throughout the fileseq package.
 """
 
 import re
@@ -45,101 +47,6 @@ REVERSE_PAD_MAP = {
     PAD_STYLE_HASH4: {1: "@", 4: "#"}
 }
 
-# Component of SPLIT_PATTERN (c.f FRANGE_PATTERN).
-_FRANGE_PART = r"""
-    -?\d+           # start frame
-    (?:             # optional range
-        -           #   range delimiter
-        -?\d+       #   end frame
-        (?:         #   optional stepping
-            [:xy]   #     step format
-            -?\d+   #     step value
-        )?
-    )?
-"""
-_FRANGE_PART = re.compile(_FRANGE_PART, re.X).pattern
-
-# Regular expression for matching a file sequence string.
-# Example: /film/shot/renders/bilbo_bty.1-100#.exr
-# Example: /film/shot/renders/bilbo_bty.1-100@.exr
-# Example: /film/shot/renders/bilbo_bty.1-100@@@@#.exr
-# Example: /film/shot/renders/bilbo_bty.1-100%04d.exr
-# Example: /film/shot/renders/bilbo_bty.1-100$F4.exr
-# Example: /film/shot/renders/bilbo_bty.1-100<UDIM>.exr
-SPLIT_PATTERN = r"""
-    ((?:{0}(?:,{0})*)?)     # range
-    (                       # pad format
-        [{1}]+              #   pad map characters
-        |
-        %\d*d               #   printf syntax pad format
-        |
-        \$F\d*              #   Houdini syntax pad format
-        |
-        <UDIM>|%\(UDIM\)d   #   UDIM Syntax pad format
-    )
-    """.format(_FRANGE_PART, ''.join(PAD_MAP))
-SPLIT_RE = re.compile(SPLIT_PATTERN, re.X)
-
-# Component of SPLIT_SUB_PATTERN (c.f FRANGE_PATTERN).
-# If both start and stop are present either both or neither should have
-# a fractional component to avoid ambiguity when basename ends in \d\.
-_FRANGE_SUB_PARTS = [
-    _FRANGE_PART,
-    r"""
-    (?:
-        -?\d+                     # start frame
-        (?:                       # optional range
-            -                     #   range delimiter
-            -?\d+                 #   end frame
-            (?:                   #   optional stepping
-                x                 #     step format
-                -?\d+\.\d+        #     step value
-            )?
-        )?
-    )
-    """,
-    r"""
-    (?:
-        -?\d+\.\d+                # start frame
-        (?:                       # optional range
-            -                     #   range delimiter
-            -?\d+\.\d+            #   end frame
-            (?:                   #   optional stepping
-                x                 #     step format
-                -?\d+(?:\.\d+)?   #     step value
-            )?
-        )?
-    )
-"""]
-_FRANGE_SUB_PARTS = [
-    re.compile(part, re.X).pattern for part in _FRANGE_SUB_PARTS
-]
-
-# Regular expression for matching a file sequence string allowing subframes.
-# Example: /film/shot/renders/bilbo_bty.1-100#.#.exr
-# Example: /film/shot/renders/bilbo_bty.1.5-2x0.1#.#.exr
-SPLIT_SUB_PATTERN = r"""
-    (                         # range
-        (?:
-            (?:{1}(?:,{1})*)
-            |
-            (?:{2}(?:,{2})*)
-            |
-            (?:{3}(?:,{3})*)
-        )?
-    )
-    (                         # pad format
-        [{0}]+(?:\.[{0}]+)?   #   pad map characters
-        |
-        %\d*d                 #   printf syntax pad format
-        |
-        \$F\d*                #   Houdini syntax pad format
-        |
-        <UDIM>|%\(UDIM\)d     #   UDIM Syntax pad format
-    )
-    """.format(''.join(PAD_MAP), *_FRANGE_SUB_PARTS)
-SPLIT_SUB_RE = re.compile(SPLIT_SUB_PATTERN, re.X)
-
 # Regular expression pattern for matching padding against a printf syntax
 # padding string E.g. %04d
 PRINTF_SYNTAX_PADDING_PATTERN = r"\A%(\d*)d\Z"
@@ -152,35 +59,8 @@ HOUDINI_SYNTAX_PADDING_RE = re.compile(HOUDINI_SYNTAX_PADDING_PATTERN)
 # Legal patterns for UDIM style padding
 UDIM_PADDING_PATTERNS = ['<UDIM>', '%(UDIM)d']
 
-# Regular expression pattern for matching file names on disk.
-DISK_PATTERN = r"""
-    \A
-    ((?:.*[/\\])?)             # dirname
-    (.*?)                      # basename
-    (-?\d+)?                   # frame
-    (                          # ext
-        (?:\.\w*[a-zA-Z]\w?)*  #   optional leading alnum ext prefix (.foo.1bar)
-        (?:\.[^.]+)?           #   ext suffix
-    )
-    \Z
-    """
-DISK_RE = re.compile(DISK_PATTERN, re.X)
-
-# Regular expression pattern for matching file names on disk allowing subframes.
-DISK_SUB_PATTERN = r"""
-    \A
-    ((?:.*[/\\])?)             # dirname
-    (.*?)                      # basename
-    (-?\d+(?:\.\d+)?)?         # frame
-    (                          # ext
-        (?:\.\w*[a-zA-Z]\w?)*  #   optional leading alnum ext prefix (.foo.1bar)
-        (?:\.[^.]+)?           #   ext suffix
-    )
-    \Z
-    """
-DISK_SUB_RE = re.compile(DISK_SUB_PATTERN, re.X)
-
-# Regular expression pattern for matching frame set strings.
+# Regular expression pattern for matching frame set strings (FrameSet parsing).
+# Note: Supports decimal frames for Python-specific subframe feature.
 # Examples: '1.0' or '1.0-100.0', '1.0-100.0x0.5', '1-100x0.25',
 # '1,2', etc.
 FRANGE_PATTERN = r"""
@@ -211,3 +91,42 @@ PAD_PATTERN = r"""
     )?
     """
 PAD_RE = re.compile(PAD_PATTERN, re.X)
+
+# ============================================================================
+# Disk File Frame Extraction (NOT sequence pattern parsing)
+# ============================================================================
+# These patterns extract frame numbers from individual file paths on disk.
+# The ANTLR grammar handles sequence PATTERN parsing (e.g., "file.1-100#.exr").
+# These regex patterns handle DISK FILE matching (e.g., extracting "1000" from "bar1000.exr").
+# Aligned with Go's optionalFramePattern in fileseq.go
+#
+# Why both? The grammar requires explicit syntax (dots before frames, padding markers).
+# Disk files lack this syntax - "bar1000.exr" is ambiguous (basename or frame?).
+# These patterns extract frames from ambiguous filenames during disk scanning.
+
+_EXT_PATTERN = r"""
+    (?:\.\w*[a-zA-Z]\w?)*  # optional leading alnum ext prefix (limit trailing chars)
+    (?:\.[^.]+)?           # ext suffix
+"""
+
+# DISK_RE: Extract frames from disk files (integers only, aligned with Go)
+DISK_PATTERN = r"""
+    \A
+    ((?:.*[/\\])?)         # dirname
+    (.*?)                  # basename (non-greedy)
+    (-?\d+)?               # frame (optional, integers only)
+    (""" + _EXT_PATTERN + r""")
+    \Z
+"""
+DISK_RE = re.compile(DISK_PATTERN, re.X)
+
+# DISK_SUB_RE: Python-specific variant with subframe support (decimal frames)
+DISK_SUB_PATTERN = r"""
+    \A
+    ((?:.*[/\\])?)         # dirname
+    (.*?)                  # basename (non-greedy)
+    (-?\d+(?:\.\d+)?)?     # frame with subframe support (decimal)
+    (""" + _EXT_PATTERN + r""")
+    \Z
+"""
+DISK_SUB_RE = re.compile(DISK_SUB_PATTERN, re.X)

@@ -2,7 +2,7 @@ name: CI Tests
 
 on:
   push:
-    tags: 
+    tags:
       - "*"
     branches-ignore:
       - 'exp_*'
@@ -13,6 +13,39 @@ on:
     types: [published]
 
 jobs:
+  validate-grammar:
+    name: Validate ANTLR Grammar
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Hatch
+        run: pip install hatch
+
+      - name: Regenerate parser from grammar
+        run: hatch run generate
+
+      - name: Check for differences
+        run: |
+          git diff --exit-code src/fileseq/parser/
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Generated parser files don't match committed files!"
+            echo "Run 'hatch run generate' locally and commit the changes."
+            exit 1
+          fi
+
   test:
     name: Test python-${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -21,7 +54,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
-        python: ['3.7', '3.10']
+        python: ['3.8', '3.12']  # Test minimum and maximum supported versions
         os: [ubuntu-22.04, windows-latest]
         include:
         - os: ubuntu-22.04
@@ -39,16 +72,13 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ matrix.path }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
            ${{ runner.os }}-pip-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install flake8 pytest pylint
-      - name: Install
-        run: |
-          python setup.py install
+          pip install -e ".[dev]"
       - name: Lint
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -74,31 +104,46 @@ jobs:
 
   deploy:
     if: github.event_name == 'release' && github.event.action == 'published'
-    needs: 
+    needs:
       - test
       - mypy
+      - validate-grammar
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 0  # Fetch all history and tags for setuptools-scm
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
-      - name: Install dependencies
+          python-version: '3.11'
+
+      - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel twine
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
-      - name: Build and publish
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Verify package version
+        run: |
+          # Extract version from built wheel filename
+          WHEEL_VERSION=$(ls dist/*.whl | sed -E 's/.*-([0-9]+\.[0-9]+\.[0-9]+)-.*/\1/')
+          echo "Built version: ${WHEEL_VERSION}"
+          # Get tag version (strip 'v' prefix if present)
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "Tag version: ${TAG_VERSION}"
+          # Verify they match
+          if [ "${WHEEL_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "ERROR: Version mismatch! Wheel: ${WHEEL_VERSION}, Tag: ${TAG_VERSION}"
+            exit 1
+          fi
+          echo "✓ Version verified: ${WHEEL_VERSION}"
+
+      - name: Publish to PyPI
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_SECRET }}
-        run: |
-          VERSION=$(echo ${{ steps.get_version.outputs.VERSION }} | sed 's/^v//')
-          echo "__version__ = '${VERSION}'" > src/fileseq/__version__.py
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
+        run: twine upload dist/*
