@@ -18,9 +18,13 @@ import os
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
 sys.path.insert(0, _ROOT)
-__version__ = '?'
-with open(os.path.join(_ROOT, "fileseq/__version__.py")) as version_file:
-    exec(version_file.read())
+
+# Get version from setuptools-scm (via installed package)
+try:
+    from importlib.metadata import version
+    __version__ = version('fileseq')
+except Exception:
+    __version__ = 'dev'
 
 # -- General configuration ------------------------------------------------
 
