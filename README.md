@@ -178,6 +178,32 @@ fileseq.findSequenceOnDisk('/foo/bar.*.exr')
 fileseq.findSequenceOnDisk('/foo/bar.#.#.exr', allow_subframes=True)
 ```
 
+## Development
+
+### Getting Started
+```bash
+pip install hatch              # Install build tool
+pip install -e ".[dev]"         # Install package with dev dependencies
+```
+
+### Running Tests
+```bash
+hatch run test
+hatch run test-cov  # with coverage report
+```
+
+### Regenerating the Parser
+After modifying `src/fileseq/grammar/fileseq.g4`:
+```bash
+hatch run generate  # Requires Java 11+
+```
+
+### Building Documentation
+```bash
+hatch run docs:build
+hatch run docs:serve  # View at http://localhost:8000
+```
+
 ## Limitations
 
 While there may be many custom types of sequence patterns that could be considered a valid pipeline format, this library has
