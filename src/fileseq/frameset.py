@@ -288,14 +288,16 @@ class FrameSet(BaseFrameSet):
                 self._maxSizeCheck(range_size + len(self))
 
                 # check for overlap with existing ranges
+                new_lo = min(start_dec, end_dec)
+                new_hi = max(start_dec, end_dec)
                 overlaps = any(
-                    (start_dec <= r.end and end_dec >= r.start) or
-                    (end_dec <= r.end and start_dec >= r.start)
+                    new_lo <= max(r.start, r.end) and new_hi >= min(r.start, r.end)
                     for r in self._ranges
                 )
 
                 if not overlaps:
-                    self._ranges.append(Range(start_dec, end_dec, chunk_dec))
+                    actual_chunk = chunk_dec if end_dec >= start_dec else -chunk_dec
+                    self._ranges.append(Range(start_dec, end_dec, actual_chunk))
                 else:
                     frame_range = list(xfrange(start, end, chunk, maxSize=maxSize))
                     unique_frames = [f for f in frame_range if f not in self]
@@ -338,9 +340,10 @@ class FrameSet(BaseFrameSet):
                 self._maxSizeCheck(range_size + len(self))
 
                 # check for overlap with existing ranges
+                new_lo = min(start_dec, end_dec)
+                new_hi = max(start_dec, end_dec)
                 overlaps = any(
-                    (start_dec <= r.end and end_dec >= r.start) or
-                    (end_dec <= r.end and start_dec >= r.start)
+                    new_lo <= max(r.start, r.end) and new_hi >= min(r.start, r.end)
                     for r in self._ranges
                 )
 
@@ -632,7 +635,9 @@ class FrameSet(BaseFrameSet):
         """
         if not self._ranges:
             raise IndexError("FrameSet is empty")
-        frame = self._ranges[-1].end
+        r = self._ranges[-1]
+        # actual last frame is start + step * (len - 1), not necessarily r.end
+        frame = r.start + r.step * (len(r) - 1)
         return int(frame) if frame % 1 == 0 else frame
 
     def isConsecutive(self) -> bool:
@@ -778,6 +783,8 @@ class FrameSet(BaseFrameSet):
         fs._ranges = self._normalized_cache[:]
         fs._normalized_cache = fs._ranges[:]
         fs._hash_cache = None
+        fs._has_subframes = self._has_subframes
+        fs._subframe_type = self._subframe_type
         fs._frange = FrameSet.framesToFrameRange(fs, sort=False, compress=False)
         return fs
 
@@ -1432,6 +1439,8 @@ class FrameSet(BaseFrameSet):
         fs._ranges = self._ranges[:]
         fs._normalized_cache = self._normalized_cache[:] if self._normalized_cache else None
         fs._hash_cache = self._hash_cache
+        fs._has_subframes = self._has_subframes
+        fs._subframe_type = self._subframe_type
         return fs
 
     @classmethod
