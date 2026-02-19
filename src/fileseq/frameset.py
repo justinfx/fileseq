@@ -3,10 +3,11 @@ frameset - A set-like object representing a frame range for fileseq.
 """
 from __future__ import annotations
 
+import dataclasses
 import decimal
 import numbers
-import re
 import typing
+import warnings
 from collections.abc import Set, Sized, Iterable
 from typing import Union, overload
 
@@ -31,6 +32,55 @@ if typing.TYPE_CHECKING:
     BaseFrameSet = Set[FrameValue]
 else:
     BaseFrameSet = Set
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class Range:
+    """Compact representation of a frame range with start, end, and step"""
+    start: decimal.Decimal
+    end: decimal.Decimal
+    step: decimal.Decimal
+
+    def __contains__(self, frame: FrameValue) -> bool:
+        """Check if frame is in this range"""
+        frame_dec = decimal.Decimal(str(frame))
+        if self.step > 0:
+            if not (self.start <= frame_dec <= self.end):
+                return False
+        else:
+            if not (self.end <= frame_dec <= self.start):
+                return False
+        # check if frame aligns with step
+        offset = abs(frame_dec - self.start)
+        return offset % abs(self.step) == 0
+
+    def __iter__(self) -> typing.Iterator[FrameValue]:
+        """Iterate through frames in this range"""
+        step = abs(self.step)
+        has_subframes = (self.start % 1 != 0 or self.end % 1 != 0 or step % 1 != 0)
+        if not has_subframes:
+            # use native int arithmetic for integer ranges
+            start, end, istep = int(self.start), int(self.end), int(step)
+            if start <= end:
+                yield from range(start, end + 1, int(istep))
+            else:
+                yield from range(start, end - 1, int(-istep))
+            return
+        current = self.start
+        if self.start <= self.end:
+            while current <= self.end:
+                yield current
+                current += step
+        else:
+            while current >= self.end:
+                yield current
+                current -= step
+
+    def __len__(self) -> int:
+        """Return number of frames in this range"""
+        if self.step == 0:
+            return 0
+        return int(abs(self.end - self.start) / abs(self.step)) + 1
 
 
 class FrameSet(BaseFrameSet):
@@ -99,10 +149,13 @@ class FrameSet(BaseFrameSet):
     PAD_MAP = PAD_MAP
     PAD_RE = PAD_RE
 
-    __slots__ = ('_frange', '_items', '_order')
+    __slots__ = ('_frange', '_ranges', '_normalized_cache', '_hash_cache', '_has_subframes', '_subframe_type')
 
-    _items: frozenset[FrameValue]
-    _order: tuple[FrameValue, ...]
+    _ranges: list[Range]
+    _normalized_cache: list[Range] | None
+    _hash_cache: int | None
+    _has_subframes: bool
+    _subframe_type: type[float] | type[decimal.Decimal] | None
 
     def __new__(cls, *args: typing.Any, **kwargs: typing.Any) -> FrameSet:
         """
@@ -130,6 +183,12 @@ class FrameSet(BaseFrameSet):
             except (TypeError, ValueError) as e:
                 raise ParseException('FrameSet args parsing error: {}'.format(e)) from e
 
+        # initialize caches
+        self._normalized_cache = None
+        self._hash_cache = None
+        self._has_subframes = False
+        self._subframe_type = None
+
         # if the user provides anything but a string, short-circuit the build
         if not isinstance(frange, (str,)):
             # if it's apparently a FrameSet already, short-circuit the build
@@ -140,30 +199,39 @@ class FrameSet(BaseFrameSet):
             # if it's inherently disordered, sort and build
             elif isinstance(frange, Set):
                 self._maxSizeCheck(frange)
-                self._items = frozenset(catch_parse_err(normalizeFrames, frange))  # type: ignore
-                self._order = tuple(sorted(self._items))
+                frames_raw = list(frange)
+                # Normalize first
+                frames = sorted(catch_parse_err(normalizeFrames, frames_raw))  # type: ignore
+                # detect subframe type after normalization
+                self._detect_subframe_type(frames)
                 self._frange = catch_parse_err(  # type: ignore
-                    self.framesToFrameRange, self._order, sort=False, compress=False)
+                    self.framesToFrameRange, frames, sort=False, compress=False)
+                self._ranges = self._frames_to_ranges(frames)
                 return
             # if it's ordered, find unique and build
             elif isinstance(frange, Sized) and isinstance(frange, Iterable):
-                # Type narrowing: we know frange is both Sized and Iterable here
-                sized_frange = typing.cast(Sized, frange)
-                self._maxSizeCheck(sized_frange)
+                self._maxSizeCheck(frange)
+                # convert to list first to allow multiple iterations
+                frange_list = list(frange)
+                # normalize first
+                normalized = catch_parse_err(normalizeFrames, frange_list)  # type: ignore
+                # detect subframe type after normalization
+                self._detect_subframe_type(normalized)
                 seen_items: typing.Set[FrameValue] = set()
-                order = unique(seen_items, catch_parse_err(normalizeFrames, frange))  # type: ignore
-                self._order = tuple(order)
-                self._items = frozenset(seen_items)
+                order = list(unique(seen_items, normalized))  # type: ignore
                 self._frange = catch_parse_err(  # type: ignore
-                    self.framesToFrameRange, self._order, sort=False, compress=False)
+                    self.framesToFrameRange, order, sort=False, compress=False)
+                self._ranges = self._frames_to_ranges(order)
                 return
             # if it's an individual number build directly
             elif isinstance(frange, (int, float, decimal.Decimal)):
                 frame = normalizeFrame(frange)
-                self._order = (frame,)  # type: ignore
-                self._items = frozenset([frame])  # type: ignore
+                self._has_subframes = isinstance(frame, (float, decimal.Decimal)) and frame % 1 != 0
                 self._frange = catch_parse_err(  # type: ignore
-                    self.framesToFrameRange, self._order, sort=False, compress=False)
+                    self.framesToFrameRange, [frame], sort=False, compress=False)
+                frame_dec = decimal.Decimal(str(frame))
+                self._ranges = [Range(frame_dec, frame_dec, decimal.Decimal(1))]
+                return
             # in all other cases, cast to a string
             else:
                 try:
@@ -173,83 +241,116 @@ class FrameSet(BaseFrameSet):
                     raise ParseException(msg.format(frange, err))
 
         # we're willing to trim padding characters from consideration
-        # this translation is orders of magnitude faster than prior method
         frange = str(frange)
         for key in self.PAD_MAP:
             frange = frange.replace(key, '')
-        frange = ''.join(frange.split())  # https://github.com/justinfx/fileseq/issues/137: strip all whitespace
+        frange = ''.join(frange.split())
         self._frange = asString(frange)
 
         # because we're acting like a set, we need to support the empty set
         if not self._frange:
-            self._items = frozenset()
-            self._order = tuple()
+            self._ranges = []
             return
 
-        # build the mutable stores, then cast to immutable for storage
-        items: typing.Set[FrameValue] = set()
-        order_f: typing.List[FrameValue] = []
-
+        # parse frame range into Range objects
+        self._ranges = []
         maxSize = constants.MAX_FRAME_SIZE
 
         frange_parts: typing.List[typing.Any] = []
         frange_types: typing.List[typing.Any] = []
+        has_decimal_notation = False
         for part in self._frange.split(","):
-            # this is to deal with leading / trailing commas
             if not part:
                 continue
-            # parse the partial range
             start, end, modifier, chunk = self._parse_frange_part(part)
             frange_parts.append((start, end, modifier, chunk))
             frange_types.extend(map(type, (start, end, chunk)))
+            if '.' in part:
+                has_decimal_notation = True
 
-        # Determine best type for numbers in range. Note that
-        # _parse_frange_part will always return decimal.Decimal for subframes
+        # determine best type for numbers in range
         FrameType: type[decimal.Decimal | int] = int
-        if decimal.Decimal in frange_types:
+        if decimal.Decimal in frange_types or has_decimal_notation:
             FrameType = decimal.Decimal
+            self._has_subframes = True
 
         for start, end, modifier, chunk in frange_parts:
+            # convert to Decimal for Range storage
+            start_dec = decimal.Decimal(str(start))
+            end_dec = decimal.Decimal(str(end))
+            chunk_dec = decimal.Decimal(str(chunk))
+
             # handle batched frames (1-100x5)
             if modifier == 'x':
-                frame_range = xfrange(start, end, chunk, maxSize=maxSize)
-                frames = [FrameType(f) for f in frame_range if f not in items]
-                self._maxSizeCheck(len(frames) + len(items))
-                order_f.extend(frames)
-                items.update(frames)
+                # calculate size mathematically without expansion
+                range_size = int(abs(end_dec - start_dec) / abs(chunk_dec)) + 1
+                self._maxSizeCheck(range_size + len(self))
+
+                # check for overlap with existing ranges
+                overlaps = any(
+                    (start_dec <= r.end and end_dec >= r.start) or
+                    (end_dec <= r.end and start_dec >= r.start)
+                    for r in self._ranges
+                )
+
+                if not overlaps:
+                    self._ranges.append(Range(start_dec, end_dec, chunk_dec))
+                else:
+                    frame_range = list(xfrange(start, end, chunk, maxSize=maxSize))
+                    unique_frames = [f for f in frame_range if f not in self]
+                    if unique_frames:
+                        self._ranges.extend(self._frames_to_ranges(unique_frames))
+                        
             # handle staggered frames (1-100:5)
             elif modifier == ':':
                 if '.' in str(chunk):
                     raise ValueError("Unable to stagger subframes")
+                # staggered frames must be expanded
+                frames = []
+                seen = set(self)  # track what's already in the frameset
                 for stagger in range(chunk, 0, -1):
                     frame_range = xfrange(start, end, stagger, maxSize=maxSize)
-                    frames = [f for f in frame_range if f not in items]
-                    self._maxSizeCheck(len(frames) + len(items))
-                    order_f.extend(frames)
-                    items.update(frames)
+                    for f in frame_range:
+                        if f not in seen:
+                            frames.append(f)
+                            seen.add(f)  # mark as seen to avoid duplicates within stagger
+                self._maxSizeCheck(len(frames) + len(self))
+                if frames:
+                    self._ranges.extend(self._frames_to_ranges(frames))
+                    
             # handle filled frames (1-100y5)
             elif modifier == 'y':
                 if '.' in str(chunk):
                     raise ValueError("Unable to fill subframes")
+                # filled frames must be expanded
                 not_good = frozenset(xfrange(start, end, chunk, maxSize=maxSize))
                 all_frames = xfrange(start, end, 1, maxSize=maxSize)
-                filtered_frames = (f for f in all_frames if f not in not_good)
-                frames = [f for f in filtered_frames if f not in items]
-                self._maxSizeCheck(len(frames) + len(items))
-                order_f.extend(frames)
-                items.update(frames)
+                frames = [f for f in all_frames if f not in not_good and f not in self]
+                self._maxSizeCheck(len(frames) + len(self))
+                if frames:
+                    self._ranges.extend(self._frames_to_ranges(frames))
+                    
             # handle full ranges and single frames
             else:
-                frame_range = xfrange(start, end, 1 if start < end else -1, maxSize=maxSize)
-                frames = [FrameType(f) for f in frame_range if f not in items]
-                self._maxSizeCheck(len(frames) + len(items))
-                order_f.extend(frames)
-                items.update(frames)
+                # calculate size mathematically without expansion
+                range_size = int(abs(end_dec - start_dec)) + 1
+                self._maxSizeCheck(range_size + len(self))
 
-        # lock the results into immutable internals
-        # this allows for hashing and fast equality checking
-        self._items = frozenset(items)
-        self._order = tuple(order_f)
+                # check for overlap with existing ranges
+                overlaps = any(
+                    (start_dec <= r.end and end_dec >= r.start) or
+                    (end_dec <= r.end and start_dec >= r.start)
+                    for r in self._ranges
+                )
+
+                actual_step = decimal.Decimal(1) if start < end else decimal.Decimal(-1)
+                if not overlaps:
+                    self._ranges.append(Range(start_dec, end_dec, actual_step))
+                else:
+                    frame_range = list(xfrange(start, end, actual_step, maxSize=maxSize))
+                    unique_frames = [f for f in frame_range if f not in self]
+                    if unique_frames:
+                        self._ranges.extend(self._frames_to_ranges(unique_frames))
 
     @property
     def is_null(self) -> bool:
@@ -260,7 +361,7 @@ class FrameSet(BaseFrameSet):
         Returns:
             bool:
         """
-        return not (self._frange and self._items and self._order)
+        return not (self._frange and self._ranges)
 
     @property
     def frange(self) -> str:
@@ -276,21 +377,43 @@ class FrameSet(BaseFrameSet):
     def items(self) -> frozenset[FrameValue]:
         """
         Read-only access to the unique frames that form this :class:`FrameSet`.
+        
+        .. deprecated:: 3.0
+            Direct access to `.items` triggers full expansion of the frame range.
+            For large ranges, prefer iteration: `for frame in frameset` or 
+            membership testing: `frame in frameset`.
 
         Returns:
             frozenset:
         """
-        return self._items
+        warnings.warn(
+            "FrameSet.items triggers full frame expansion. "
+            "For large ranges, use iteration or membership testing instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return frozenset(self)
 
     @property
     def order(self) -> tuple[FrameValue, ...]:
         """
         Read-only access to the ordered frames that form this :class:`FrameSet`.
+        
+        .. deprecated:: 3.0
+            Direct access to `.order` triggers full expansion of the frame range.
+            For large ranges, prefer iteration: `for frame in frameset` or 
+            indexing: `frameset[i]`.
 
         Returns:
             tuple:
         """
-        return self._order
+        warnings.warn(
+            "FrameSet.order triggers full frame expansion. "
+            "For large ranges, use iteration or indexing instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return tuple(self)
 
     @classmethod
     def from_iterable(cls, frames: typing.Iterable[FrameValue], sort: bool = False) -> FrameSet:
@@ -305,6 +428,50 @@ class FrameSet(BaseFrameSet):
             :class:`FrameSet`:
         """
         return FrameSet(sorted(frames) if sort else frames)
+
+    def _detect_subframe_type(self, frames: typing.Iterable[FrameValue]) -> None:
+        """Detect and set subframe type from frame values"""
+        for f in frames:
+            if isinstance(f, float) and f % 1 != 0:
+                self._has_subframes = True
+                self._subframe_type = float
+                return
+            elif isinstance(f, decimal.Decimal) and f % 1 != 0:
+                self._has_subframes = True
+                self._subframe_type = decimal.Decimal
+                return
+
+    @staticmethod
+    def _frames_to_ranges(frames: typing.List[FrameValue]) -> list[Range]:
+        """Convert a list of frames to a list of Range objects"""
+        if not frames:
+            return []
+        
+        ranges: list[Range] = []
+        start_frame = decimal.Decimal(str(frames[0]))
+        prev_frame = start_frame
+        step: decimal.Decimal | None = None
+        
+        for frame in frames[1:]:
+            curr_frame = decimal.Decimal(str(frame))
+            curr_step = curr_frame - prev_frame
+            
+            if step is None:
+                step = curr_step
+            elif step != curr_step:
+                # end current range
+                ranges.append(Range(start_frame, prev_frame, step))
+                start_frame = curr_frame
+                step = None
+            
+            prev_frame = curr_frame
+        
+        # add final range
+        if step is None:
+            step = decimal.Decimal(1)
+        ranges.append(Range(start_frame, prev_frame, step))
+        
+        return ranges
 
     @classmethod
     def from_range(cls, start: int, end: int, step: int = 1) -> FrameSet:
@@ -369,7 +536,15 @@ class FrameSet(BaseFrameSet):
         Raises:
             :class:`ValueError`: if frame is not in self
         """
-        return self.order.index(frame)
+        idx = 0
+        for r in self._ranges:
+            if frame in r:
+                # find position within this range
+                frame_dec = decimal.Decimal(str(frame))
+                offset = abs(frame_dec - r.start)
+                return idx + int(offset / abs(r.step))
+            idx += len(r)
+        raise ValueError(f"{frame} is not in FrameSet")
 
     def frame(self, index: int) -> FrameValue:
         """
@@ -384,7 +559,22 @@ class FrameSet(BaseFrameSet):
         Raises:
             :class:`IndexError`: if index is out of bounds
         """
-        return self.order[index]
+        if index < 0:
+            index = len(self) + index
+        if index < 0 or index >= len(self):
+            raise IndexError("index out of range")
+        
+        curr_idx = 0
+        for r in self._ranges:
+            range_len = len(r)
+            if curr_idx + range_len > index:
+                # frame is in this range
+                offset = index - curr_idx
+                frame = r.start + (r.step * offset)
+                return int(frame) if frame % 1 == 0 else frame
+            curr_idx += range_len
+        
+        raise IndexError("index out of range")
 
     def hasFrame(self, frame: int) -> bool:
         """
@@ -406,9 +596,13 @@ class FrameSet(BaseFrameSet):
             bool:
 
         """
-        return any(
-            isinstance(item, (float, decimal.Decimal)) for item in self.items
-        )
+        if self._has_subframes:
+            return True
+        for r in self._ranges:
+            if r.start % 1 != 0 or r.end % 1 != 0 or r.step % 1 != 0:
+                self._has_subframes = True
+                return True
+        return False
 
     def start(self) -> FrameValue:
         """
@@ -420,7 +614,10 @@ class FrameSet(BaseFrameSet):
         Raises:
             :class:`IndexError`: (with the empty :class:`FrameSet`)
         """
-        return self.order[0]
+        if not self._ranges:
+            raise IndexError("FrameSet is empty")
+        frame = self._ranges[0].start
+        return int(frame) if frame % 1 == 0 else frame
 
     def end(self) -> FrameValue:
         """
@@ -432,7 +629,10 @@ class FrameSet(BaseFrameSet):
         Raises:
             :class:`IndexError`: (with the empty :class:`FrameSet`)
         """
-        return self.order[-1]
+        if not self._ranges:
+            raise IndexError("FrameSet is empty")
+        frame = self._ranges[-1].end
+        return int(frame) if frame % 1 == 0 else frame
 
     def isConsecutive(self) -> bool:
         """
@@ -450,7 +650,48 @@ class FrameSet(BaseFrameSet):
         Returns:
             bool:
         """
-        return len(self) == abs(float(self.end()) - float(self.start())) + 1
+        if self.hasSubFrames():
+            return False
+        
+        if not self._ranges:
+            return False
+        
+        # Each range must have step=1 or step=-1 (no skipping)
+        for r in self._ranges:
+            if abs(r.step) != 1:
+                return False
+
+        # Track covered [lo, hi] as ranges are visited in order.
+        # A new range may extend lo or hi, but only if it doesn't
+        # introduce a gap and doesn't extend in both directions.
+        lo = hi = None
+        extended_lo = extended_hi = False
+
+        for r in self._ranges:
+            r_lo = int(min(r.start, r.end))
+            r_hi = int(max(r.start, r.end))
+
+            if lo is None:
+                lo, hi = r_lo, r_hi
+                continue
+
+            # Must overlap or be adjacent to current covered range
+            if r_lo > hi + 1 or r_hi < lo - 1:
+                return False
+
+            if r_lo < lo:
+                if extended_hi:
+                    return False
+                extended_lo = True
+            if r_hi > hi:
+                if extended_lo:
+                    return False
+                extended_hi = True
+
+            lo = min(lo, r_lo)
+            hi = max(hi, r_hi)
+
+        return True
 
     def frameRange(self, zfill: int = 0, decimal_places: int | None = None) -> str:
         """
@@ -504,21 +745,15 @@ class FrameSet(BaseFrameSet):
             :class:`fileseq.exceptions.MaxSizeException`:
         """
         # No inverted frame range when range includes subframes
-        for frame in self.items:
-            if not isinstance(frame, (int,)):
-                return ''
+        if self.hasSubFrames():
+            return ''
 
         result: list[int] = []
-        frames = sorted(self.items)
-        # We already checked that all items are integers above
-        int_frames = typing.cast("list[int]", frames)
-        for idx, frame in enumerate(int_frames[:-1]):
-            next_frame = int_frames[idx + 1]
+        frames = sorted(int(f) for f in self)
+        for idx, frame in enumerate(frames[:-1]):
+            next_frame = frames[idx + 1]
             if next_frame - frame != 1:
                 r = range(frame + 1, next_frame)
-                # Check if the next update to the result set
-                # will exceed out max frame size.
-                # Prevent memory overflows.
                 self._maxSizeCheck(len(r) + len(result))
                 result += r
 
@@ -535,8 +770,15 @@ class FrameSet(BaseFrameSet):
         Returns:
             :class:`FrameSet`:
         """
-        return FrameSet(FrameSet.framesToFrameRange(
-            self.items, sort=True, compress=False))
+        if self._normalized_cache is None:
+            self._normalized_cache = self._normalize()
+        # create new FrameSet from normalized ranges
+        fs = self.__class__.__new__(self.__class__)
+        fs._ranges = self._normalized_cache[:]
+        fs._normalized_cache = fs._ranges[:]
+        fs._hash_cache = None
+        fs._frange = FrameSet.framesToFrameRange(fs, sort=False, compress=False)
+        return fs
 
     @overload
     def batches(self, batch_size: int, frames: typing.Literal[True]) -> typing.Iterator[_islice[FrameValue]]:
@@ -601,31 +843,38 @@ class FrameSet(BaseFrameSet):
         elif isinstance(state, dict):
             # this is to allow unpickling of "1st generation" FrameSets,
             # when the full __dict__ was stored
-            if '__frange' in state and '__set' in state and '__list' in state:
-                self._frange = state['__frange']
-                self._items = frozenset(state['__set'])
-                self._order = tuple(state['__list'])
+            if '__frange' in state:
+                # Old format - reconstruct from frange
+                self.__init__(state['__frange'])  # type: ignore[misc]
+            elif '_frange' in state:
+                # Reconstruct from frange
+                self.__init__(state['_frange'])  # type: ignore[misc]
             else:
-                for k in self.__slots__:
-                    setattr(self, k, state[k])
+                msg = "Unrecognized state data from which to deserialize FrameSet"
+                raise ValueError(msg)
         else:
             msg = "Unrecognized state data from which to deserialize FrameSet"
             raise ValueError(msg)
 
-    def __getitem__(self, index: int) -> FrameValue:
+    def __getitem__(self, index: int | slice) -> FrameValue | FrameSet:
         """
         Allows indexing into the ordered frames of this :class:`FrameSet`.
 
         Args:
-            index (int): the index to retrieve
+            index (int or slice): the index to retrieve
 
         Returns:
-            int:
+            int or FrameSet:
 
         Raises:
             :class:`IndexError`: if index is out of bounds
         """
-        return self.order[index]
+        if isinstance(index, slice):
+            # handle slicing without full expansion
+            start, stop, step = index.indices(len(self))
+            frames = [self.frame(i) for i in range(start, stop, step)]
+            return self.from_iterable(frames)
+        return self.frame(index)
 
     def __len__(self) -> int:
         """
@@ -634,7 +883,7 @@ class FrameSet(BaseFrameSet):
         Returns:
             int:
         """
-        return len(self.order)
+        return sum(len(r) for r in self._ranges)
 
     def __str__(self) -> str:
         """
@@ -661,7 +910,18 @@ class FrameSet(BaseFrameSet):
         Returns:
             generator:
         """
-        return (i for i in self.order)
+        for r in self._ranges:
+            for frame in r:
+                # convert to appropriate type based on FrameSet's subframe type
+                if self._has_subframes:
+                    if self._subframe_type == float:
+                        yield float(frame)
+                    else:
+                        # decimal type
+                        yield frame if isinstance(frame, decimal.Decimal) else decimal.Decimal(frame)
+                else:
+                    # integer-only FrameSet
+                    yield int(frame) if isinstance(frame, decimal.Decimal) else frame
 
     def __reversed__(self) -> typing.Iterator[FrameValue]:
         """
@@ -671,7 +931,9 @@ class FrameSet(BaseFrameSet):
         Returns:
             generator:
         """
-        return (i for i in reversed(self.order))
+        for r in reversed(self._ranges):
+            frames = list(r)
+            yield from reversed(frames)
 
     def __contains__(self, item: object) -> bool:
         """
@@ -683,7 +945,21 @@ class FrameSet(BaseFrameSet):
         Returns:
             bool:
         """
-        return item in self.items
+        for r in self._ranges:
+            if item in r:
+                return True
+        return False
+
+    def _normalize(self) -> list[Range]:
+        """Normalize ranges by expanding, sorting, and compacting"""
+        # expand all frames
+        all_frames = list(self)
+        if not all_frames:
+            return []
+        # sort frames
+        all_frames.sort()
+        # compact back to ranges
+        return self._frames_to_ranges(all_frames)
 
     def __hash__(self) -> int:
         """
@@ -693,9 +969,13 @@ class FrameSet(BaseFrameSet):
         Returns:
             int:
         """
-        # Match __eq__ behavior: only use items and order, not frange
-        # This ensures equal FrameSets have equal hashes
-        return hash(self.items) | hash(self.order)
+        if self._hash_cache is None:
+            if self._normalized_cache is None:
+                self._normalized_cache = self._normalize()
+            self._hash_cache = hash(tuple(
+                (r.start, r.end, r.step) for r in self._normalized_cache
+            ))
+        return self._hash_cache
 
     def __lt__(self, other: object) -> typing.Any:
         """
@@ -724,8 +1004,19 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.items < other.items or (
-                self.items == other.items and self.order < other.order)
+        
+        # check if proper subset
+        is_subset = all(f in other for f in self)
+        if is_subset and len(self) < len(other):
+            return True
+        
+        # same size, compare order lexicographically
+        if len(self) == len(other):
+            for a, b in zip(self, other):
+                if a != b:
+                    return a < b
+        
+        return False
 
     def __le__(self, other: object) -> typing.Any:
         """
@@ -743,7 +1034,7 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.items <= other.items
+        return self.issubset(other)
 
     def __eq__(self, other: object) -> typing.Any:
         """
@@ -763,9 +1054,14 @@ class FrameSet(BaseFrameSet):
             if not isinstance(other, typing.Iterable):
                 return NotImplemented
             other = self.from_iterable(other)
-        this = hash(self.items) | hash(self.order)
-        that = hash(other.items) | hash(other.order)
-        return this == that
+        
+        # normalize both on first comparison, cache forever
+        if self._normalized_cache is None:
+            self._normalized_cache = self._normalize()
+        if other._normalized_cache is None:
+            other._normalized_cache = other._normalize()
+        
+        return self._normalized_cache == other._normalized_cache
 
     def __ne__(self, other: object) -> typing.Any:
         """
@@ -802,7 +1098,7 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.items >= other.items
+        return self.issuperset(other)
 
     def __gt__(self, other: object) -> typing.Any:
         """
@@ -831,8 +1127,19 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.items > other.items or (
-                self.items == other.items and self.order > other.order)
+        
+        # check if proper superset
+        is_superset = all(f in self for f in other)
+        if is_superset and len(self) > len(other):
+            return True
+        
+        # same size, compare order lexicographically
+        if len(self) == len(other):
+            for a, b in zip(self, other):
+                if a != b:
+                    return a > b
+        
+        return False
 
     def __and__(self, other: object) -> typing.Any:
         """
@@ -855,7 +1162,9 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.from_iterable(self.items & other.items, sort=True)
+        # iterate and check membership without expanding
+        result = [f for f in self if f in other]
+        return self.from_iterable(result)
 
     __rand__ = __and__
 
@@ -879,7 +1188,9 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.from_iterable(self.items - other.items, sort=True)
+        # iterate and check membership without expanding
+        result = [f for f in self if f not in other]
+        return self.from_iterable(result)
 
     def __rsub__(self, other: object) -> typing.Any:
         """
@@ -901,7 +1212,9 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.from_iterable(other.items - self.items, sort=True)
+        # iterate and check membership without expanding
+        result = [f for f in other if f not in self]
+        return self.from_iterable(result)
 
     def __or__(self, other: object) -> typing.Any:
         """
@@ -924,7 +1237,18 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.from_iterable(self.items | other.items, sort=True)
+        # combine both without expanding, iterate and deduplicate
+        seen = set()
+        result = []
+        for f in self:
+            if f not in seen:
+                seen.add(f)
+                result.append(f)
+        for f in other:
+            if f not in seen:
+                seen.add(f)
+                result.append(f)
+        return self.from_iterable(result, sort=True)
 
     __ror__ = __or__
 
@@ -948,7 +1272,10 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented
-        return self.from_iterable(self.items ^ other.items, sort=True)
+        # frames in self but not other, plus frames in other but not self
+        result = [f for f in self if f not in other]
+        result.extend(f for f in other if f not in self)
+        return self.from_iterable(result, sort=True)
 
     __rxor__ = __xor__
 
@@ -967,7 +1294,11 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented  # type: ignore
-        return self.items.isdisjoint(other.items)
+        # check if any frame in self is in other
+        for f in self:
+            if f in other:
+                return False
+        return True
 
     def issubset(self, other: typing.Any) -> bool | NotImplemented:  # type: ignore
         """
@@ -984,7 +1315,11 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented  # type: ignore
-        return self.items <= other.items  # type: ignore
+        # check if all frames in self are in other
+        for f in self:
+            if f not in other:
+                return False
+        return True
 
     def issuperset(self, other: typing.Any) -> bool | NotImplemented:  # type: ignore
         """
@@ -1001,7 +1336,11 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented  # type: ignore
-        return self.items >= other.items  # type: ignore
+        # check if all frames in other are in self
+        for f in other:
+            if f not in self:
+                return False
+        return True
 
     def union(self, *other: typing.Iterable[FrameValue]) -> FrameSet:
         """
@@ -1014,8 +1353,18 @@ class FrameSet(BaseFrameSet):
         Returns:
             :class:`FrameSet`:
         """
-        from_frozenset = self.items.union(*(set(o) for o in other))
-        return self.from_iterable(from_frozenset, sort=True)
+        seen = set()
+        result = []
+        for f in self:
+            if f not in seen:
+                seen.add(f)
+                result.append(f)
+        for o in other:
+            for f in o:
+                if f not in seen:
+                    seen.add(f)
+                    result.append(f)
+        return self.from_iterable(result, sort=True)
 
     def intersection(self, *other: typing.Iterable[FrameValue]) -> FrameSet:
         """
@@ -1028,8 +1377,11 @@ class FrameSet(BaseFrameSet):
         Returns:
             :class:`FrameSet`:
         """
-        from_frozenset = self.items.intersection(*(set(o) for o in other))
-        return self.from_iterable(from_frozenset, sort=True)
+        result = list(self)
+        for o in other:
+            o_set = set(o)
+            result = [f for f in result if f in o_set]
+        return self.from_iterable(result)
 
     def difference(self, *other: typing.Iterable[FrameValue]) -> FrameSet:
         """
@@ -1042,8 +1394,11 @@ class FrameSet(BaseFrameSet):
         Returns:
             :class:`FrameSet`:
         """
-        from_frozenset = self.items.difference(*(set(o) for o in other))
-        return self.from_iterable(from_frozenset, sort=True)
+        exclude = set()
+        for o in other:
+            exclude.update(o)
+        result = [f for f in self if f not in exclude]
+        return self.from_iterable(result)
 
     def symmetric_difference(self, other: typing.Any) -> FrameSet:
         """
@@ -1059,8 +1414,10 @@ class FrameSet(BaseFrameSet):
         other = self._cast_to_frameset(other)
         if other is NotImplemented:
             return NotImplemented  # type: ignore
-        from_frozenset = self.items.symmetric_difference(other.items)
-        return self.from_iterable(from_frozenset, sort=True)
+        # frames in self but not other, plus frames in other but not self
+        result = [f for f in self if f not in other]
+        result.extend(f for f in other if f not in self)
+        return self.from_iterable(result, sort=True)
 
     def copy(self) -> FrameSet:
         """
@@ -1071,12 +1428,13 @@ class FrameSet(BaseFrameSet):
         """
         fs = self.__class__.__new__(self.__class__)
         fs._frange = self._frange
-        fs._items = self._items
-        fs._order = self._order
+        fs._ranges = self._ranges[:]
+        fs._normalized_cache = self._normalized_cache[:] if self._normalized_cache else None
+        fs._hash_cache = self._hash_cache
         return fs
 
     @classmethod
-    def _maxSizeCheck(cls, obj: int | float | decimal.Decimal | Sized) -> None:
+    def _maxSizeCheck(cls, obj: int | float | decimal.Decimal | Sized | typing.Any) -> None:
         """
         Raise a MaxSizeException if ``obj`` exceeds MAX_FRAME_SIZE
 
@@ -1302,7 +1660,10 @@ class FrameSet(BaseFrameSet):
         curr_frame: int | float
         last_frame: int | float | None = None
         curr_count = 0
-        
+
+        if not frames:
+            return
+
         for curr_frame in frames:
             if curr_start is None:
                 curr_start = curr_frame
@@ -1361,7 +1722,10 @@ class FrameSet(BaseFrameSet):
         curr_frame: decimal.Decimal
         last_frame: decimal.Decimal | None = None
         curr_count = 0
-        
+
+        if not frames:
+            return
+
         for curr_frame in frames:
             if curr_start is None:
                 curr_start = curr_frame
@@ -1376,6 +1740,7 @@ class FrameSet(BaseFrameSet):
 
             # Handle decimal strides and frame rounding
             # Check whether stride difference could be caused by rounding
+            max_stride_delta: decimal.Decimal
             if len(curr_strides) == 1:
                 stride_delta = abs(curr_stride - new_stride)
                 exponent = int(stride_delta.as_tuple().exponent)
@@ -1385,7 +1750,7 @@ class FrameSet(BaseFrameSet):
 
             if new_stride in curr_strides:
                 # Find minimum frame value that rounds to current
-                min_frame = (curr_frame - max_stride_delta / 2)
+                min_frame = (curr_frame - max_stride_delta / 2)  # type: ignore[possibly-undefined]
                 while min_frame.quantize(curr_frame) != curr_frame:
                     min_frame = min_frame.next_plus()
 
