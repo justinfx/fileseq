@@ -34,9 +34,10 @@ else:
     BaseFrameSet = Set
 
 
-@dataclasses.dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True)
 class Range:
     """Compact representation of a frame range with start, end, and step"""
+    __slots__ = ('start', 'end', 'step')
     start: decimal.Decimal
     end: decimal.Decimal
     step: decimal.Decimal
