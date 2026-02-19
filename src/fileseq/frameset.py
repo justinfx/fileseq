@@ -299,8 +299,8 @@ class FrameSet(BaseFrameSet):
                     actual_chunk = chunk_dec if end_dec >= start_dec else -chunk_dec
                     self._ranges.append(Range(start_dec, end_dec, actual_chunk))
                 else:
-                    frame_range = list(xfrange(start, end, chunk, maxSize=maxSize))
-                    unique_frames = [f for f in frame_range if f not in self]
+                    frame_range = xfrange(start, end, chunk, maxSize=maxSize)
+                    unique_frames: list[FrameValue] = [f for f in frame_range if f not in self]
                     if unique_frames:
                         self._ranges.extend(self._frames_to_ranges(unique_frames))
                         
@@ -351,10 +351,11 @@ class FrameSet(BaseFrameSet):
                 if not overlaps:
                     self._ranges.append(Range(start_dec, end_dec, actual_step))
                 else:
-                    frame_range = list(xfrange(start, end, actual_step, maxSize=maxSize))
-                    unique_frames = [f for f in frame_range if f not in self]
-                    if unique_frames:
-                        self._ranges.extend(self._frames_to_ranges(unique_frames))
+                    istep = 1 if start < end else -1
+                    frame_range = xfrange(start, end, istep, maxSize=maxSize)
+                    unique_frames2: list[FrameValue] = [f for f in frame_range if f not in self]
+                    if unique_frames2:
+                        self._ranges.extend(self._frames_to_ranges(unique_frames2))
 
     @property
     def is_null(self) -> bool:
@@ -681,6 +682,8 @@ class FrameSet(BaseFrameSet):
                 lo, hi = r_lo, r_hi
                 continue
 
+            assert lo is not None
+            assert hi is not None
             # Must overlap or be adjacent to current covered range
             if r_lo > hi + 1 or r_hi < lo - 1:
                 return False
@@ -694,8 +697,8 @@ class FrameSet(BaseFrameSet):
                     return False
                 extended_hi = True
 
-            lo = min(lo, r_lo)
-            hi = max(hi, r_hi)
+            lo = min(lo, r_lo)  # type: ignore[type-var]
+            hi = max(hi, r_hi)  # type: ignore[type-var]
 
         return True
 
@@ -754,14 +757,14 @@ class FrameSet(BaseFrameSet):
         if self.hasSubFrames():
             return ''
 
-        result: list[int] = []
+        result: list[FrameValue] = []
         frames = sorted(int(f) for f in self)
         for idx, frame in enumerate(frames[:-1]):
             next_frame = frames[idx + 1]
             if next_frame - frame != 1:
                 r = range(frame + 1, next_frame)
                 self._maxSizeCheck(len(r) + len(result))
-                result += r
+                result += r  # type: ignore[arg-type]
 
         if not result:
             return ''
@@ -954,7 +957,7 @@ class FrameSet(BaseFrameSet):
             bool:
         """
         for r in self._ranges:
-            if item in r:
+            if item in r:  # type: ignore[operator]
                 return True
         return False
 
@@ -1402,7 +1405,7 @@ class FrameSet(BaseFrameSet):
         Returns:
             :class:`FrameSet`:
         """
-        exclude = set()
+        exclude: set[FrameValue] = set()
         for o in other:
             exclude.update(o)
         result = [f for f in self if f not in exclude]

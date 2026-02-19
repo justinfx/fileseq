@@ -844,7 +844,7 @@ class BaseFileSequence(typing.Generic[T]):
         frames = self._frameSet[idx]
 
         if not hasattr(idx, 'start'):
-            return self.frame(frames)
+            return self.frame(frames)  # type: ignore[arg-type]
 
         fset = FrameSet(frames)
         if fset.is_null:
