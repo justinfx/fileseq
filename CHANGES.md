@@ -1,10 +1,10 @@
-# FileSeq Changelog
+# Fileseq Changelog
 
 ## v3.0.0 (TBD)
 
 ### Major Changes
 
-This is a **major version** with breaking changes. FileSeq v3 includes two significant architectural improvements:
+This is a **major version** with breaking changes. Fileseq v3 includes two significant architectural improvements:
 
 1. **ANTLR4 Grammar-Based Parsing** (#149) - Migrates from regex-based parsing to ANTLR4 grammar-based parsing
 2. **Range-Based FrameSet Storage** (#150) - Replaces fully-expanded frame storage with memory-efficient ranges
