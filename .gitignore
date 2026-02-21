@@ -6,6 +6,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+src/fileseq/parser/*.interp
+src/fileseq/parser/*.tokens
 .Python
 env/
 .venv/

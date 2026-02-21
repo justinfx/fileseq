@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fileseq"
+dynamic = ["version"]
+description = "A Python library for parsing frame ranges and file sequences commonly used in VFX and Animation applications."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Justin Israel", email = "justinisrael@gmail.com"},
+    {name = "Matt Chambers", email = "yougotrooted@gmail.com"},
+]
+keywords = ["vfx", "visual effects", "file sequence", "frames", "image"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "antlr4-python3-runtime==4.13.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pylint>=2.0",
+    "flake8>=4.0",
+    "mypy>=0.990",
+]
+docs = [
+    "sphinx>=5.0",
+    "sphinx-rtd-theme>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/justinfx/fileseq"
+Documentation = "https://fileseq.readthedocs.io/"
+Repository = "https://github.com/justinfx/fileseq"
+Issues = "https://github.com/justinfx/fileseq/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+fileseq = [
+    "py.typed",
+    "grammar/*.g4",
+    "parser/*.py",
+    "parser/*.tokens",
+]
+
+[tool.setuptools_scm]
+# Automatically derive version from git tags
+# Tag v3.0.0 becomes version 3.0.0
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest test/ -v"
+test-cov = "pytest test/ --cov=fileseq --cov-report=html"
+# Requires Java 11+ in PATH. macOS: export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
+generate = "python src/fileseq/grammar/generate.py"
+
+[tool.hatch.envs.docs]
+dependencies = [
+    "sphinx>=5.0",
+    "sphinx-rtd-theme>=1.0",
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build -b html docs docs/_build/html"
+clean = "rm -rf docs/_build"
+serve = "python -m http.server -d docs/_build/html 8000"

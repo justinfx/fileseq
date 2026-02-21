@@ -455,6 +455,7 @@ def _getPathSep(path: str) -> str:
     Detect the path separator used in the given path string.
 
     Counts occurrences of '/' vs '\\' and returns the most common.
+    When counts are equal, returns the first separator encountered.
     Returns os.sep if no separators are found.
 
     Args:
@@ -470,6 +471,8 @@ def _getPathSep(path: str) -> str:
         return '/'
     elif backward_count > forward_count:
         return '\\'
+    elif forward_count > 0:  # Tie - use first separator encountered
+        return '/' if path.index('/') < path.index('\\') else '\\'
     else:
         return os.sep
 
