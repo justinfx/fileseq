@@ -2,22 +2,36 @@
 
 ## v3.0.0 (TBD)
 
-### Major Changes - ANTLR4 Grammar-Based Parsing
+### Major Changes
 
-This is a **major version** with breaking changes. FileSeq v3 migrates from regex-based parsing to ANTLR4 grammar-based
-parsing, aligning the Python implementation with the Go and C++ implementations for consistency and maintainability.
+This is a **major version** with breaking changes. FileSeq v3 includes two significant architectural improvements:
 
-#### Breaking Changes
+1. **ANTLR4 Grammar-Based Parsing** (#149) - Migrates from regex-based parsing to ANTLR4 grammar-based parsing
+2. **Range-Based FrameSet Storage** (#150) - Replaces fully-expanded frame storage with memory-efficient ranges
 
-**Removed API:**
+#### ANTLR4 Grammar-Based Parsing (#149)
+
+Aligns the Python implementation with the Go and C++ implementations for consistency and maintainability.
+
+**Breaking Changes:**
 - `FileSequence.SPLIT_RE` class variable (custom regex pattern override)
 - `FileSequence.DISK_RE` class variable (custom disk scanning override)
 - `constants.SPLIT_PATTERN`, `constants.SPLIT_RE` (use grammar-based parsing API)
 - `constants.SPLIT_SUB_PATTERN`, `constants.SPLIT_SUB_RE` (use grammar-based parsing API)
-
-**Removed Files:**
 - `setup.py` (replaced with modern `pyproject.toml`)
 - `src/fileseq/__version__.py` (version now managed by `setuptools-scm` from git tags)
+
+**New Features:**
+- **Decimal frame ranges:** Support for decimal step values
+  - `foo.1-5x0.25#.exr` → frames 1, 1.25, 1.5, 1.75, 2, 2.25...
+- **Subframe sequences (Python-specific):**
+  - Dual range: `foo.1-5#.10-20@@.exr` (main frames + subframes)
+  - Composite padding: `foo.1-5@.#.exr` (frame padding + subframe padding)
+  - Pattern-only: `foo.#.#.exr` (wildcard for both components)
+- **Better hidden file support:**
+  - `.bar1000.exr` now correctly parses as basename=`.bar`, frame=`1000`, ext=`.exr`
+- **Cross-platform path handling:**
+  - Correctly handles both Unix (`/`) and Windows (`\`) path separators
 
 **Behavioral Changes:**
 - **Auto-padding:** Now only applies to single-frame files without explicit padding
@@ -27,45 +41,31 @@ parsing, aligning the Python implementation with the Go and C++ implementations 
   - More consistent behavior across languages
   - Better error messages for invalid patterns
 
-#### New Features
+#### Range-Based FrameSet Storage (#150)
 
-- **Decimal frame ranges:** Support for decimal step values
-  - `foo.1-5x0.25#.exr` → frames 1, 1.25, 1.5, 1.75, 2, 2.25...
-  - Single token parsing for better performance
+Migrates `FrameSet` from fully-expanded storage to range-based storage for memory efficiency.
 
-- **Subframe sequences (Python-specific):**
-  - Dual range: `foo.1-5#.10-20@@.exr` (main frames + subframes)
-  - Composite padding: `foo.1-5@.#.exr` (frame padding + subframe padding)
-  - Pattern-only: `foo.#.#.exr` (wildcard for both components)
+**Breaking Changes:**
+- `.items` and `.order` properties now deprecated with `DeprecationWarning`
+  - Still functional but expand lazily and warn on access
+  - Use `set(frameset)` and `list(frameset)` instead
 
-- **Better hidden file support:**
-  - `.bar1000.exr` now correctly parses as basename=`.bar`, frame=`1000`, ext=`.exr`
-  - Previously treated `.bar1000` as single extension
+**New Features:**
+- **Memory-efficient storage:** 99.9%+ memory reduction for large ranges
+  - 100k frames: 7.8MB → 536 bytes
+  - Stores ranges instead of fully-expanded frames
+- **Performance improvements:** Range-based algorithms for operations like `isConsecutive()`
 
-- **Cross-platform path handling:**
-  - Correctly handles both Unix (`/`) and Windows (`\`) path separators
-  - Mixed separators normalized properly
-
-#### Implementation Details
-
-- **Grammar-based parsing:** Shared ANTLR4 grammar (`grammar/fileseq.g4`) with Go and C++ implementations
-- **Parser generator:** `src/fileseq/grammar/generate.py` tool for regenerating parser from grammar
-- **Build system:** Modern `pyproject.toml` with PEP 517/518 support
-- **Version management:** Automatic versioning via `setuptools-scm` from git tags
-- **CI/CD:** Grammar validation in CI to ensure consistency across languages
-- **Documentation:** Comprehensive migration guide and benchmarks included
-
-#### Performance
-
-Grammar-based parsing provides comparable performance to v2.x regex parsing:
-- Simple patterns: ~240 μs per parse
-- Complex patterns: ~445 μs per parse
-- FrameSet operations: ~13 μs for simple ranges
-- Disk scanning: <1 ms for typical directories
+**Bug Fixes:**
+- `isConsecutive()` now correctly handles interleaved ranges and empty framesets
+- `hasSubFrames()` correctly detects decimal notation like `"1.0-5.0"`
+- Stagger modifier (`:`) now properly deduplicates frames
 
 #### Migration Guide
 
-**If you were using custom regex patterns:**
+**ANTLR4 Grammar Changes:**
+
+If you were using custom regex patterns:
 ```python
 # v2.x - REMOVED in v3
 class MySequence(FileSequence):
@@ -75,7 +75,7 @@ class MySequence(FileSequence):
 seq = FileSequence(pattern)  # Grammar handles parsing
 ```
 
-**If you relied on auto-padding for explicit padding patterns:**
+If you relied on auto-padding for explicit padding patterns:
 ```python
 # v2.x behavior
 seq = FileSequence("foo.1@@@@.exr")
@@ -84,6 +84,21 @@ seq = FileSequence("foo.1@@@@.exr")
 # v3 behavior
 seq = FileSequence("foo.1@@@@.exr")
 # Preserves @@@@ as specified (4 chars)
+```
+
+**Range-Based FrameSet Changes:**
+
+If you accessed FrameSet internals:
+```python
+# v2.x/v3 - Now deprecated with warnings
+fs = FrameSet("1-1000")
+frames = fs.items  # ⚠️ DeprecationWarning, expands all frames
+ordered = fs.order  # ⚠️ DeprecationWarning, expands all frames
+
+# v3 - Use public iteration API
+frames = set(fs)  # ✅ Lazy iteration
+ordered = list(fs)  # ✅ Lazy iteration
+contains = 500 in fs  # ✅ Efficient range-based lookup
 ```
 
 ---
