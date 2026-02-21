@@ -88,49 +88,83 @@ seq = FileSequence("foo.1@@@@.exr")
 
 ---
 
-## v2.3.0 (2024-XX-XX)
+## v2.3.1 (2025-02-21)
 
 ### Bug Fixes
-- Strip whitespace from frame range in FrameSet constructor (fixes #137)
+- Strip whitespace from frame range in `FrameSet` constructor (#137)
+
+---
+
+## v2.3.0 (2024-12-24)
+
+### Bug Fixes
+- Preserve files with negative zero frames using hyphen format (#144)
 
 ### Improvements
-- Cross-platform path separator preservation (#145)
-- Negative zero frame handling improvements (#143)
+- Detect and preserve path separators for cross-platform support (#146)
 
 ---
 
-## v2.2.1
+## v2.2.1 (2024-10-27)
 
 ### Bug Fixes
-- Fix Decimal handling in FrameSet broken by previous changes
+- Fix `Decimal` handling in `FrameSet` broken by previous changes (#142)
 
 ---
 
-## v2.2.0
+## v2.2.0 (2024-09-21)
 
 ### Features
-- Decimal frame support for subframes
-- Improved frame formatting
+- Add support for `pathlib.Path` via a new `FilePathSequence` class (#140)
+
+### Bug Fixes
+- Fix mypy errors and improve annotation accuracy (#141)
 
 ---
 
-## v2.1.0
+## v2.1.2 (2024-10-31)
+
+### Bug Fixes
+- Fix `yield_sequences_in_list` to use unique keys for single files (#135)
+
+---
+
+## v2.1.1 (2024-04-20)
+
+### Improvements
+- Add note to `FileSequence.__str__` regarding format caveat
+- Update type annotations for `mypy --strict` compliance
+- Remove `typing_extensions` dependency
+
+---
+
+## v2.1.0 (2024-03-26)
+
+### Improvements
+- Enhance `FileSequence` equality testing using `FrameSet` (#132)
+
+---
+
+## v2.0.0 (2024-02-20)
+
+### Breaking Changes
+- Drop Python 2 support (#119)
+- Change default padding behavior when setting ranges (#127)
 
 ### Features
-- Path separator detection and preservation
-- Improved cross-platform support
+- Add Python 3 type annotations and `py.typed` marker (#118)
+- Enable `FileSequence.setExtension()` with empty strings (#126)
 
 ---
 
-## v2.0.0
+## v1.15.3 (2023-11-04)
 
-### Major Changes
-- Python 3.6+ required
-- Type annotations added throughout
-- Modern packaging with setuptools
+### Bug Fixes
+- Fix `yield_sequences_in_list` name collision handling (#135)
 
 ---
 
-## v1.x
+## v1.15.2 (2023-07-25)
 
-Legacy version. See git history for details.
+### Bug Fixes
+- Fix decimal subframes being incorrectly rounded with negative signs (#123)
