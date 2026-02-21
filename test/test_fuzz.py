@@ -246,11 +246,11 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = FrameSet(test)
-        m = u'FrameSet("{0}")._items != {1}: got {2}'
-        r = f._items
+        m = u'FrameSet("{0}") items != {1}: got {2}'
+        r = set(f)
         self.assertEqual(r, set(expect), m.format(test, set(expect), r))
-        m = u'FrameSet("{0}")._FrameSet__items returns {1}: got {2}'
-        self.assertIsInstance(r, frozenset, m.format(test, frozenset, type(r)))
+        m = u'FrameSet("{0}") items returns {1}: got {2}'
+        self.assertIsInstance(r, set, m.format(test, set, type(r)))
 
     def _check___init___order(self, test, expect):
         """
@@ -260,10 +260,10 @@ class TestFrameSet(unittest.TestCase):
         :return: None
         """
         f = FrameSet(test)
-        m = u'FrameSet("{0}")._order != {1}: got {2}'
-        r = f._order
+        m = u'FrameSet("{0}") order != {1}: got {2}'
+        r = tuple(f)
         self.assertEqual(r, tuple(expect), m.format(test, tuple(expect), r))
-        m = u'FrameSet("{0}")._order returns {1}: got {2}'
+        m = u'FrameSet("{0}") order returns {1}: got {2}'
         self.assertIsInstance(r, tuple, m.format(test, tuple, type(r)))
 
     def _check___init____malformed(self, test):
@@ -489,7 +489,7 @@ class TestFrameSet(unittest.TestCase):
         self.assertIsInstance(f2, FrameSet, m.format(test))
         self.assertTrue(str(f) == str(f2) and list(f) == list(f2), m.format(test))
         # test old objects being unpickled through new lib
-        state = {'__frange': f._frange, '__set': set(f._items), '__list': list(f._order)}
+        state = {'__frange': f._frange, '__set': set(f), '__list': list(f)}
         f2 = FrameSet.__new__(FrameSet)
         f2.__setstate__(state)
         self.assertTrue(str(f) == str(f2) and list(f) == list(f2), m.format(test))
