@@ -21,18 +21,6 @@ Aligns the Python implementation with the Go and C++ implementations for consist
 - `setup.py` (replaced with modern `pyproject.toml`)
 - `src/fileseq/__version__.py` (version now managed by `setuptools-scm` from git tags)
 
-**New Features:**
-- **Decimal frame ranges:** Support for decimal step values
-  - `foo.1-5x0.25#.exr` → frames 1, 1.25, 1.5, 1.75, 2, 2.25...
-- **Subframe sequences (Python-specific):**
-  - Dual range: `foo.1-5#.10-20@@.exr` (main frames + subframes)
-  - Composite padding: `foo.1-5@.#.exr` (frame padding + subframe padding)
-  - Pattern-only: `foo.#.#.exr` (wildcard for both components)
-- **Better hidden file support:**
-  - `.bar1000.exr` now correctly parses as basename=`.bar`, frame=`1000`, ext=`.exr`
-- **Cross-platform path handling:**
-  - Correctly handles both Unix (`/`) and Windows (`\`) path separators
-
 **Behavioral Changes:**
 - **Auto-padding:** Now only applies to single-frame files without explicit padding
   - `foo.100.exr` → gets auto-padding based on frame width (backward compatible)
