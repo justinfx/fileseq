@@ -1,6 +1,10 @@
 # Fileseq Changelog
 
-## v3.0.0 (TBD)
+## v3.0.1 (2026-03-04)
+
+* pyproject.toml: rename the distribution name field from 'fileseq' back to "Fileseq" for consistency (#151)
+
+## v3.0.0 (2026-02-22)
 
 ### Major Changes
 
