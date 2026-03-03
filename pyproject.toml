@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fileseq"
+name = "Fileseq"
 dynamic = ["version"]
 description = "A Python library for parsing frame ranges and file sequences commonly used in VFX and Animation applications."
 readme = "README.md"
