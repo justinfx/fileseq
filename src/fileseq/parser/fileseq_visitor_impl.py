@@ -48,8 +48,8 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         """
         result = ParseResult(is_sequence=True)
         result.directory = self._visit_directory(ctx.directory())
-        if ctx.sequenceBasename():
-            result.basename = self._visit_basename(ctx.sequenceBasename())
+        if ctx.basename():
+            result.basename = self._visit_basename(ctx.basename())
 
         # Extract frame ranges (can have 1 or 2 for Python subframes)
         # Try to get indexed frameRange contexts (grammar allows multiple)
@@ -115,8 +115,8 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         """
         result = ParseResult(is_sequence=True)
         result.directory = self._visit_directory(ctx.directory())
-        if ctx.patternBasename():
-            result.basename = self._visit_basename(ctx.patternBasename())
+        if ctx.basename():
+            result.basename = self._visit_basename(ctx.basename())
 
         # Extract paddings (can have 1 or 2 for Python subframes)
         paddings = []
@@ -153,8 +153,8 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         """
         result = ParseResult(is_single_frame=True)
         result.directory = self._visit_directory(ctx.directory())
-        if ctx.singleFrameBasename():
-            result.basename = self._visit_basename(ctx.singleFrameBasename())
+        if ctx.basename():
+            result.basename = self._visit_basename(ctx.basename())
 
         # Extract frame number from DOT_NUM or NUM token
         # Keep the leading dot if present - post-processing will move it to basename

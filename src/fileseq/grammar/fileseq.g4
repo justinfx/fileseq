@@ -19,7 +19,7 @@ input
 //   - Composite padding: /path/file.1-5@.#.exr (dot + padding only)
 //   Go/C++ ignore the second pair until subframe support is implemented
 sequence
-    : directory sequenceBasename? frameRange padding (frameRange padding | SPECIAL_CHAR padding)? extension*
+    : directory basename? frameRange padding (frameRange padding | SPECIAL_CHAR padding)? extension*
     ;
 
 // Pattern-only sequence (padding without frame range): /path/file.@@.ext
@@ -27,7 +27,7 @@ sequence
 // Python-specific: Supports optional subframe padding: /path/file.#.#.ext
 //   Go/C++ ignore the second padding until subframe support is implemented
 patternOnly
-    : directory patternBasename? padding (SPECIAL_CHAR padding)? extension*
+    : directory basename? padding (SPECIAL_CHAR padding)? extension*
     ;
 
 // Single frame: /path/file.100.exr (extension required after frame number)
@@ -35,7 +35,7 @@ patternOnly
 // Python semantic rule: a dot-number is only treated as a frame if there's an extension after it
 // Basename is optional to handle cases like .10000000000.123 where both are DOT_NUM tokens
 singleFrame
-    : directory singleFrameBasename? frameNum extension+
+    : directory basename? frameNum extension+
     ;
 
 // Plain file: /path/file.txt or /path/file or /path/.hidden (no frame pattern)
@@ -48,39 +48,38 @@ directory
     : SLASH? (dirSegment SLASH)*
     ;
 
+// Any token valid in a basename or directory segment.
+// Adding a new lexer token that belongs in basenames only requires updating this rule.
+basenameChar
+    : WORD | NUM | DOT_NUM | DASH | SPECIAL_CHAR | EXTENSION | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR
+    ;
+
+// Reduced set for plain-file basenames: excludes EXTENSION and DOT_NUM so they
+// are left for the extension rule to consume.
+plainBasenameChar
+    : WORD | NUM | DASH | SPECIAL_CHAR | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR
+    ;
+
 // Directory segments can contain anything including frame-range-like patterns
 // Includes EXTENSION to handle dots in directory names (e.g. path.with.dots)
 // Includes WS to preserve whitespace in directory names
 // Includes OTHER_CHAR for special characters like ! $ % ( ) etc.
 dirSegment
-    : (WORD | NUM | DASH | SPECIAL_CHAR | EXTENSION | FRAME_RANGE | DOT_FRAME_RANGE | DOT_NUM | WS | OTHER_CHAR)+
+    : basenameChar+
     ;
 
-// Basename for sequences: can include EXTENSION (for hidden files)
+// Basename for sequence, patternOnly, and singleFrame rules.
+// Includes EXTENSION (for hidden files like .hidden) and DOT_NUM.
 // Also includes FRAME_RANGE tokens for date-like patterns (e.g., "name_2025-05-13_")
-// Includes WS and OTHER_CHAR for whitespace and special characters
-sequenceBasename
-    : (WORD | NUM | DOT_NUM | DASH | SPECIAL_CHAR | EXTENSION | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR)+
-    ;
-
-// Basename for pattern-only: same as sequence
-patternBasename
-    : (WORD | NUM | DOT_NUM | DASH | SPECIAL_CHAR | EXTENSION | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR)+
-    ;
-
-// Basename for single frames: can include EXTENSION (for hidden files like .hidden.100)
-// Also includes FRAME_RANGE for date-like patterns
-// Includes WS and OTHER_CHAR for whitespace and special characters
-singleFrameBasename
-    : (WORD | NUM | DOT_NUM | DASH | SPECIAL_CHAR | EXTENSION | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR)+
+basename
+    : basenameChar+
     ;
 
 // Basename for plain files: does NOT include EXTENSION or DOT_NUM
 // (so both regular and digit-only extensions can be consumed by extension rule)
 // But DOES include FRAME_RANGE tokens (for filenames like "name_2025-05-13.ext")
-// Includes WS and OTHER_CHAR for whitespace and special characters
 plainBasename
-    : (WORD | NUM | DASH | SPECIAL_CHAR | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR)+
+    : plainBasenameChar+
     ;
 
 // Frame range: may or may not have leading dot

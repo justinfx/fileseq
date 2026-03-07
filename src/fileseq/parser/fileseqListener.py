@@ -62,6 +62,24 @@ class fileseqListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by fileseqParser#basenameChar.
+    def enterBasenameChar(self, ctx:fileseqParser.BasenameCharContext):
+        pass
+
+    # Exit a parse tree produced by fileseqParser#basenameChar.
+    def exitBasenameChar(self, ctx:fileseqParser.BasenameCharContext):
+        pass
+
+
+    # Enter a parse tree produced by fileseqParser#plainBasenameChar.
+    def enterPlainBasenameChar(self, ctx:fileseqParser.PlainBasenameCharContext):
+        pass
+
+    # Exit a parse tree produced by fileseqParser#plainBasenameChar.
+    def exitPlainBasenameChar(self, ctx:fileseqParser.PlainBasenameCharContext):
+        pass
+
+
     # Enter a parse tree produced by fileseqParser#dirSegment.
     def enterDirSegment(self, ctx:fileseqParser.DirSegmentContext):
         pass
@@ -71,30 +89,12 @@ class fileseqListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by fileseqParser#sequenceBasename.
-    def enterSequenceBasename(self, ctx:fileseqParser.SequenceBasenameContext):
+    # Enter a parse tree produced by fileseqParser#basename.
+    def enterBasename(self, ctx:fileseqParser.BasenameContext):
         pass
 
-    # Exit a parse tree produced by fileseqParser#sequenceBasename.
-    def exitSequenceBasename(self, ctx:fileseqParser.SequenceBasenameContext):
-        pass
-
-
-    # Enter a parse tree produced by fileseqParser#patternBasename.
-    def enterPatternBasename(self, ctx:fileseqParser.PatternBasenameContext):
-        pass
-
-    # Exit a parse tree produced by fileseqParser#patternBasename.
-    def exitPatternBasename(self, ctx:fileseqParser.PatternBasenameContext):
-        pass
-
-
-    # Enter a parse tree produced by fileseqParser#singleFrameBasename.
-    def enterSingleFrameBasename(self, ctx:fileseqParser.SingleFrameBasenameContext):
-        pass
-
-    # Exit a parse tree produced by fileseqParser#singleFrameBasename.
-    def exitSingleFrameBasename(self, ctx:fileseqParser.SingleFrameBasenameContext):
+    # Exit a parse tree produced by fileseqParser#basename.
+    def exitBasename(self, ctx:fileseqParser.BasenameContext):
         pass
 
 

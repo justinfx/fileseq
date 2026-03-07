@@ -39,23 +39,23 @@ class fileseqVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by fileseqParser#basenameChar.
+    def visitBasenameChar(self, ctx:fileseqParser.BasenameCharContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by fileseqParser#plainBasenameChar.
+    def visitPlainBasenameChar(self, ctx:fileseqParser.PlainBasenameCharContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by fileseqParser#dirSegment.
     def visitDirSegment(self, ctx:fileseqParser.DirSegmentContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by fileseqParser#sequenceBasename.
-    def visitSequenceBasename(self, ctx:fileseqParser.SequenceBasenameContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by fileseqParser#patternBasename.
-    def visitPatternBasename(self, ctx:fileseqParser.PatternBasenameContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by fileseqParser#singleFrameBasename.
-    def visitSingleFrameBasename(self, ctx:fileseqParser.SingleFrameBasenameContext):
+    # Visit a parse tree produced by fileseqParser#basename.
+    def visitBasename(self, ctx:fileseqParser.BasenameContext):
         return self.visitChildren(ctx)
 
 

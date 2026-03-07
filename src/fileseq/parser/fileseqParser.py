@@ -10,7 +10,7 @@ else:
 
 def serializedATN():
     return [
-        4,1,17,159,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,17,153,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3,0,43,
         8,0,1,1,1,1,3,1,47,8,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,56,8,1,1,
@@ -18,54 +18,51 @@ def serializedATN():
         71,8,2,1,2,5,2,74,8,2,10,2,12,2,77,9,2,1,3,1,3,3,3,81,8,3,1,3,1,
         3,4,3,85,8,3,11,3,12,3,86,1,4,1,4,3,4,91,8,4,1,4,5,4,94,8,4,10,4,
         12,4,97,9,4,1,5,3,5,100,8,5,1,5,1,5,1,5,5,5,105,8,5,10,5,12,5,108,
-        9,5,1,6,4,6,111,8,6,11,6,12,6,112,1,7,4,7,116,8,7,11,7,12,7,117,
-        1,8,4,8,121,8,8,11,8,12,8,122,1,9,4,9,126,8,9,11,9,12,9,127,1,10,
-        4,10,131,8,10,11,10,12,10,132,1,11,1,11,1,12,1,12,1,13,1,13,1,13,
-        1,13,1,13,4,13,144,8,13,11,13,12,13,145,3,13,148,8,13,1,14,1,14,
-        1,14,3,14,153,8,14,1,14,1,14,3,14,157,8,14,1,14,0,0,15,0,2,4,6,8,
-        10,12,14,16,18,20,22,24,26,28,0,4,2,0,7,10,12,17,2,0,8,9,12,17,2,
-        0,8,10,13,13,1,0,5,6,172,0,42,1,0,0,0,2,44,1,0,0,0,4,63,1,0,0,0,
-        6,78,1,0,0,0,8,88,1,0,0,0,10,99,1,0,0,0,12,110,1,0,0,0,14,115,1,
-        0,0,0,16,120,1,0,0,0,18,125,1,0,0,0,20,130,1,0,0,0,22,134,1,0,0,
-        0,24,136,1,0,0,0,26,147,1,0,0,0,28,156,1,0,0,0,30,31,3,2,1,0,31,
-        32,5,0,0,1,32,43,1,0,0,0,33,34,3,4,2,0,34,35,5,0,0,1,35,43,1,0,0,
-        0,36,37,3,6,3,0,37,38,5,0,0,1,38,43,1,0,0,0,39,40,3,8,4,0,40,41,
-        5,0,0,1,41,43,1,0,0,0,42,30,1,0,0,0,42,33,1,0,0,0,42,36,1,0,0,0,
-        42,39,1,0,0,0,43,1,1,0,0,0,44,46,3,10,5,0,45,47,3,14,7,0,46,45,1,
-        0,0,0,46,47,1,0,0,0,47,48,1,0,0,0,48,49,3,22,11,0,49,55,3,26,13,
-        0,50,51,3,22,11,0,51,52,3,26,13,0,52,56,1,0,0,0,53,54,5,12,0,0,54,
-        56,3,26,13,0,55,50,1,0,0,0,55,53,1,0,0,0,55,56,1,0,0,0,56,60,1,0,
-        0,0,57,59,3,28,14,0,58,57,1,0,0,0,59,62,1,0,0,0,60,58,1,0,0,0,60,
-        61,1,0,0,0,61,3,1,0,0,0,62,60,1,0,0,0,63,65,3,10,5,0,64,66,3,16,
-        8,0,65,64,1,0,0,0,65,66,1,0,0,0,66,67,1,0,0,0,67,70,3,26,13,0,68,
-        69,5,12,0,0,69,71,3,26,13,0,70,68,1,0,0,0,70,71,1,0,0,0,71,75,1,
-        0,0,0,72,74,3,28,14,0,73,72,1,0,0,0,74,77,1,0,0,0,75,73,1,0,0,0,
-        75,76,1,0,0,0,76,5,1,0,0,0,77,75,1,0,0,0,78,80,3,10,5,0,79,81,3,
-        18,9,0,80,79,1,0,0,0,80,81,1,0,0,0,81,82,1,0,0,0,82,84,3,24,12,0,
-        83,85,3,28,14,0,84,83,1,0,0,0,85,86,1,0,0,0,86,84,1,0,0,0,86,87,
-        1,0,0,0,87,7,1,0,0,0,88,90,3,10,5,0,89,91,3,20,10,0,90,89,1,0,0,
-        0,90,91,1,0,0,0,91,95,1,0,0,0,92,94,3,28,14,0,93,92,1,0,0,0,94,97,
-        1,0,0,0,95,93,1,0,0,0,95,96,1,0,0,0,96,9,1,0,0,0,97,95,1,0,0,0,98,
-        100,5,11,0,0,99,98,1,0,0,0,99,100,1,0,0,0,100,106,1,0,0,0,101,102,
-        3,12,6,0,102,103,5,11,0,0,103,105,1,0,0,0,104,101,1,0,0,0,105,108,
-        1,0,0,0,106,104,1,0,0,0,106,107,1,0,0,0,107,11,1,0,0,0,108,106,1,
-        0,0,0,109,111,7,0,0,0,110,109,1,0,0,0,111,112,1,0,0,0,112,110,1,
-        0,0,0,112,113,1,0,0,0,113,13,1,0,0,0,114,116,7,0,0,0,115,114,1,0,
-        0,0,116,117,1,0,0,0,117,115,1,0,0,0,117,118,1,0,0,0,118,15,1,0,0,
-        0,119,121,7,0,0,0,120,119,1,0,0,0,121,122,1,0,0,0,122,120,1,0,0,
-        0,122,123,1,0,0,0,123,17,1,0,0,0,124,126,7,0,0,0,125,124,1,0,0,0,
-        126,127,1,0,0,0,127,125,1,0,0,0,127,128,1,0,0,0,128,19,1,0,0,0,129,
-        131,7,1,0,0,130,129,1,0,0,0,131,132,1,0,0,0,132,130,1,0,0,0,132,
-        133,1,0,0,0,133,21,1,0,0,0,134,135,7,2,0,0,135,23,1,0,0,0,136,137,
-        5,10,0,0,137,25,1,0,0,0,138,148,5,1,0,0,139,148,5,2,0,0,140,148,
-        5,3,0,0,141,148,5,4,0,0,142,144,7,3,0,0,143,142,1,0,0,0,144,145,
-        1,0,0,0,145,143,1,0,0,0,145,146,1,0,0,0,146,148,1,0,0,0,147,138,
-        1,0,0,0,147,139,1,0,0,0,147,140,1,0,0,0,147,141,1,0,0,0,147,143,
-        1,0,0,0,148,27,1,0,0,0,149,152,5,7,0,0,150,151,5,15,0,0,151,153,
-        5,13,0,0,152,150,1,0,0,0,152,153,1,0,0,0,153,157,1,0,0,0,154,157,
-        5,10,0,0,155,157,5,14,0,0,156,149,1,0,0,0,156,154,1,0,0,0,156,155,
-        1,0,0,0,157,29,1,0,0,0,22,42,46,55,60,65,70,75,80,86,90,95,99,106,
-        112,117,122,127,132,145,147,152,156
+        9,5,1,6,1,6,1,7,1,7,1,8,4,8,115,8,8,11,8,12,8,116,1,9,4,9,120,8,
+        9,11,9,12,9,121,1,10,4,10,125,8,10,11,10,12,10,126,1,11,1,11,1,12,
+        1,12,1,13,1,13,1,13,1,13,1,13,4,13,138,8,13,11,13,12,13,139,3,13,
+        142,8,13,1,14,1,14,1,14,3,14,147,8,14,1,14,1,14,3,14,151,8,14,1,
+        14,0,0,15,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,0,4,2,0,7,10,12,
+        17,2,0,8,9,12,17,2,0,8,10,13,13,1,0,5,6,164,0,42,1,0,0,0,2,44,1,
+        0,0,0,4,63,1,0,0,0,6,78,1,0,0,0,8,88,1,0,0,0,10,99,1,0,0,0,12,109,
+        1,0,0,0,14,111,1,0,0,0,16,114,1,0,0,0,18,119,1,0,0,0,20,124,1,0,
+        0,0,22,128,1,0,0,0,24,130,1,0,0,0,26,141,1,0,0,0,28,150,1,0,0,0,
+        30,31,3,2,1,0,31,32,5,0,0,1,32,43,1,0,0,0,33,34,3,4,2,0,34,35,5,
+        0,0,1,35,43,1,0,0,0,36,37,3,6,3,0,37,38,5,0,0,1,38,43,1,0,0,0,39,
+        40,3,8,4,0,40,41,5,0,0,1,41,43,1,0,0,0,42,30,1,0,0,0,42,33,1,0,0,
+        0,42,36,1,0,0,0,42,39,1,0,0,0,43,1,1,0,0,0,44,46,3,10,5,0,45,47,
+        3,18,9,0,46,45,1,0,0,0,46,47,1,0,0,0,47,48,1,0,0,0,48,49,3,22,11,
+        0,49,55,3,26,13,0,50,51,3,22,11,0,51,52,3,26,13,0,52,56,1,0,0,0,
+        53,54,5,12,0,0,54,56,3,26,13,0,55,50,1,0,0,0,55,53,1,0,0,0,55,56,
+        1,0,0,0,56,60,1,0,0,0,57,59,3,28,14,0,58,57,1,0,0,0,59,62,1,0,0,
+        0,60,58,1,0,0,0,60,61,1,0,0,0,61,3,1,0,0,0,62,60,1,0,0,0,63,65,3,
+        10,5,0,64,66,3,18,9,0,65,64,1,0,0,0,65,66,1,0,0,0,66,67,1,0,0,0,
+        67,70,3,26,13,0,68,69,5,12,0,0,69,71,3,26,13,0,70,68,1,0,0,0,70,
+        71,1,0,0,0,71,75,1,0,0,0,72,74,3,28,14,0,73,72,1,0,0,0,74,77,1,0,
+        0,0,75,73,1,0,0,0,75,76,1,0,0,0,76,5,1,0,0,0,77,75,1,0,0,0,78,80,
+        3,10,5,0,79,81,3,18,9,0,80,79,1,0,0,0,80,81,1,0,0,0,81,82,1,0,0,
+        0,82,84,3,24,12,0,83,85,3,28,14,0,84,83,1,0,0,0,85,86,1,0,0,0,86,
+        84,1,0,0,0,86,87,1,0,0,0,87,7,1,0,0,0,88,90,3,10,5,0,89,91,3,20,
+        10,0,90,89,1,0,0,0,90,91,1,0,0,0,91,95,1,0,0,0,92,94,3,28,14,0,93,
+        92,1,0,0,0,94,97,1,0,0,0,95,93,1,0,0,0,95,96,1,0,0,0,96,9,1,0,0,
+        0,97,95,1,0,0,0,98,100,5,11,0,0,99,98,1,0,0,0,99,100,1,0,0,0,100,
+        106,1,0,0,0,101,102,3,16,8,0,102,103,5,11,0,0,103,105,1,0,0,0,104,
+        101,1,0,0,0,105,108,1,0,0,0,106,104,1,0,0,0,106,107,1,0,0,0,107,
+        11,1,0,0,0,108,106,1,0,0,0,109,110,7,0,0,0,110,13,1,0,0,0,111,112,
+        7,1,0,0,112,15,1,0,0,0,113,115,3,12,6,0,114,113,1,0,0,0,115,116,
+        1,0,0,0,116,114,1,0,0,0,116,117,1,0,0,0,117,17,1,0,0,0,118,120,3,
+        12,6,0,119,118,1,0,0,0,120,121,1,0,0,0,121,119,1,0,0,0,121,122,1,
+        0,0,0,122,19,1,0,0,0,123,125,3,14,7,0,124,123,1,0,0,0,125,126,1,
+        0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,127,21,1,0,0,0,128,129,7,2,
+        0,0,129,23,1,0,0,0,130,131,5,10,0,0,131,25,1,0,0,0,132,142,5,1,0,
+        0,133,142,5,2,0,0,134,142,5,3,0,0,135,142,5,4,0,0,136,138,7,3,0,
+        0,137,136,1,0,0,0,138,139,1,0,0,0,139,137,1,0,0,0,139,140,1,0,0,
+        0,140,142,1,0,0,0,141,132,1,0,0,0,141,133,1,0,0,0,141,134,1,0,0,
+        0,141,135,1,0,0,0,141,137,1,0,0,0,142,27,1,0,0,0,143,146,5,7,0,0,
+        144,145,5,15,0,0,145,147,5,13,0,0,146,144,1,0,0,0,146,147,1,0,0,
+        0,147,151,1,0,0,0,148,151,5,10,0,0,149,151,5,14,0,0,150,143,1,0,
+        0,0,150,148,1,0,0,0,150,149,1,0,0,0,151,29,1,0,0,0,20,42,46,55,60,
+        65,70,75,80,86,90,95,99,106,116,121,126,139,141,146,150
     ]
 
 class fileseqParser ( Parser ):
@@ -94,10 +91,10 @@ class fileseqParser ( Parser ):
     RULE_singleFrame = 3
     RULE_plainFile = 4
     RULE_directory = 5
-    RULE_dirSegment = 6
-    RULE_sequenceBasename = 7
-    RULE_patternBasename = 8
-    RULE_singleFrameBasename = 9
+    RULE_basenameChar = 6
+    RULE_plainBasenameChar = 7
+    RULE_dirSegment = 8
+    RULE_basename = 9
     RULE_plainBasename = 10
     RULE_frameRange = 11
     RULE_frameNum = 12
@@ -105,9 +102,9 @@ class fileseqParser ( Parser ):
     RULE_extension = 14
 
     ruleNames =  [ "input", "sequence", "patternOnly", "singleFrame", "plainFile", 
-                   "directory", "dirSegment", "sequenceBasename", "patternBasename", 
-                   "singleFrameBasename", "plainBasename", "frameRange", 
-                   "frameNum", "padding", "extension" ]
+                   "directory", "basenameChar", "plainBasenameChar", "dirSegment", 
+                   "basename", "plainBasename", "frameRange", "frameNum", 
+                   "padding", "extension" ]
 
     EOF = Token.EOF
     UDIM_ANGLE=1
@@ -258,8 +255,8 @@ class fileseqParser ( Parser ):
                 return self.getTypedRuleContext(fileseqParser.PaddingContext,i)
 
 
-        def sequenceBasename(self):
-            return self.getTypedRuleContext(fileseqParser.SequenceBasenameContext,0)
+        def basename(self):
+            return self.getTypedRuleContext(fileseqParser.BasenameContext,0)
 
 
         def SPECIAL_CHAR(self):
@@ -306,7 +303,7 @@ class fileseqParser ( Parser ):
             la_ = self._interp.adaptivePredict(self._input,1,self._ctx)
             if la_ == 1:
                 self.state = 45
-                self.sequenceBasename()
+                self.basename()
 
 
             self.state = 48
@@ -366,8 +363,8 @@ class fileseqParser ( Parser ):
                 return self.getTypedRuleContext(fileseqParser.PaddingContext,i)
 
 
-        def patternBasename(self):
-            return self.getTypedRuleContext(fileseqParser.PatternBasenameContext,0)
+        def basename(self):
+            return self.getTypedRuleContext(fileseqParser.BasenameContext,0)
 
 
         def SPECIAL_CHAR(self):
@@ -414,7 +411,7 @@ class fileseqParser ( Parser ):
             _la = self._input.LA(1)
             if (((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0):
                 self.state = 64
-                self.patternBasename()
+                self.basename()
 
 
             self.state = 67
@@ -463,8 +460,8 @@ class fileseqParser ( Parser ):
             return self.getTypedRuleContext(fileseqParser.FrameNumContext,0)
 
 
-        def singleFrameBasename(self):
-            return self.getTypedRuleContext(fileseqParser.SingleFrameBasenameContext,0)
+        def basename(self):
+            return self.getTypedRuleContext(fileseqParser.BasenameContext,0)
 
 
         def extension(self, i:int=None):
@@ -508,7 +505,7 @@ class fileseqParser ( Parser ):
             la_ = self._interp.adaptivePredict(self._input,7,self._ctx)
             if la_ == 1:
                 self.state = 79
-                self.singleFrameBasename()
+                self.basename()
 
 
             self.state = 82
@@ -689,6 +686,160 @@ class fileseqParser ( Parser ):
         return localctx
 
 
+    class BasenameCharContext(ParserRuleContext):
+        __slots__ = 'parser'
+
+        def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
+            super().__init__(parent, invokingState)
+            self.parser = parser
+
+        def WORD(self):
+            return self.getToken(fileseqParser.WORD, 0)
+
+        def NUM(self):
+            return self.getToken(fileseqParser.NUM, 0)
+
+        def DOT_NUM(self):
+            return self.getToken(fileseqParser.DOT_NUM, 0)
+
+        def DASH(self):
+            return self.getToken(fileseqParser.DASH, 0)
+
+        def SPECIAL_CHAR(self):
+            return self.getToken(fileseqParser.SPECIAL_CHAR, 0)
+
+        def EXTENSION(self):
+            return self.getToken(fileseqParser.EXTENSION, 0)
+
+        def FRAME_RANGE(self):
+            return self.getToken(fileseqParser.FRAME_RANGE, 0)
+
+        def DOT_FRAME_RANGE(self):
+            return self.getToken(fileseqParser.DOT_FRAME_RANGE, 0)
+
+        def WS(self):
+            return self.getToken(fileseqParser.WS, 0)
+
+        def OTHER_CHAR(self):
+            return self.getToken(fileseqParser.OTHER_CHAR, 0)
+
+        def getRuleIndex(self):
+            return fileseqParser.RULE_basenameChar
+
+        def enterRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "enterBasenameChar" ):
+                listener.enterBasenameChar(self)
+
+        def exitRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "exitBasenameChar" ):
+                listener.exitBasenameChar(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitBasenameChar" ):
+                return visitor.visitBasenameChar(self)
+            else:
+                return visitor.visitChildren(self)
+
+
+
+
+    def basenameChar(self):
+
+        localctx = fileseqParser.BasenameCharContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 12, self.RULE_basenameChar)
+        self._la = 0 # Token type
+        try:
+            self.enterOuterAlt(localctx, 1)
+            self.state = 109
+            _la = self._input.LA(1)
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
+                self._errHandler.recoverInline(self)
+            else:
+                self._errHandler.reportMatch(self)
+                self.consume()
+        except RecognitionException as re:
+            localctx.exception = re
+            self._errHandler.reportError(self, re)
+            self._errHandler.recover(self, re)
+        finally:
+            self.exitRule()
+        return localctx
+
+
+    class PlainBasenameCharContext(ParserRuleContext):
+        __slots__ = 'parser'
+
+        def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
+            super().__init__(parent, invokingState)
+            self.parser = parser
+
+        def WORD(self):
+            return self.getToken(fileseqParser.WORD, 0)
+
+        def NUM(self):
+            return self.getToken(fileseqParser.NUM, 0)
+
+        def DASH(self):
+            return self.getToken(fileseqParser.DASH, 0)
+
+        def SPECIAL_CHAR(self):
+            return self.getToken(fileseqParser.SPECIAL_CHAR, 0)
+
+        def FRAME_RANGE(self):
+            return self.getToken(fileseqParser.FRAME_RANGE, 0)
+
+        def DOT_FRAME_RANGE(self):
+            return self.getToken(fileseqParser.DOT_FRAME_RANGE, 0)
+
+        def WS(self):
+            return self.getToken(fileseqParser.WS, 0)
+
+        def OTHER_CHAR(self):
+            return self.getToken(fileseqParser.OTHER_CHAR, 0)
+
+        def getRuleIndex(self):
+            return fileseqParser.RULE_plainBasenameChar
+
+        def enterRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "enterPlainBasenameChar" ):
+                listener.enterPlainBasenameChar(self)
+
+        def exitRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "exitPlainBasenameChar" ):
+                listener.exitPlainBasenameChar(self)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitPlainBasenameChar" ):
+                return visitor.visitPlainBasenameChar(self)
+            else:
+                return visitor.visitChildren(self)
+
+
+
+
+    def plainBasenameChar(self):
+
+        localctx = fileseqParser.PlainBasenameCharContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 14, self.RULE_plainBasenameChar)
+        self._la = 0 # Token type
+        try:
+            self.enterOuterAlt(localctx, 1)
+            self.state = 111
+            _la = self._input.LA(1)
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 258816) != 0)):
+                self._errHandler.recoverInline(self)
+            else:
+                self._errHandler.reportMatch(self)
+                self.consume()
+        except RecognitionException as re:
+            localctx.exception = re
+            self._errHandler.reportError(self, re)
+            self._errHandler.recover(self, re)
+        finally:
+            self.exitRule()
+        return localctx
+
+
     class DirSegmentContext(ParserRuleContext):
         __slots__ = 'parser'
 
@@ -696,65 +847,12 @@ class fileseqParser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def WORD(self, i:int=None):
+        def basenameChar(self, i:int=None):
             if i is None:
-                return self.getTokens(fileseqParser.WORD)
+                return self.getTypedRuleContexts(fileseqParser.BasenameCharContext)
             else:
-                return self.getToken(fileseqParser.WORD, i)
+                return self.getTypedRuleContext(fileseqParser.BasenameCharContext,i)
 
-        def NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.NUM)
-            else:
-                return self.getToken(fileseqParser.NUM, i)
-
-        def DASH(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DASH)
-            else:
-                return self.getToken(fileseqParser.DASH, i)
-
-        def SPECIAL_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.SPECIAL_CHAR)
-            else:
-                return self.getToken(fileseqParser.SPECIAL_CHAR, i)
-
-        def EXTENSION(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.EXTENSION)
-            else:
-                return self.getToken(fileseqParser.EXTENSION, i)
-
-        def FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.FRAME_RANGE, i)
-
-        def DOT_FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.DOT_FRAME_RANGE, i)
-
-        def DOT_NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_NUM)
-            else:
-                return self.getToken(fileseqParser.DOT_NUM, i)
-
-        def WS(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WS)
-            else:
-                return self.getToken(fileseqParser.WS, i)
-
-        def OTHER_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.OTHER_CHAR)
-            else:
-                return self.getToken(fileseqParser.OTHER_CHAR, i)
 
         def getRuleIndex(self):
             return fileseqParser.RULE_dirSegment
@@ -779,22 +877,17 @@ class fileseqParser ( Parser ):
     def dirSegment(self):
 
         localctx = fileseqParser.DirSegmentContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 12, self.RULE_dirSegment)
+        self.enterRule(localctx, 16, self.RULE_dirSegment)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 110 
+            self.state = 114 
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
-                self.state = 109
-                _la = self._input.LA(1)
-                if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
-                    self._errHandler.recoverInline(self)
-                else:
-                    self._errHandler.reportMatch(self)
-                    self.consume()
-                self.state = 112 
+                self.state = 113
+                self.basenameChar()
+                self.state = 116 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
@@ -809,360 +902,59 @@ class fileseqParser ( Parser ):
         return localctx
 
 
-    class SequenceBasenameContext(ParserRuleContext):
+    class BasenameContext(ParserRuleContext):
         __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def WORD(self, i:int=None):
+        def basenameChar(self, i:int=None):
             if i is None:
-                return self.getTokens(fileseqParser.WORD)
+                return self.getTypedRuleContexts(fileseqParser.BasenameCharContext)
             else:
-                return self.getToken(fileseqParser.WORD, i)
+                return self.getTypedRuleContext(fileseqParser.BasenameCharContext,i)
 
-        def NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.NUM)
-            else:
-                return self.getToken(fileseqParser.NUM, i)
-
-        def DOT_NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_NUM)
-            else:
-                return self.getToken(fileseqParser.DOT_NUM, i)
-
-        def DASH(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DASH)
-            else:
-                return self.getToken(fileseqParser.DASH, i)
-
-        def SPECIAL_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.SPECIAL_CHAR)
-            else:
-                return self.getToken(fileseqParser.SPECIAL_CHAR, i)
-
-        def EXTENSION(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.EXTENSION)
-            else:
-                return self.getToken(fileseqParser.EXTENSION, i)
-
-        def FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.FRAME_RANGE, i)
-
-        def DOT_FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.DOT_FRAME_RANGE, i)
-
-        def WS(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WS)
-            else:
-                return self.getToken(fileseqParser.WS, i)
-
-        def OTHER_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.OTHER_CHAR)
-            else:
-                return self.getToken(fileseqParser.OTHER_CHAR, i)
 
         def getRuleIndex(self):
-            return fileseqParser.RULE_sequenceBasename
+            return fileseqParser.RULE_basename
 
         def enterRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "enterSequenceBasename" ):
-                listener.enterSequenceBasename(self)
+            if hasattr( listener, "enterBasename" ):
+                listener.enterBasename(self)
 
         def exitRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "exitSequenceBasename" ):
-                listener.exitSequenceBasename(self)
+            if hasattr( listener, "exitBasename" ):
+                listener.exitBasename(self)
 
         def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitSequenceBasename" ):
-                return visitor.visitSequenceBasename(self)
+            if hasattr( visitor, "visitBasename" ):
+                return visitor.visitBasename(self)
             else:
                 return visitor.visitChildren(self)
 
 
 
 
-    def sequenceBasename(self):
+    def basename(self):
 
-        localctx = fileseqParser.SequenceBasenameContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 14, self.RULE_sequenceBasename)
-        self._la = 0 # Token type
+        localctx = fileseqParser.BasenameContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 18, self.RULE_basename)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 115 
+            self.state = 119 
             self._errHandler.sync(self)
             _alt = 1
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt == 1:
-                    self.state = 114
-                    _la = self._input.LA(1)
-                    if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
-                        self._errHandler.recoverInline(self)
-                    else:
-                        self._errHandler.reportMatch(self)
-                        self.consume()
+                    self.state = 118
+                    self.basenameChar()
 
                 else:
                     raise NoViableAltException(self)
-                self.state = 117 
+                self.state = 121 
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,14,self._ctx)
-
-        except RecognitionException as re:
-            localctx.exception = re
-            self._errHandler.reportError(self, re)
-            self._errHandler.recover(self, re)
-        finally:
-            self.exitRule()
-        return localctx
-
-
-    class PatternBasenameContext(ParserRuleContext):
-        __slots__ = 'parser'
-
-        def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
-            super().__init__(parent, invokingState)
-            self.parser = parser
-
-        def WORD(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WORD)
-            else:
-                return self.getToken(fileseqParser.WORD, i)
-
-        def NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.NUM)
-            else:
-                return self.getToken(fileseqParser.NUM, i)
-
-        def DOT_NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_NUM)
-            else:
-                return self.getToken(fileseqParser.DOT_NUM, i)
-
-        def DASH(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DASH)
-            else:
-                return self.getToken(fileseqParser.DASH, i)
-
-        def SPECIAL_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.SPECIAL_CHAR)
-            else:
-                return self.getToken(fileseqParser.SPECIAL_CHAR, i)
-
-        def EXTENSION(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.EXTENSION)
-            else:
-                return self.getToken(fileseqParser.EXTENSION, i)
-
-        def FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.FRAME_RANGE, i)
-
-        def DOT_FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.DOT_FRAME_RANGE, i)
-
-        def WS(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WS)
-            else:
-                return self.getToken(fileseqParser.WS, i)
-
-        def OTHER_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.OTHER_CHAR)
-            else:
-                return self.getToken(fileseqParser.OTHER_CHAR, i)
-
-        def getRuleIndex(self):
-            return fileseqParser.RULE_patternBasename
-
-        def enterRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "enterPatternBasename" ):
-                listener.enterPatternBasename(self)
-
-        def exitRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "exitPatternBasename" ):
-                listener.exitPatternBasename(self)
-
-        def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitPatternBasename" ):
-                return visitor.visitPatternBasename(self)
-            else:
-                return visitor.visitChildren(self)
-
-
-
-
-    def patternBasename(self):
-
-        localctx = fileseqParser.PatternBasenameContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 16, self.RULE_patternBasename)
-        self._la = 0 # Token type
-        try:
-            self.enterOuterAlt(localctx, 1)
-            self.state = 120 
-            self._errHandler.sync(self)
-            _la = self._input.LA(1)
-            while True:
-                self.state = 119
-                _la = self._input.LA(1)
-                if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
-                    self._errHandler.recoverInline(self)
-                else:
-                    self._errHandler.reportMatch(self)
-                    self.consume()
-                self.state = 122 
-                self._errHandler.sync(self)
-                _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
-                    break
-
-        except RecognitionException as re:
-            localctx.exception = re
-            self._errHandler.reportError(self, re)
-            self._errHandler.recover(self, re)
-        finally:
-            self.exitRule()
-        return localctx
-
-
-    class SingleFrameBasenameContext(ParserRuleContext):
-        __slots__ = 'parser'
-
-        def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
-            super().__init__(parent, invokingState)
-            self.parser = parser
-
-        def WORD(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WORD)
-            else:
-                return self.getToken(fileseqParser.WORD, i)
-
-        def NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.NUM)
-            else:
-                return self.getToken(fileseqParser.NUM, i)
-
-        def DOT_NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_NUM)
-            else:
-                return self.getToken(fileseqParser.DOT_NUM, i)
-
-        def DASH(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DASH)
-            else:
-                return self.getToken(fileseqParser.DASH, i)
-
-        def SPECIAL_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.SPECIAL_CHAR)
-            else:
-                return self.getToken(fileseqParser.SPECIAL_CHAR, i)
-
-        def EXTENSION(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.EXTENSION)
-            else:
-                return self.getToken(fileseqParser.EXTENSION, i)
-
-        def FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.FRAME_RANGE, i)
-
-        def DOT_FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.DOT_FRAME_RANGE, i)
-
-        def WS(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WS)
-            else:
-                return self.getToken(fileseqParser.WS, i)
-
-        def OTHER_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.OTHER_CHAR)
-            else:
-                return self.getToken(fileseqParser.OTHER_CHAR, i)
-
-        def getRuleIndex(self):
-            return fileseqParser.RULE_singleFrameBasename
-
-        def enterRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "enterSingleFrameBasename" ):
-                listener.enterSingleFrameBasename(self)
-
-        def exitRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "exitSingleFrameBasename" ):
-                listener.exitSingleFrameBasename(self)
-
-        def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitSingleFrameBasename" ):
-                return visitor.visitSingleFrameBasename(self)
-            else:
-                return visitor.visitChildren(self)
-
-
-
-
-    def singleFrameBasename(self):
-
-        localctx = fileseqParser.SingleFrameBasenameContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 18, self.RULE_singleFrameBasename)
-        self._la = 0 # Token type
-        try:
-            self.enterOuterAlt(localctx, 1)
-            self.state = 125 
-            self._errHandler.sync(self)
-            _alt = 1
-            while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
-                if _alt == 1:
-                    self.state = 124
-                    _la = self._input.LA(1)
-                    if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 259968) != 0)):
-                        self._errHandler.recoverInline(self)
-                    else:
-                        self._errHandler.reportMatch(self)
-                        self.consume()
-
-                else:
-                    raise NoViableAltException(self)
-                self.state = 127 
-                self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -1180,53 +972,12 @@ class fileseqParser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def WORD(self, i:int=None):
+        def plainBasenameChar(self, i:int=None):
             if i is None:
-                return self.getTokens(fileseqParser.WORD)
+                return self.getTypedRuleContexts(fileseqParser.PlainBasenameCharContext)
             else:
-                return self.getToken(fileseqParser.WORD, i)
+                return self.getTypedRuleContext(fileseqParser.PlainBasenameCharContext,i)
 
-        def NUM(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.NUM)
-            else:
-                return self.getToken(fileseqParser.NUM, i)
-
-        def DASH(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DASH)
-            else:
-                return self.getToken(fileseqParser.DASH, i)
-
-        def SPECIAL_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.SPECIAL_CHAR)
-            else:
-                return self.getToken(fileseqParser.SPECIAL_CHAR, i)
-
-        def FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.FRAME_RANGE, i)
-
-        def DOT_FRAME_RANGE(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.DOT_FRAME_RANGE)
-            else:
-                return self.getToken(fileseqParser.DOT_FRAME_RANGE, i)
-
-        def WS(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.WS)
-            else:
-                return self.getToken(fileseqParser.WS, i)
-
-        def OTHER_CHAR(self, i:int=None):
-            if i is None:
-                return self.getTokens(fileseqParser.OTHER_CHAR)
-            else:
-                return self.getToken(fileseqParser.OTHER_CHAR, i)
 
         def getRuleIndex(self):
             return fileseqParser.RULE_plainBasename
@@ -1252,27 +1003,21 @@ class fileseqParser ( Parser ):
 
         localctx = fileseqParser.PlainBasenameContext(self, self._ctx, self.state)
         self.enterRule(localctx, 20, self.RULE_plainBasename)
-        self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 130 
+            self.state = 124 
             self._errHandler.sync(self)
             _alt = 1
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt == 1:
-                    self.state = 129
-                    _la = self._input.LA(1)
-                    if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 258816) != 0)):
-                        self._errHandler.recoverInline(self)
-                    else:
-                        self._errHandler.reportMatch(self)
-                        self.consume()
+                    self.state = 123
+                    self.plainBasenameChar()
 
                 else:
                     raise NoViableAltException(self)
-                self.state = 132 
+                self.state = 126 
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,17,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,15,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -1329,7 +1074,7 @@ class fileseqParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 134
+            self.state = 128
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 9984) != 0)):
                 self._errHandler.recoverInline(self)
@@ -1381,7 +1126,7 @@ class fileseqParser ( Parser ):
         self.enterRule(localctx, 24, self.RULE_frameNum)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 136
+            self.state = 130
             self.match(fileseqParser.DOT_NUM)
         except RecognitionException as re:
             localctx.exception = re
@@ -1449,43 +1194,43 @@ class fileseqParser ( Parser ):
         self.enterRule(localctx, 26, self.RULE_padding)
         self._la = 0 # Token type
         try:
-            self.state = 147
+            self.state = 141
             self._errHandler.sync(self)
             token = self._input.LA(1)
             if token in [1]:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 138
+                self.state = 132
                 self.match(fileseqParser.UDIM_ANGLE)
                 pass
             elif token in [2]:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 139
+                self.state = 133
                 self.match(fileseqParser.UDIM_PAREN)
                 pass
             elif token in [3]:
                 self.enterOuterAlt(localctx, 3)
-                self.state = 140
+                self.state = 134
                 self.match(fileseqParser.PRINTF_PAD)
                 pass
             elif token in [4]:
                 self.enterOuterAlt(localctx, 4)
-                self.state = 141
+                self.state = 135
                 self.match(fileseqParser.HOUDINI_PAD)
                 pass
             elif token in [5, 6]:
                 self.enterOuterAlt(localctx, 5)
-                self.state = 143 
+                self.state = 137 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
-                    self.state = 142
+                    self.state = 136
                     _la = self._input.LA(1)
                     if not(_la==5 or _la==6):
                         self._errHandler.recoverInline(self)
                     else:
                         self._errHandler.reportMatch(self)
                         self.consume()
-                    self.state = 145 
+                    self.state = 139 
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==5 or _la==6):
@@ -1552,32 +1297,32 @@ class fileseqParser ( Parser ):
         self.enterRule(localctx, 28, self.RULE_extension)
         self._la = 0 # Token type
         try:
-            self.state = 156
+            self.state = 150
             self._errHandler.sync(self)
             token = self._input.LA(1)
             if token in [7]:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 149
+                self.state = 143
                 self.match(fileseqParser.EXTENSION)
-                self.state = 152
+                self.state = 146
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if _la==15:
-                    self.state = 150
+                    self.state = 144
                     self.match(fileseqParser.DASH)
-                    self.state = 151
+                    self.state = 145
                     self.match(fileseqParser.NUM)
 
 
                 pass
             elif token in [10]:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 154
+                self.state = 148
                 self.match(fileseqParser.DOT_NUM)
                 pass
             elif token in [14]:
                 self.enterOuterAlt(localctx, 3)
-                self.state = 155
+                self.state = 149
                 self.match(fileseqParser.WORD)
                 pass
             else:
