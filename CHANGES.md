@@ -1,5 +1,9 @@
 # Fileseq Changelog
 
+## v3.0.2 (2026-03-08)
+
+* grammar: Adjust the directory parsing rule to handle edge case containing dots (#152)
+
 ## v3.0.1 (2026-03-04)
 
 * pyproject.toml: rename the distribution name field from 'fileseq' back to "Fileseq" for consistency (#151)

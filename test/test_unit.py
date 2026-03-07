@@ -1175,6 +1175,24 @@ class AbstractBaseTests:
             self.assertEqual(seq2._sep, '\\')
             self.assertEqual(str(seq2), str(seq))
 
+        def testDirWithDots(self):
+            """Regression test: directory segments containing dots should parse correctly.
+            See: https://github.com/justinfx/fileseq/issues/152
+            """
+            FS = self.FS
+            table = [
+                # POSIX path with dots in one directory segment
+                ("/path.with.dots/file.1-100#.exr", "/path.with.dots/file.1-100#.exr"),
+                # Multiple dotted directory segments
+                ("/dir.v1/dir.v2/file.1-100#.exr", "/dir.v1/dir.v2/file.1-100#.exr"),
+                # Windows-style path with dots in directory
+                ("C:\\path.with.dots\\file.1-100#.exr", "C:\\path.with.dots\\file.1-100#.exr"),
+            ]
+
+            for seq_str, expect in table:
+                seq = FS(seq_str)
+                self.assertEqual(expect, str(seq))
+
         def testSetPadding(self):
             seq = self.FS("/foo/bong.1-5@.exr")
             seq.setPadding("#")

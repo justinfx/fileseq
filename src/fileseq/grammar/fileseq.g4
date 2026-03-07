@@ -49,10 +49,11 @@ directory
     ;
 
 // Directory segments can contain anything including frame-range-like patterns
+// Includes EXTENSION to handle dots in directory names (e.g. path.with.dots)
 // Includes WS to preserve whitespace in directory names
 // Includes OTHER_CHAR for special characters like ! $ % ( ) etc.
 dirSegment
-    : (WORD | NUM | DASH | SPECIAL_CHAR | FRAME_RANGE | DOT_FRAME_RANGE | DOT_NUM | WS | OTHER_CHAR)+
+    : (WORD | NUM | DASH | SPECIAL_CHAR | EXTENSION | FRAME_RANGE | DOT_FRAME_RANGE | DOT_NUM | WS | OTHER_CHAR)+
     ;
 
 // Basename for sequences: can include EXTENSION (for hidden files)
