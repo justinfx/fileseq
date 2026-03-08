@@ -5,7 +5,7 @@ from the ANTLR parse tree.
 
 Based on Go implementation at gofileseq/internal/parser/parse.go
 """
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from antlr4 import ParseTreeVisitor  # type: ignore[import-untyped]
 
@@ -150,7 +150,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
     # Helper Methods
     # ========================================================================
 
-    def _collect_indexed(self, ctx: Any, method: str) -> list:
+    def _collect_indexed(self, ctx: Any, method: str) -> List[Any]:
         """Collect up to 2 indexed rule contexts, handling both indexed and single forms."""
         results = []
         try:
