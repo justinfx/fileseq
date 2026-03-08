@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "A Python library for parsing frame ranges and file sequences commonly used in VFX and Animation applications."
 readme = "README.md"
 requires-python = ">=3.8"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "Justin Israel", email = "justinisrael@gmail.com"},
     {name = "Matt Chambers", email = "yougotrooted@gmail.com"},
