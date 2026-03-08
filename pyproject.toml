@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "A Python library for parsing frame ranges and file sequences commonly used in VFX and Animation applications."
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Justin Israel", email = "justinisrael@gmail.com"},
     {name = "Matt Chambers", email = "yougotrooted@gmail.com"},
@@ -17,7 +17,6 @@ keywords = ["vfx", "visual effects", "file sequence", "frames", "image"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -51,6 +50,9 @@ Issues = "https://github.com/justinfx/fileseq/issues"
 [tool.pylint.main]
 py-version = "3.8"
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -74,7 +76,7 @@ dependencies = [
 test = "pytest test/ -v"
 test-cov = "pytest test/ --cov=fileseq --cov-report=html"
 # Requires Java 11+ in PATH. macOS: export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
-generate = "python src/fileseq/grammar/generate.py"
+generate = "python scripts/generate.py"
 
 [tool.hatch.envs.docs]
 dependencies = [

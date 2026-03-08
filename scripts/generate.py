@@ -5,10 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Project root (this file is in src/fileseq/grammar/)
-ROOT = Path(__file__).parent.parent.parent.parent
-GRAMMAR_DIR = Path(__file__).parent  # Current directory
-OUTPUT_DIR = GRAMMAR_DIR.parent / "parser"  # ../parser
+# Project root (this file is in scripts/)
+ROOT = Path(__file__).parent.parent
+GRAMMAR_DIR = ROOT / "src" / "fileseq" / "grammar"
+OUTPUT_DIR = ROOT / "src" / "fileseq" / "parser"
 ANTLR_JAR = ROOT / "tools" / "antlr-4.13.1-complete.jar"
 GRAMMAR_FILE = "fileseq.g4"
 
