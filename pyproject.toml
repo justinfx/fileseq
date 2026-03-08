@@ -57,9 +57,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 fileseq = [
     "py.typed",
-    "grammar/*.g4",
     "parser/*.py",
-    "parser/*.tokens",
 ]
 
 [tool.setuptools_scm]
