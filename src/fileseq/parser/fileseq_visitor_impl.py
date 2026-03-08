@@ -5,7 +5,7 @@ from the ANTLR parse tree.
 
 Based on Go implementation at gofileseq/internal/parser/parse.go
 """
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from antlr4 import ParseTreeVisitor  # type: ignore[import-untyped]
 
@@ -18,10 +18,6 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
 
     Based on Go implementation at gofileseq/internal/parser/parse.go
     """
-
-    def __init__(self) -> None:
-        super().__init__()
-        # Don't initialize result here - let visitor methods create it with proper flags
 
     # ========================================================================
     # Main Entry Points (one of these will be called based on parse tree)
@@ -47,63 +43,38 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             - Composite padding: /path/file.1-5@.#.exr (subframes + frame padding)
         """
         result = ParseResult(is_sequence=True)
-        result.directory = self._visit_directory(ctx.directory())
-        if ctx.basename():
-            result.basename = self._visit_basename(ctx.basename())
+        result.directory = ctx.directory().getText()
+        if bn := ctx.basename():
+            result.basename = bn.getText()
 
-        # Extract frame ranges (can have 1 or 2 for Python subframes)
-        # Try to get indexed frameRange contexts (grammar allows multiple)
-        frame_ranges = []
-        try:
-            fr0 = ctx.frameRange(0)
-            if fr0:
-                frame_ranges.append(fr0)
-            fr1 = ctx.frameRange(1)
-            if fr1:
-                frame_ranges.append(fr1)
-        except (AttributeError, TypeError):
-            # Single frameRange (not indexed)
-            if ctx.frameRange():
-                frame_ranges.append(ctx.frameRange())
+        # Extract frame ranges and paddings (can have 1 or 2 for Python subframes)
+        # Note: leading dot in frame range text will be moved to basename in post-processing
+        frame_ranges = self._collect_indexed(ctx, "frameRange")
+        paddings = self._collect_indexed(ctx, "padding")
 
-        # Extract paddings (can have 1 or 2 for Python subframes)
-        paddings = []
-        try:
-            p0 = ctx.padding(0)
-            if p0:
-                paddings.append(p0)
-            p1 = ctx.padding(1)
-            if p1:
-                paddings.append(p1)
-        except (AttributeError, TypeError):
-            # Single padding (not indexed)
-            if ctx.padding():
-                paddings.append(ctx.padding())
-
-        # Handle subframe patterns
         if len(frame_ranges) == 2:
             # Dual range pattern: main frames + subframes
             # e.g., /path/file.1-5#.10-20@@.exr
-            result.frame_range = self._visit_frame_range(frame_ranges[0])  # Main frames
-            result.padding = self._visit_padding(paddings[0])  # Main padding
+            result.frame_range = frame_ranges[0].getText()
+            result.padding = paddings[0].getText()
             if len(paddings) == 2:
-                # Store subframe range and padding separately
-                result.subframe_range = self._visit_frame_range(frame_ranges[1])
-                subframe_padding = self._visit_padding(paddings[1])
-                # Combine paddings: frame_padding.subframe_padding
-                result.padding = f"{result.padding}.{subframe_padding}"
+                result.subframe_range = frame_ranges[1].getText()
+                result.padding = f"{result.padding}.{paddings[1].getText()}"
+
         elif len(frame_ranges) == 1 and len(paddings) == 2:
-            # Composite padding pattern: subframe range + frame padding (no main frame range with padding)
+            # Composite padding pattern: subframe range + frame padding
             # e.g., /path/file.1-5@.#.exr
-            result.frame_range = self._visit_frame_range(frame_ranges[0])  # Subframe range
-            result.padding = f"{self._visit_padding(paddings[0])}.{self._visit_padding(paddings[1])}"
+            result.frame_range = frame_ranges[0].getText()
+            result.padding = f"{paddings[0].getText()}.{paddings[1].getText()}"
+
         elif len(frame_ranges) == 1 and len(paddings) == 1:
             # Standard pattern: single frame range + padding
-            result.frame_range = self._visit_frame_range(frame_ranges[0])
-            result.padding = self._visit_padding(paddings[0])
+            result.frame_range = frame_ranges[0].getText()
+            result.padding = paddings[0].getText()
 
-        if ctx.extension():
-            result.extension = self._visit_extensions(ctx.extension())
+        if exts := ctx.extension():
+            result.extension = ''.join(ext.getText() for ext in exts)
+
         return result
 
     def visitPatternOnly(self, ctx: Any) -> ParseResult:
@@ -114,32 +85,21 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
             directory patternBasename? padding (SPECIAL_CHAR padding)? extension*
         """
         result = ParseResult(is_sequence=True)
-        result.directory = self._visit_directory(ctx.directory())
-        if ctx.basename():
-            result.basename = self._visit_basename(ctx.basename())
+        result.directory = ctx.directory().getText()
+        if bn := ctx.basename():
+            result.basename = bn.getText()
 
-        # Extract paddings (can have 1 or 2 for Python subframes)
-        paddings = []
-        try:
-            p0 = ctx.padding(0)
-            if p0:
-                paddings.append(p0)
-            p1 = ctx.padding(1)
-            if p1:
-                paddings.append(p1)
-        except (AttributeError, TypeError):
-            # Single padding (not indexed)
-            if ctx.padding():
-                paddings.append(ctx.padding())
+        paddings = self._collect_indexed(ctx, "padding")
 
-        # Handle subframe padding: #.# pattern
         if len(paddings) == 2:
-            result.padding = f"{self._visit_padding(paddings[0])}.{self._visit_padding(paddings[1])}"
-        elif len(paddings) == 1:
-            result.padding = self._visit_padding(paddings[0])
+            result.padding = f"{paddings[0].getText()}.{paddings[1].getText()}"
 
-        if ctx.extension():
-            result.extension = self._visit_extensions(ctx.extension())
+        elif len(paddings) == 1:
+            result.padding = paddings[0].getText()
+
+        if exts := ctx.extension():
+            result.extension = ''.join(ext.getText() for ext in exts)
+
         # No frame_range for pattern-only
         return result
 
@@ -152,22 +112,21 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         Note: Extension MUST follow frame number (Python canonical behavior)
         """
         result = ParseResult(is_single_frame=True)
-        result.directory = self._visit_directory(ctx.directory())
-        if ctx.basename():
-            result.basename = self._visit_basename(ctx.basename())
+        result.directory = ctx.directory().getText()
+        if bn := ctx.basename():
+            result.basename = bn.getText()
 
         # Extract frame number from DOT_NUM or NUM token
         # Keep the leading dot if present - post-processing will move it to basename
-        if ctx.frameNum():
-            if ctx.frameNum().DOT_NUM():
-                frame_text = ctx.frameNum().DOT_NUM().getText()
-                result.frame_range = frame_text  # Keep dot: ".100"
-            elif ctx.frameNum().NUM():
-                frame_text = ctx.frameNum().NUM().getText()
-                result.frame_range = frame_text  # No dot: "100"
+        if frame_num := ctx.frameNum():
+            if dot_num := frame_num.DOT_NUM():
+                result.frame_range = dot_num.getText()
+            elif num := frame_num.NUM():
+                result.frame_range = num.getText()
 
-        if ctx.extension():
-            result.extension = self._visit_extensions(ctx.extension())
+        if exts := ctx.extension():
+            result.extension = ''.join(ext.getText() for ext in exts)
+
         return result
 
     def visitPlainFile(self, ctx: Any) -> ParseResult:
@@ -177,69 +136,32 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         Grammar: directory plainBasename? extension*
         """
         result = ParseResult(is_plain_file=True)
-        result.directory = self._visit_directory(ctx.directory())
-        if ctx.plainBasename():
-            result.basename = self._visit_basename(ctx.plainBasename())
-        if ctx.extension():
-            result.extension = self._visit_extensions(ctx.extension())
+        result.directory = ctx.directory().getText()
+
+        if bn := ctx.plainBasename():
+            result.basename = bn.getText()
+
+        if exts := ctx.extension():
+            result.extension = ''.join(ext.getText() for ext in exts)
+
         return result
 
     # ========================================================================
-    # Helper Methods - Extract Text from Contexts
+    # Helper Methods
     # ========================================================================
 
-    def _visit_directory(self, ctx: Any) -> str:
-        """
-        Extract directory path from directory context.
+    def _collect_indexed(self, ctx: Any, method: str) -> list:
+        """Collect up to 2 indexed rule contexts, handling both indexed and single forms."""
+        results = []
+        try:
+            for i in range(2):
+                item = getattr(ctx, method)(i)
+                if item:
+                    results.append(item)
 
-        Preserves path separators (/ or \\) from input.
-        """
-        if not ctx:
-            return ""
-        return ctx.getText()
+        except (AttributeError, TypeError):
+            item = getattr(ctx, method)()
+            if item:
+                results.append(item)
 
-    def _visit_basename(self, ctx: Any) -> str:
-        """Extract basename from basename context (various rules)."""
-        if not ctx:
-            return ""
-        return ctx.getText()
-
-    def _visit_frame_range(self, ctx: Any) -> str:
-        """
-        Extract frame range from frameRange context.
-
-        May include leading dot which needs to be handled in post-processing.
-        Examples: "1-100", ".1-100", "1,2,3", ".1-100x2"
-        """
-        if not ctx:
-            return ""
-
-        text = ctx.getText()
-        # Note: Leading dot will be moved to basename in post-processing
-        return text
-
-    def _visit_padding(self, ctx: Any) -> str:
-        """
-        Extract padding string from padding context.
-
-        Examples: "#", "@@@@", "%04d", "$F4", "<UDIM>"
-        """
-        if not ctx:
-            return ""
-        return ctx.getText()
-
-    def _visit_extensions(self, ctx: List[Any]) -> str:
-        """
-        Extract concatenated extensions from list of extension contexts.
-
-        Handles multi-part extensions: .tar.gz, .bgeo.sc
-        """
-        if not ctx:
-            return ""
-
-        # Concatenate all extension parts
-        extensions = []
-        for ext_ctx in ctx:
-            extensions.append(ext_ctx.getText())
-
-        return ''.join(extensions)
+        return results
