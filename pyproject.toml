@@ -48,6 +48,9 @@ Documentation = "https://fileseq.readthedocs.io/"
 Repository = "https://github.com/justinfx/fileseq"
 Issues = "https://github.com/justinfx/fileseq/issues"
 
+[tool.pylint.main]
+py-version = "3.8"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
