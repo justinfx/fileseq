@@ -5,9 +5,9 @@ Based on Go implementation at gofileseq/fileseq.go
 """
 from typing import Any, List, Dict, Optional
 
-from fileseq._vendor.antlr4 import InputStream, CommonTokenStream, ParseTreeVisitor  # type: ignore[import-untyped]
-from fileseq._vendor.antlr4.error.ErrorListener import ErrorListener  # type: ignore[import-untyped]
-from fileseq._vendor.antlr4.atn.PredictionMode import PredictionMode  # type: ignore[import-untyped]
+from fileseq._vendor.antlr4 import InputStream, CommonTokenStream, ParseTreeVisitor  # type: ignore[attr-defined]
+from fileseq._vendor.antlr4.error.ErrorListener import ErrorListener  # type: ignore[attr-defined]
+from fileseq._vendor.antlr4.atn.PredictionMode import PredictionMode  # type: ignore[attr-defined]
 
 from .fileseqLexer import fileseqLexer
 from .fileseqParser import fileseqParser
@@ -86,7 +86,7 @@ def parse_file_sequence(path: str) -> Optional[ParseResult]:
     parser.addErrorListener(parser_error_listener)
 
     # Try SLL prediction mode first (30x faster for unambiguous grammars)
-    parser._interp.predictionMode = PredictionMode.SLL
+    parser._interp.predictionMode = PredictionMode.SLL  # type: ignore[attr-defined]
 
     try:
         tree = parser.input_()
@@ -105,7 +105,7 @@ def parse_file_sequence(path: str) -> Optional[ParseResult]:
             parser.addErrorListener(parser_error_listener)
 
             # Use LL mode (slower but more thorough)
-            parser._interp.predictionMode = PredictionMode.LL
+            parser._interp.predictionMode = PredictionMode.LL  # type: ignore[attr-defined]
             tree = parser.input_()
 
             # Check for errors again

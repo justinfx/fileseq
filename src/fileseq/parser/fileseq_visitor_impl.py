@@ -7,7 +7,7 @@ Based on Go implementation at gofileseq/internal/parser/parse.go
 """
 from typing import Any, List, Optional
 
-from fileseq._vendor.antlr4 import ParseTreeVisitor  # type: ignore[import-untyped]
+from fileseq._vendor.antlr4 import ParseTreeVisitor  # type: ignore[attr-defined]
 
 from .parse_result import ParseResult
 
