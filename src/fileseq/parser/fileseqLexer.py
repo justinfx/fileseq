@@ -1,5 +1,5 @@
 # Generated from fileseq.g4 by ANTLR 4.13.1
-from antlr4 import *
+from fileseq._vendor.antlr4 import *
 from io import StringIO
 import sys
 if sys.version_info[1] > 5:

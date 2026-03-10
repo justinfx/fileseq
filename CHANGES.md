@@ -1,5 +1,10 @@
 # Fileseq Changelog
 
+## v3.1.0 (2026-03-10)
+
+* Remove antlr4 runtime dependency from pyproject.toml and vendor internally to pin specific version that would never
+  conflict with any other project needing antlr4 runtime
+
 ## v3.0.2 (2026-03-08)
 
 * grammar: Adjust the directory parsing rule to handle edge case containing dots (#152)

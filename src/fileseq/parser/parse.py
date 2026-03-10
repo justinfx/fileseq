@@ -5,9 +5,9 @@ Based on Go implementation at gofileseq/fileseq.go
 """
 from typing import Any, List, Dict, Optional
 
-from antlr4 import InputStream, CommonTokenStream, ParseTreeVisitor  # type: ignore[import-untyped]
-from antlr4.error.ErrorListener import ErrorListener  # type: ignore[import-untyped]
-from antlr4.atn.PredictionMode import PredictionMode  # type: ignore[import-untyped]
+from fileseq._vendor.antlr4 import InputStream, CommonTokenStream, ParseTreeVisitor  # type: ignore[import-untyped]
+from fileseq._vendor.antlr4.error.ErrorListener import ErrorListener  # type: ignore[import-untyped]
+from fileseq._vendor.antlr4.atn.PredictionMode import PredictionMode  # type: ignore[import-untyped]
 
 from .fileseqLexer import fileseqLexer
 from .fileseqParser import fileseqParser
