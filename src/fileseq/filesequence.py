@@ -333,10 +333,15 @@ class BaseFileSequence(typing.Generic[T]):
 
         # Strip any trailing separators (both / and \) to avoid double separators
         # This handles mixed separator paths like 'path/sub\'
-        dirname = dirname.rstrip('/\\')
+        stripped = dirname.rstrip('/\\')
 
-        if dirname:
-            dirname = str(dirname) + sep
+        if stripped:
+            dirname = stripped + sep
+        elif dirname:
+            # dirname was all separators (e.g. "/" or "\\") — keep the root separator
+            dirname = sep
+        else:
+            dirname = stripped
 
         self._dir = dirname
 
