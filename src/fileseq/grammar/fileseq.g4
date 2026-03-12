@@ -43,9 +43,10 @@ plainFile
     : directory plainBasename? extension*
     ;
 
-// Directory: optional leading slash + segments ending with slash
+// Directory: optional leading slash(es) + segments ending with slash
+// SLASH SLASH? allows one or two leading slashes to support UNC paths (//server/share/)
 directory
-    : SLASH? (dirSegment SLASH)*
+    : (SLASH SLASH?)? (dirSegment SLASH)*
     ;
 
 // Any token valid in a basename or directory segment.
