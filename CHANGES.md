@@ -1,5 +1,10 @@
 # Fileseq Changelog
 
+## v3.1.1 (2026-03-13)
+
+* grammar: fix directory rule to allow UNC paths (//server/share/) (#153)
+* fix setDirname stripping the root path separator, causing root-level paths to lose their leading slash
+
 ## v3.1.0 (2026-03-10)
 
 * Remove antlr4 runtime dependency from pyproject.toml and vendor internally to pin specific version that would never
