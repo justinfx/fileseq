@@ -1193,6 +1193,53 @@ class AbstractBaseTests:
                 seq = FS(seq_str)
                 self.assertEqual(expect, str(seq))
 
+        def testUNCPaths(self):
+            """Regression test: UNC paths (//server/share/...) should parse correctly.
+            See: https://github.com/justinfx/fileseq/issues/153
+            """
+            FS = self.FS
+            # Sequences with frame ranges should round-trip exactly
+            table = [
+                ("//rama/dev/fileseq_test/fileseq_test.1-100####.exr",
+                 "//rama/dev/fileseq_test/fileseq_test.1-100####.exr"),
+                ("//server/share/file.1-50@@@@.exr",
+                 "//server/share/file.1-50@@@@.exr"),
+            ]
+            for seq_str, expect in table:
+                seq = FS(seq_str)
+                self.assertEqual(expect, str(seq))
+
+            # UNC paths should parse the directory component correctly
+            seq = FS("//rama/dev/fileseq_test/fileseq_test.1-100####.exr")
+            self.assertEqual("//rama/dev/fileseq_test/", seq.dirname())
+
+            # Pattern-only and single-file UNC paths must not raise ParseException
+            for seq_str in [
+                "//server/share/file.####.exr",
+                "//server/share/file.0001.exr",
+            ]:
+                try:
+                    FS(seq_str)
+                except fileseq.ParseException:
+                    self.fail(f"ParseException raised for UNC path: {seq_str!r}")
+
+        def testRootLevelPaths(self):
+            """Regression test: files directly under root (/) must preserve dirname as '/'.
+
+            In 3.x, setDirname('/') was incorrectly stripping the leading slash,
+            leaving dirname as '' instead of '/'.
+            """
+            FS = self.FS
+            seq = FS("/file.1-100#.exr")
+            self.assertEqual("/", seq.dirname())
+            self.assertEqual("/file.1-100#.exr", str(seq))
+
+            seq = FS("/file.####.exr")
+            self.assertEqual("/", seq.dirname())
+
+            seq = FS("/file.0001.exr")
+            self.assertEqual("/", seq.dirname())
+
         def testSetPadding(self):
             seq = self.FS("/foo/bong.1-5@.exr")
             seq.setPadding("#")
