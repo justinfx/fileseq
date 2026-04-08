@@ -115,6 +115,7 @@ class BaseFileSequence(typing.Generic[T]):
             skip_parse: If True, skip parsing and use existing component values
         """
         sequence = utils.asString(sequence)
+        sequence = self._preprocess_sequence(sequence)
 
         # Detect and store the path separator from input
         self._sep = utils._getPathSep(sequence)
@@ -217,6 +218,22 @@ class BaseFileSequence(typing.Generic[T]):
             T: The path in the appropriate type for this sequence
         """
         raise NotImplementedError("Subclasses must implement _create_path")
+
+    def _preprocess_sequence(self, sequence: str) -> str:
+        """Override to translate custom sequence syntax before parsing.
+
+        Called with the raw sequence string before any parsing takes place.
+        The returned string must be valid syntax recognized by the fileseq
+        grammar, including frame ranges (e.g. ``1-100``, ``1,2,3``) and
+        padding formats (e.g. ``#``, ``@``, ``%04d``, ``$F4``, ``<UDIM>``).
+
+        Args:
+            sequence (str): the raw input sequence string
+
+        Returns:
+            str: the (possibly modified) sequence string
+        """
+        return sequence
 
     @property
     def _sep(self) -> str:

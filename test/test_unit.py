@@ -2691,5 +2691,84 @@ class TestPaddingFunctions(TestBase):
             self.assertEqual(test.has_padded, filter_ctx.has_padded_frames)
 
 
+class TestPreprocessSequence(TestBase):
+    """Test the _preprocess_sequence hook for custom padding format translation."""
+
+    class VRayFileSequence(FileSequence):
+        """Example subclass that translates VRay <frameNN> padding to printf syntax."""
+        _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+
+        def _preprocess_sequence(self, sequence):
+            def replace(m):
+                width = int(m.group(1))
+                return '%0{}d'.format(width) if width > 0 else '%d'
+            return self._VRAY_PAD_RE.sub(replace, sequence)
+
+    def testNoopDefault(self):
+        """Default implementation is a no-op."""
+        seq = FileSequence('/path/file.1-100#.exr')
+        self.assertEqual('/path/file.1-100#.exr', seq._preprocess_sequence('/path/file.1-100#.exr'))
+
+    def testPaddingBasic(self):
+        """VRay <frameNN> padding is translated to printf syntax."""
+        seq = self.VRayFileSequence('/path/file.1-100<frame04>.exr')
+        self.assertEqual('/path/file.', seq.dirname() + seq.basename())
+        self.assertEqual('.exr', seq.extension())
+        self.assertEqual('%04d', seq.padding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual('0001-0100', seq.frameRange())
+        self.assertEqual('/path/file.0001.exr', seq.frame(1))
+        self.assertEqual('/path/file.0042.exr', seq.frame(42))
+
+    def testPaddingPatternOnly(self):
+        """VRay pattern-only (no frame range) is parsed correctly."""
+        seq = self.VRayFileSequence('/path/file.<frame04>.exr')
+        self.assertEqual('%04d', seq.padding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual('', seq.frameRange())
+
+    def testPaddingSubframes(self):
+        """VRay <frameNN> with dual frame range (subframes) is translated correctly."""
+        seq = self.VRayFileSequence(
+            '/path/file.1-5<frame04>.10-20<frame04>.exr',
+            allow_subframes=True,
+        )
+        self.assertEqual('/path/file.', seq.dirname() + seq.basename())
+        self.assertEqual('.exr', seq.extension())
+        self.assertEqual('%04d', seq.framePadding())
+        self.assertEqual('%04d', seq.subframePadding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual(4, seq.decimalPlaces())
+        self.assertEqual('/path/file.0001.0000.exr', seq.frame(1))
+        self.assertEqual('/path/file.0001.0010.exr', seq.frame(Decimal('1.0010')))
+
+    def testPaddingSubframesPatternOnly(self):
+        """VRay dual-padding pattern-only (no frame range) with subframes."""
+        seq = self.VRayFileSequence(
+            '/path/file.<frame04>.<frame04>.exr',
+            allow_subframes=True,
+        )
+        self.assertEqual('%04d', seq.framePadding())
+        self.assertEqual('%04d', seq.subframePadding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual(4, seq.decimalPlaces())
+        self.assertEqual('', seq.frameRange())
+
+    def testCustomFrameRangeSyntax(self):
+        """Custom frame range delimiter '=' is translated to '-' before parsing."""
+
+        class EqualRangeFileSequence(FileSequence):
+            _EQUAL_RANGE_RE = re.compile(r'(\d+)=(\d+)')
+
+            def _preprocess_sequence(self, sequence):
+                return self._EQUAL_RANGE_RE.sub(r'\1-\2', sequence)
+
+        seq = EqualRangeFileSequence('/path/file.1=100#.exr')
+        self.assertEqual('0001-0100', seq.frameRange())
+        self.assertEqual(100, len(seq))
+        self.assertEqual('/path/file.0001.exr', seq.frame(1))
+        self.assertEqual('/path/file.0100.exr', seq.frame(100))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)
