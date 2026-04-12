@@ -21,7 +21,7 @@ from .utils import (asString, xfrange, unique, pad, quantize,
 FrameValue = Union[int, float, decimal.Decimal]
 
 # Internal type alias for a (start, end) interval pair used in coverage/gap calculations
-_Interval = tuple[decimal.Decimal, decimal.Decimal]
+_Interval = typing.Tuple[decimal.Decimal, decimal.Decimal]
 
 # Type alias for FrameSet constructor input
 FrameSetInput = Union[
