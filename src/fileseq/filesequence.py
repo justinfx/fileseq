@@ -235,6 +235,25 @@ class BaseFileSequence(typing.Generic[T]):
         """
         return sequence
 
+    def _postprocess_sequence(self, sequence: str) -> str:
+        """Override to translate the assembled sequence string back to custom syntax.
+
+        This is the complement to :meth:`_preprocess_sequence`.  It is called
+        with the fully assembled sequence string just before it is returned by
+        :meth:`__str__` and :meth:`format`, giving subclasses the opportunity
+        to restore any custom padding tokens or other syntax that was translated
+        during preprocessing.
+
+        The default implementation is a no-op.
+
+        Args:
+            sequence (str): the assembled sequence string in fileseq grammar
+
+        Returns:
+            str: the (possibly modified) sequence string
+        """
+        return sequence
+
     @property
     def _sep(self) -> str:
         """Path separator, defaults to os.sep if not explicitly set."""
@@ -298,14 +317,14 @@ class BaseFileSequence(typing.Generic[T]):
         # and user never asked for it in template
         inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
 
-        return template.format(
+        return self._postprocess_sequence(template.format(
             basename=self.basename(),
             extension=self.extension(), start=self.start(),
             end=self.end(), length=len(self),
             padding=self.padding(),
             range=self.frameRange() or "",
             inverted=inverted,
-            dirname=self.dirname())
+            dirname=self.dirname()))
 
     def split(self) -> list[BaseFileSequence[T]]:
         """
@@ -907,7 +926,7 @@ class BaseFileSequence(typing.Generic[T]):
         if self._has_negative_zero and frameSet_str == '0':
             frameSet_str = '-0'
         cmpts.frameSet = frameSet_str
-        return "".join(dataclasses.astuple(cmpts))
+        return self._postprocess_sequence("".join(dataclasses.astuple(cmpts)))
 
     def __repr__(self) -> str:
         try:

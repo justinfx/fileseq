@@ -1,5 +1,9 @@
 # Fileseq Changelog
 
+## v3.2.0 (2026-04-19)
+
+* Add pre/post processing hooks for custom FileSequence subclasses to control input/output string formats (#154)
+
 ## v3.1.1 (2026-03-13)
 
 * grammar: fix directory rule to allow UNC paths (//server/share/) (#153)
