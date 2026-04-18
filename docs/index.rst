@@ -7,6 +7,7 @@ A Python library for parsing frame ranges and file sequences commonly used in VF
    :maxdepth: 2
    :caption: Contents:
 
+   usage
    api
    grammar
 
