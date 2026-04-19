@@ -1173,7 +1173,7 @@ class BaseFileSequence(typing.Generic[T]):
                             paths: typing.Iterable[str | pathlib.Path],
                             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
                             allow_subframes: bool = False,
-                            klass: type[BaseFileSequence] | None = None) -> list[Self]:
+                            klass: type[Self] | None = None) -> list[Self]:
         """
         Returns the list of discrete sequences within paths.  This does not try
         to determine if the files actually exist on disk, it assumes you
@@ -1212,7 +1212,7 @@ class BaseFileSequence(typing.Generic[T]):
             strictPadding: bool = False,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
             allow_subframes: bool = False,
-            klass: type[BaseFileSequence] | None = None) -> list[Self]:
+            klass: type[Self] | None = None) -> list[Self]:
         """
         Yield the sequences found in the given directory.
 
@@ -1373,7 +1373,7 @@ class BaseFileSequence(typing.Generic[T]):
             allow_subframes: bool = False,
             force_case_sensitive: bool = True,
             preserve_padding: bool = False,
-            klass: type[BaseFileSequence] | None = None) -> Self:
+            klass: type[Self] | None = None) -> Self:
         """
         Search for a specific sequence on disk.
 
