@@ -20,6 +20,9 @@ from .utils import (asString, xfrange, unique, pad, quantize,
 # Type alias for frame values
 FrameValue = Union[int, float, decimal.Decimal]
 
+# Internal type alias for a (start, end) interval pair used in coverage/gap calculations
+_Interval = typing.Tuple[decimal.Decimal, decimal.Decimal]
+
 # Type alias for FrameSet constructor input
 FrameSetInput = Union[
     str,                                    # Frame range string like "1-10", "1-100x5"
@@ -82,6 +85,64 @@ class Range:
         if self.step == 0:
             return 0
         return int(abs(self.end - self.start) / abs(self.step)) + 1
+
+
+_D0 = decimal.Decimal(0)
+_D1 = decimal.Decimal(1)
+
+
+def _all_ranges_contiguous(ranges: list[Range]) -> bool:
+    """Return True if every range has a step of 1 or -1."""
+    for r in ranges:
+        if r.step != _D1 and r.step != -_D1:
+            return False
+    return True
+
+
+def _merged_coverage(ranges: list[Range]) -> list[_Interval]:
+    """Return sorted, merged bounding intervals from a list of ranges.
+
+    Each entry is ``(lo, hi)`` where ``lo <= hi``. Adjacent intervals
+    (e.g. [1,5] and [6,10]) are merged into one.
+    """
+    if not ranges:
+        return []
+
+    # collect one (lo, hi) pair per range block
+    intervals = [(min(r.start, r.end), max(r.start, r.end)) for r in ranges]
+    intervals.sort()
+
+    merged: list[_Interval] = [intervals[0]]
+    for lo, hi in intervals[1:]:
+        prev_lo, prev_hi = merged[-1]
+        # merge if adjacent (frames n and n+1 are neighbours) or overlapping
+        if lo <= prev_hi + _D1:
+            merged[-1] = (prev_lo, max(prev_hi, hi))
+        else:
+            merged.append((lo, hi))
+    return merged
+
+
+def _gaps_in_range(lo: decimal.Decimal, hi: decimal.Decimal, coverage: list[_Interval]) -> list[_Interval]:
+    """Return sub-intervals of [lo, hi] not covered by any entry in coverage.
+
+    Gaps are returned in ascending order.
+    """
+    gaps: list[_Interval] = []
+    cursor = lo
+    for cov_lo, cov_hi in coverage:
+        if cov_hi < lo:
+            continue
+        if cov_lo > hi:
+            break
+        if cursor < cov_lo:
+            gaps.append((cursor, cov_lo - _D1))
+        cursor = max(cursor, cov_hi + _D1)
+        if cursor > hi:
+            break
+    if cursor <= hi:
+        gaps.append((cursor, hi))
+    return gaps
 
 
 class FrameSet(BaseFrameSet):
@@ -350,6 +411,18 @@ class FrameSet(BaseFrameSet):
                 actual_step = decimal.Decimal(1) if start < end else decimal.Decimal(-1)
                 if not overlaps:
                     self._ranges.append(Range(start_dec, end_dec, actual_step))
+                elif _all_ranges_contiguous(self._ranges):
+                    # fast path: all existing ranges are step-1 or step-(-1), so we can
+                    # compute the uncovered sub-intervals directly without per-frame iteration
+                    coverage = _merged_coverage(self._ranges)
+                    gaps = _gaps_in_range(new_lo, new_hi, coverage)
+                    if actual_step < _D0:
+                        # descending: append gaps in reverse so frame order matches start→end
+                        for gap_lo, gap_hi in reversed(gaps):
+                            self._ranges.append(Range(gap_hi, gap_lo, actual_step))
+                    else:
+                        for gap_lo, gap_hi in gaps:
+                            self._ranges.append(Range(gap_lo, gap_hi, actual_step))
                 else:
                     istep = 1 if start < end else -1
                     frame_range = xfrange(start, end, istep, maxSize=maxSize)

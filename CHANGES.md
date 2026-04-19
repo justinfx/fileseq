@@ -2,6 +2,7 @@
 
 ## v3.2.0 (2026-04-19)
 
+* Optimize `FrameSet` range append for overlapping step=1 ranges (#155)
 * Add pre/post processing hooks for custom FileSequence subclasses to control input/output string formats (#154)
 * Create new Usage doc
 
