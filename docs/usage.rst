@@ -227,6 +227,38 @@ Three class methods locate sequences on disk.
                                           strictPadding=True,
                                           preserve_padding=True)
 
+**Using a custom subclass with the find methods**
+
+All three find methods are classmethods, so the simplest way to get results of a
+custom subclass is to call the method directly on that subclass.  The
+``_preprocess_sequence`` and ``_postprocess_sequence`` hooks are picked up
+automatically:
+
+.. code-block:: python
+
+    # Call directly on the subclass — hooks are used automatically
+    seqs = VRayFileSequence.findSequencesOnDisk('/renders')
+    seq  = VRayFileSequence.findSequenceOnDisk('/renders/beauty.<frame04>.exr',
+                                               strictPadding=True,
+                                               preserve_padding=True)
+    seqs = VRayFileSequence.findSequencesInList(paths)
+
+When the call site cannot be changed — for example in a generic utility that
+always calls ``FileSequence.findSequenceOnDisk`` — pass the subclass via the
+``klass`` argument instead:
+
+.. code-block:: python
+
+    # klass overrides which class is used to construct results
+    seqs = FileSequence.findSequencesOnDisk('/renders', klass=VRayFileSequence)
+    seq  = FileSequence.findSequenceOnDisk('/renders/beauty.<frame04>.exr',
+                                           strictPadding=True,
+                                           preserve_padding=True,
+                                           klass=VRayFileSequence)
+    seqs = FileSequence.findSequencesInList(paths, klass=VRayFileSequence)
+
+Both approaches produce identical results.
+
 **findSequencesInList** — build sequences from an existing file list in memory
 
 This is useful when you already have a list of paths (e.g. from an asset database) and do not

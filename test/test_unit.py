@@ -2838,5 +2838,78 @@ class TestPostprocessSequence(TestBase):
         self.assertEqual('/path/file.1-5<frame04>.10-20<frame04>.exr', str(seq))
 
 
+class TestFindWithKlass(TestBase):
+    """Test the klass argument on filesystem find methods."""
+
+    class VRayFileSequence(FileSequence):
+        """Translates VRay <frameNN> padding tokens in both directions."""
+        _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+        _PRINTF_PAD_RE = re.compile(r'%0?(\d+)d')
+
+        def _preprocess_sequence(self, sequence):
+            def replace(m):
+                width = int(m.group(1))
+                return '%0{}d'.format(width) if width > 0 else '%d'
+            return self._VRAY_PAD_RE.sub(replace, sequence)
+
+        def _postprocess_sequence(self, sequence):
+            def replace(m):
+                return '<frame{:02d}>'.format(int(m.group(1)))
+            return self._PRINTF_PAD_RE.sub(replace, sequence)
+
+    # --- findSequencesOnDisk ---
+
+    def testFindSequencesOnDiskKlassInstances(self):
+        """Results are instances of klass, not the calling class."""
+        seqs = FileSequence.findSequencesOnDisk('seq', klass=self.VRayFileSequence)
+        self.assertGreater(len(seqs), 0)
+        for seq in seqs:
+            self.assertIsInstance(seq, self.VRayFileSequence)
+
+    def testFindSequencesOnDiskKlassAcceptsCustomPattern(self):
+        """klass._preprocess_sequence translates a VRay token pattern before scanning.
+
+        Without klass the VRay token is an unrecognized padding character and the
+        call silently returns an empty list.  With klass it succeeds.
+        """
+        seqs = FileSequence.findSequencesOnDisk(
+            'seq/foo.<frame04>.exr',
+            klass=self.VRayFileSequence,
+        )
+        self.assertEqual(1, len(seqs))
+        self.assertIsInstance(seqs[0], self.VRayFileSequence)
+
+    def testFindSequencesInListKlassInstances(self):
+        """Results are instances of klass, not the calling class."""
+        paths = [
+            'seq/foo.0001.exr',
+            'seq/foo.0002.exr',
+            'seq/foo.0003.exr',
+        ]
+        seqs = FileSequence.findSequencesInList(paths, klass=self.VRayFileSequence)
+        self.assertEqual(1, len(seqs))
+        self.assertIsInstance(seqs[0], self.VRayFileSequence)
+
+    # --- findSequenceOnDisk ---
+
+    def testFindSequenceOnDiskKlassInstances(self):
+        """Result is an instance of klass."""
+        seq = FileSequence.findSequenceOnDisk('seq/foo.#.exr', klass=self.VRayFileSequence)
+        self.assertIsInstance(seq, self.VRayFileSequence)
+
+    def testFindSequenceOnDiskKlassVRayPattern(self):
+        """_preprocess_sequence translates the VRay pattern before scanning,
+        and _postprocess_sequence restores it in str() output."""
+        seq = FileSequence.findSequenceOnDisk(
+            'seq/foo.<frame04>.exr',
+            strictPadding=True,
+            preserve_padding=True,
+            klass=self.VRayFileSequence,
+        )
+        self.assertIsInstance(seq, self.VRayFileSequence)
+        self.assertEqual('%04d', seq.padding())
+        self.assertEqual('seq/foo.1-5<frame04>.exr', str(seq))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)
