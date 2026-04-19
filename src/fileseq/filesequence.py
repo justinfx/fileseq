@@ -115,6 +115,7 @@ class BaseFileSequence(typing.Generic[T]):
             skip_parse: If True, skip parsing and use existing component values
         """
         sequence = utils.asString(sequence)
+        sequence = self._preprocess_sequence(sequence)
 
         # Detect and store the path separator from input
         self._sep = utils._getPathSep(sequence)
@@ -218,6 +219,41 @@ class BaseFileSequence(typing.Generic[T]):
         """
         raise NotImplementedError("Subclasses must implement _create_path")
 
+    def _preprocess_sequence(self, sequence: str) -> str:
+        """Override to translate custom sequence syntax before parsing.
+
+        Called with the raw sequence string before any parsing takes place.
+        The returned string must be valid syntax recognized by the fileseq
+        grammar, including frame ranges (e.g. ``1-100``, ``1,2,3``) and
+        padding formats (e.g. ``#``, ``@``, ``%04d``, ``$F4``, ``<UDIM>``).
+
+        Args:
+            sequence (str): the raw input sequence string
+
+        Returns:
+            str: the (possibly modified) sequence string
+        """
+        return sequence
+
+    def _postprocess_sequence(self, sequence: str) -> str:
+        """Override to translate the assembled sequence string back to custom syntax.
+
+        This is the complement to :meth:`_preprocess_sequence`.  It is called
+        with the fully assembled sequence string just before it is returned by
+        :meth:`__str__` and :meth:`format`, giving subclasses the opportunity
+        to restore any custom padding tokens or other syntax that was translated
+        during preprocessing.
+
+        The default implementation is a no-op.
+
+        Args:
+            sequence (str): the assembled sequence string in fileseq grammar
+
+        Returns:
+            str: the (possibly modified) sequence string
+        """
+        return sequence
+
     @property
     def _sep(self) -> str:
         """Path separator, defaults to os.sep if not explicitly set."""
@@ -281,14 +317,14 @@ class BaseFileSequence(typing.Generic[T]):
         # and user never asked for it in template
         inverted = (self.invertedFrameRange() or "") if "{inverted}" in template else ""
 
-        return template.format(
+        return self._postprocess_sequence(template.format(
             basename=self.basename(),
             extension=self.extension(), start=self.start(),
             end=self.end(), length=len(self),
             padding=self.padding(),
             range=self.frameRange() or "",
             inverted=inverted,
-            dirname=self.dirname())
+            dirname=self.dirname()))
 
     def split(self) -> list[BaseFileSequence[T]]:
         """
@@ -890,7 +926,7 @@ class BaseFileSequence(typing.Generic[T]):
         if self._has_negative_zero and frameSet_str == '0':
             frameSet_str = '-0'
         cmpts.frameSet = frameSet_str
-        return "".join(dataclasses.astuple(cmpts))
+        return self._postprocess_sequence("".join(dataclasses.astuple(cmpts)))
 
     def __repr__(self) -> str:
         try:
@@ -1136,22 +1172,36 @@ class BaseFileSequence(typing.Generic[T]):
     def findSequencesInList(cls,
                             paths: typing.Iterable[str | pathlib.Path],
                             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
-                            allow_subframes: bool = False) -> list[Self]:
+                            allow_subframes: bool = False,
+                            klass: type[Self] | None = None) -> list[Self]:
         """
         Returns the list of discrete sequences within paths.  This does not try
         to determine if the files actually exist on disk, it assumes you
         already know that.
 
+        The simplest way to get results of a custom subclass is to call this
+        method on the subclass directly::
+
+            VRayFileSequence.findSequencesInList(paths)
+
+        The ``klass`` argument is an alternative for callers that need to
+        specify the result class without changing the call site::
+
+            FileSequence.findSequencesInList(paths, klass=VRayFileSequence)
+
         Args:
             paths (list[str | pathlib.Path]): a list of paths
             pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
+            klass (type, optional): :class:`FileSequence` subclass to use when
+                constructing results.  Defaults to the calling class.
 
         Returns:
             list:
         """
+        klass = klass or cls
         return list(
-            cls.yield_sequences_in_list(paths, pad_style=pad_style, allow_subframes=allow_subframes)
+            klass.yield_sequences_in_list(paths, pad_style=pad_style, allow_subframes=allow_subframes)
         )
 
     @classmethod
@@ -1161,7 +1211,8 @@ class BaseFileSequence(typing.Generic[T]):
             include_hidden: bool = False,
             strictPadding: bool = False,
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
-            allow_subframes: bool = False) -> list[Self]:
+            allow_subframes: bool = False,
+            klass: type[Self] | None = None) -> list[Self]:
         """
         Yield the sequences found in the given directory.
 
@@ -1185,16 +1236,34 @@ class BaseFileSequence(typing.Generic[T]):
             FileSequence.findSequencesOnDisk('/path/to/files/image_stereo_{left,right}.#.jpg')
             FileSequence.findSequencesOnDisk('/path/to/files/imag?_*_{left,right}.@@@.jpg', strictPadding=True)
 
+        The simplest way to get results of a custom subclass is to call this
+        method on the subclass directly::
+
+            VRayFileSequence.findSequencesOnDisk('/path/to/files')
+
+        The ``klass`` argument is an alternative for callers that need to
+        specify the result class without changing the call site::
+
+            FileSequence.findSequencesOnDisk('/path/to/files', klass=VRayFileSequence)
+
         Args:
             pattern (str): directory to scan, or pattern to filter in directory
             include_hidden (bool): if true, show .hidden files as well
             strictPadding (bool): if True, ignore files with padding length different from pattern
             pad_style (`PAD_STYLE_DEFAULT` or `PAD_STYLE_HASH1` or `PAD_STYLE_HASH4`): padding style
             allow_subframes (bool): if True, handle subframe filenames
+            klass (type, optional): :class:`FileSequence` subclass to use when
+                constructing results.  Defaults to the calling class.  Pass a
+                subclass that overrides :meth:`_preprocess_sequence` to accept
+                custom padding tokens in ``pattern``, and/or
+                :meth:`_postprocess_sequence` to restore them in the returned
+                sequence strings.
 
         Returns:
             list:
         """
+        klass = klass or cls
+
         # reserve some functions we're going to need quick access to
         _not_hidden = lambda f: not f.startswith('.')
         _match_pattern = None
@@ -1214,12 +1283,12 @@ class BaseFileSequence(typing.Generic[T]):
 
             # Start building a regex for filtering files
             try:
-                seq = cls(filepat, pad_style=pad_style, allow_subframes=allow_subframes)
+                seq = klass(filepat, pad_style=pad_style, allow_subframes=allow_subframes)
             except ParseException:
                 # Invalid pattern (e.g., mixed padding like #@) - return empty list
                 return []
             patt = r'\A'
-            patt += cls._globCharsToRegex(seq.basename())
+            patt += klass._globCharsToRegex(seq.basename())
             if seq.padding():
                 patt += '('
                 if seq.framePadding():
@@ -1228,7 +1297,7 @@ class BaseFileSequence(typing.Generic[T]):
                         patt += r'\.\d+'
                 patt += ')'
             if seq.extension():
-                patt += cls._globCharsToRegex(seq.extension())
+                patt += klass._globCharsToRegex(seq.extension())
 
             # Convert braces groups into regex capture groups
             matches = re.finditer(r'{(.*?)(?:,(.*?))*}', patt)
@@ -1246,7 +1315,7 @@ class BaseFileSequence(typing.Generic[T]):
             if seq.padding() and strictPadding:
                 get_frame = lambda f: _match_pattern(f).group(1)  # type: ignore
                 _filter_padding = functools.partial(
-                    cls._filterByPaddingNum,
+                    klass._filterByPaddingNum,
                     zfill=seq.zfill(),
                     decimal_places=seq.decimalPlaces(),
                     get_frame=get_frame
@@ -1281,12 +1350,12 @@ class BaseFileSequence(typing.Generic[T]):
         files = [_join(dirpath, f) for f in files]
 
         seqs = list(
-            cls.yield_sequences_in_list(files, pad_style=pad_style, allow_subframes=allow_subframes)
+            klass.yield_sequences_in_list(files, pad_style=pad_style, allow_subframes=allow_subframes)
         )
 
         if _filter_padding and seq:
-            frame_pad = cls.conformPadding(seq.framePadding(), pad_style=pad_style)
-            subframe_pad = cls.conformPadding(seq.subframePadding(), pad_style=pad_style)
+            frame_pad = klass.conformPadding(seq.framePadding(), pad_style=pad_style)
+            subframe_pad = klass.conformPadding(seq.subframePadding(), pad_style=pad_style)
             # strict padding should preserve the original padding
             # characters in the found sequences.
             for s in seqs:
@@ -1303,7 +1372,8 @@ class BaseFileSequence(typing.Generic[T]):
             pad_style: constants._PadStyle = PAD_STYLE_DEFAULT,
             allow_subframes: bool = False,
             force_case_sensitive: bool = True,
-            preserve_padding: bool = False) -> Self:
+            preserve_padding: bool = False,
+            klass: type[Self] | None = None) -> Self:
         """
         Search for a specific sequence on disk.
 
@@ -1337,6 +1407,22 @@ class BaseFileSequence(typing.Generic[T]):
 
                 ``FileSequence.findSequenceOnDisk("seq/bar%03d.exr", strictPadding=True, preserve_padding=True)``
 
+        The simplest way to get results of a custom subclass — including using a
+        custom padding token in the pattern — is to call this method on the
+        subclass directly::
+
+            VRayFileSequence.findSequenceOnDisk("seq/bar<frame04>.exr",
+                                                strictPadding=True,
+                                                preserve_padding=True)
+
+        The ``klass`` argument is an alternative for callers that need to
+        specify the result class without changing the call site::
+
+            FileSequence.findSequenceOnDisk("seq/bar<frame04>.exr",
+                                            strictPadding=True,
+                                            preserve_padding=True,
+                                            klass=VRayFileSequence)
+
         Note:
             Unlike `findSequencesOnDisk`, general wildcard characters ("*", "?") are not
             supported and result in undefined behavior. Only the frame component of the paths may
@@ -1350,6 +1436,12 @@ class BaseFileSequence(typing.Generic[T]):
             force_case_sensitive (bool): force posix-style case-sensitive matching on Windows filesystems
             preserve_padding (bool): if True, preserve pattern-provided padding characters in returned
                 sequence, if the padding length matches. Default: conform padding to "#@" style.
+            klass (type, optional): :class:`FileSequence` subclass to use when
+                constructing results.  Defaults to the calling class.  Pass a
+                subclass that overrides :meth:`_preprocess_sequence` to accept
+                custom padding tokens in ``pattern``, and/or
+                :meth:`_postprocess_sequence` to restore them in the returned
+                sequence string.
 
         Returns:
             Self: A single matching file sequence existing on disk
@@ -1357,6 +1449,8 @@ class BaseFileSequence(typing.Generic[T]):
         Raises:
             :class:`.FileSeqException`: if no sequence is found on disk
         """
+        klass = klass or cls
+
         # Pre-process pattern: convert double-frame patterns like "baz.0000.0000.exr"
         # to padding syntax "baz.#.#.exr" when allow_subframes=True
         original_pattern = pattern
@@ -1368,18 +1462,18 @@ class BaseFileSequence(typing.Generic[T]):
             if regex_match:
                 prefix, frame1, frame2, ext = regex_match.groups()
                 # Convert to padding syntax: replace digits with padding chars
-                pad1 = cls.getPaddingChars(len(frame1) - 1, pad_style=pad_style)  # -1 for dot
-                pad2 = cls.getPaddingChars(len(frame2) - 1, pad_style=pad_style)
+                pad1 = klass.getPaddingChars(len(frame1) - 1, pad_style=pad_style)  # -1 for dot
+                pad2 = klass.getPaddingChars(len(frame2) - 1, pad_style=pad_style)
                 pattern = f"{prefix}.{pad1}.{pad2}{ext}"
 
         try:
-            seq = cls(pattern, allow_subframes=allow_subframes, pad_style=pad_style)
+            seq = klass(pattern, allow_subframes=allow_subframes, pad_style=pad_style)
         except ParseException as e:
             # Handle mixed padding (like #@) when strictPadding=False
-            if not strictPadding and cls._has_mixed_padding(pattern):
+            if not strictPadding and klass._has_mixed_padding(pattern):
                 # Normalize mixed padding to single character for non-strict matching
-                normalized = cls._normalize_mixed_padding(pattern)
-                seq = cls(normalized, allow_subframes=allow_subframes, pad_style=pad_style)
+                normalized = klass._normalize_mixed_padding(pattern)
+                seq = klass(normalized, allow_subframes=allow_subframes, pad_style=pad_style)
             else:
                 raise
 
@@ -1410,7 +1504,7 @@ class BaseFileSequence(typing.Generic[T]):
                 case_match = re.compile(fnmatch.translate(patt)).match
                 globbed = (p for p in globbed if case_match(p))
 
-        pad_filter_ctx = cls._FilterByPaddingNum()
+        pad_filter_ctx = klass._FilterByPaddingNum()
 
         if pad:
             patt = r'\A'
@@ -1432,8 +1526,8 @@ class BaseFileSequence(typing.Generic[T]):
                     get_frame=get_frame
                 )
                 if not preserve_padding:
-                    frame_pad = cls.conformPadding(frame_pad, pad_style=pad_style)
-                    subframe_pad = cls.conformPadding(subframe_pad, pad_style=pad_style)
+                    frame_pad = klass.conformPadding(frame_pad, pad_style=pad_style)
+                    subframe_pad = klass.conformPadding(subframe_pad, pad_style=pad_style)
             else:
                 globbed = pad_filter_ctx(
                     globbed,
@@ -1444,7 +1538,7 @@ class BaseFileSequence(typing.Generic[T]):
 
         sequences = []
         allow_subframes = bool(seq.decimalPlaces())
-        for match in cls.yield_sequences_in_list(
+        for match in klass.yield_sequences_in_list(
                 globbed, using=seq, pad_style=pad_style, allow_subframes=allow_subframes
         ):
             if match.basename() == basename and match.extension() == ext:

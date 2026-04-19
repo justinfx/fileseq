@@ -2691,5 +2691,225 @@ class TestPaddingFunctions(TestBase):
             self.assertEqual(test.has_padded, filter_ctx.has_padded_frames)
 
 
+class TestPreprocessSequence(TestBase):
+    """Test the _preprocess_sequence hook for custom padding format translation."""
+
+    class VRayFileSequence(FileSequence):
+        """Example subclass that translates VRay <frameNN> padding to printf syntax."""
+        _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+
+        def _preprocess_sequence(self, sequence):
+            def replace(m):
+                width = int(m.group(1))
+                return '%0{}d'.format(width) if width > 0 else '%d'
+            return self._VRAY_PAD_RE.sub(replace, sequence)
+
+    def testNoopDefault(self):
+        """Default implementation is a no-op."""
+        seq = FileSequence('/path/file.1-100#.exr')
+        self.assertEqual('/path/file.1-100#.exr', seq._preprocess_sequence('/path/file.1-100#.exr'))
+
+    def testPaddingBasic(self):
+        """VRay <frameNN> padding is translated to printf syntax."""
+        seq = self.VRayFileSequence('/path/file.1-100<frame04>.exr')
+        self.assertEqual('/path/file.', seq.dirname() + seq.basename())
+        self.assertEqual('.exr', seq.extension())
+        self.assertEqual('%04d', seq.padding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual('0001-0100', seq.frameRange())
+        self.assertEqual('/path/file.0001.exr', seq.frame(1))
+        self.assertEqual('/path/file.0042.exr', seq.frame(42))
+
+    def testPaddingPatternOnly(self):
+        """VRay pattern-only (no frame range) is parsed correctly."""
+        seq = self.VRayFileSequence('/path/file.<frame04>.exr')
+        self.assertEqual('%04d', seq.padding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual('', seq.frameRange())
+
+    def testPaddingSubframes(self):
+        """VRay <frameNN> with dual frame range (subframes) is translated correctly."""
+        seq = self.VRayFileSequence(
+            '/path/file.1-5<frame04>.10-20<frame04>.exr',
+            allow_subframes=True,
+        )
+        self.assertEqual('/path/file.', seq.dirname() + seq.basename())
+        self.assertEqual('.exr', seq.extension())
+        self.assertEqual('%04d', seq.framePadding())
+        self.assertEqual('%04d', seq.subframePadding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual(4, seq.decimalPlaces())
+        self.assertEqual('/path/file.0001.0000.exr', seq.frame(1))
+        self.assertEqual('/path/file.0001.0010.exr', seq.frame(Decimal('1.0010')))
+
+    def testPaddingSubframesPatternOnly(self):
+        """VRay dual-padding pattern-only (no frame range) with subframes."""
+        seq = self.VRayFileSequence(
+            '/path/file.<frame04>.<frame04>.exr',
+            allow_subframes=True,
+        )
+        self.assertEqual('%04d', seq.framePadding())
+        self.assertEqual('%04d', seq.subframePadding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual(4, seq.decimalPlaces())
+        self.assertEqual('', seq.frameRange())
+
+    def testCustomFrameRangeSyntax(self):
+        """Custom frame range delimiter '=' is translated to '-' before parsing."""
+
+        class EqualRangeFileSequence(FileSequence):
+            _EQUAL_RANGE_RE = re.compile(r'(\d+)=(\d+)')
+
+            def _preprocess_sequence(self, sequence):
+                return self._EQUAL_RANGE_RE.sub(r'\1-\2', sequence)
+
+        seq = EqualRangeFileSequence('/path/file.1=100#.exr')
+        self.assertEqual('0001-0100', seq.frameRange())
+        self.assertEqual(100, len(seq))
+        self.assertEqual('/path/file.0001.exr', seq.frame(1))
+        self.assertEqual('/path/file.0100.exr', seq.frame(100))
+
+
+class TestPostprocessSequence(TestBase):
+    """Test the _postprocess_sequence hook for restoring original string format."""
+
+    class VRayFileSequence(FileSequence):
+        """Translates VRay <frameNN> padding to printf on input and back on output."""
+        _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+        _PRINTF_PAD_RE = re.compile(r'%0?(\d+)d')
+
+        def _preprocess_sequence(self, sequence):
+            def replace(m):
+                width = int(m.group(1))
+                return '%0{}d'.format(width) if width > 0 else '%d'
+            return self._VRAY_PAD_RE.sub(replace, sequence)
+
+        def _postprocess_sequence(self, sequence):
+            def replace(m):
+                return '<frame{:02d}>'.format(int(m.group(1)))
+            return self._PRINTF_PAD_RE.sub(replace, sequence)
+
+    def testNoopDefault(self):
+        """Default _postprocess_sequence is a no-op."""
+        seq = FileSequence('/path/file.1-100#.exr')
+        self.assertEqual('/path/file.1-100#.exr', seq._postprocess_sequence('/path/file.1-100#.exr'))
+
+    def testStrPreservesOriginalPadding(self):
+        """str() round-trips back to the original VRay token."""
+        seq = self.VRayFileSequence('/path/file.1-100<frame04>.exr')
+        # str() uses the FrameSet's own range string (not zero-padded)
+        self.assertEqual('/path/file.1-100<frame04>.exr', str(seq))
+
+    def testFormatPreservesOriginalPadding(self):
+        """format() round-trips back to the original VRay token."""
+        seq = self.VRayFileSequence('/path/file.1-100<frame04>.exr')
+        # {range} in format() uses the zero-padded frameRange()
+        self.assertEqual(
+            '/path/file.0001-0100<frame04>.exr',
+            seq.format('{dirname}{basename}{range}{padding}{extension}'),
+        )
+
+    def testPatternOnlyPreservesOriginalPadding(self):
+        """format() on a pattern-only sequence restores the original token.
+
+        Note: str() omits padding for sequences with no frame range (by design),
+        so format() with an explicit {padding} field is needed for round-tripping.
+        """
+        seq = self.VRayFileSequence('/path/file.<frame04>.exr')
+        self.assertEqual(
+            '/path/file.<frame04>.exr',
+            seq.format('{dirname}{basename}{padding}{extension}'),
+        )
+
+    def testSplitPreservesOriginalPadding(self):
+        """Each piece from split() also round-trips through _postprocess_sequence."""
+        seq = self.VRayFileSequence('/path/file.1-5,10-20<frame04>.exr')
+        pieces = seq.split()
+        # split() rebuilds from zero-padded frameRange(), so that form is preserved
+        self.assertEqual('/path/file.0001-0005<frame04>.exr', str(pieces[0]))
+        self.assertEqual('/path/file.0010-0020<frame04>.exr', str(pieces[1]))
+
+    def testSubframesPreservesOriginalPadding(self):
+        """Subframe sequences round-trip through _postprocess_sequence."""
+        seq = self.VRayFileSequence(
+            '/path/file.1-5<frame04>.10-20<frame04>.exr',
+            allow_subframes=True,
+        )
+        self.assertEqual('/path/file.1-5<frame04>.10-20<frame04>.exr', str(seq))
+
+
+class TestFindWithKlass(TestBase):
+    """Test the klass argument on filesystem find methods."""
+
+    class VRayFileSequence(FileSequence):
+        """Translates VRay <frameNN> padding tokens in both directions."""
+        _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+        _PRINTF_PAD_RE = re.compile(r'%0?(\d+)d')
+
+        def _preprocess_sequence(self, sequence):
+            def replace(m):
+                width = int(m.group(1))
+                return '%0{}d'.format(width) if width > 0 else '%d'
+            return self._VRAY_PAD_RE.sub(replace, sequence)
+
+        def _postprocess_sequence(self, sequence):
+            def replace(m):
+                return '<frame{:02d}>'.format(int(m.group(1)))
+            return self._PRINTF_PAD_RE.sub(replace, sequence)
+
+    # --- findSequencesOnDisk ---
+
+    def testFindSequencesOnDiskKlassInstances(self):
+        """Results are instances of klass, not the calling class."""
+        seqs = FileSequence.findSequencesOnDisk('seq', klass=self.VRayFileSequence)
+        self.assertGreater(len(seqs), 0)
+        for seq in seqs:
+            self.assertIsInstance(seq, self.VRayFileSequence)
+
+    def testFindSequencesOnDiskKlassAcceptsCustomPattern(self):
+        """klass._preprocess_sequence translates a VRay token pattern before scanning.
+
+        Without klass the VRay token is an unrecognized padding character and the
+        call silently returns an empty list.  With klass it succeeds.
+        """
+        seqs = FileSequence.findSequencesOnDisk(
+            'seq/foo.<frame04>.exr',
+            klass=self.VRayFileSequence,
+        )
+        self.assertEqual(1, len(seqs))
+        self.assertIsInstance(seqs[0], self.VRayFileSequence)
+
+    def testFindSequencesInListKlassInstances(self):
+        """Results are instances of klass, not the calling class."""
+        paths = [
+            'seq/foo.0001.exr',
+            'seq/foo.0002.exr',
+            'seq/foo.0003.exr',
+        ]
+        seqs = FileSequence.findSequencesInList(paths, klass=self.VRayFileSequence)
+        self.assertEqual(1, len(seqs))
+        self.assertIsInstance(seqs[0], self.VRayFileSequence)
+
+    # --- findSequenceOnDisk ---
+
+    def testFindSequenceOnDiskKlassInstances(self):
+        """Result is an instance of klass."""
+        seq = FileSequence.findSequenceOnDisk('seq/foo.#.exr', klass=self.VRayFileSequence)
+        self.assertIsInstance(seq, self.VRayFileSequence)
+
+    def testFindSequenceOnDiskKlassVRayPattern(self):
+        """_preprocess_sequence translates the VRay pattern before scanning,
+        and _postprocess_sequence restores it in str() output."""
+        seq = FileSequence.findSequenceOnDisk(
+            'seq/foo.<frame04>.exr',
+            strictPadding=True,
+            preserve_padding=True,
+            klass=self.VRayFileSequence,
+        )
+        self.assertIsInstance(seq, self.VRayFileSequence)
+        self.assertEqual('%04d', seq.padding())
+        self.assertEqual('seq/foo.1-5<frame04>.exr', str(seq))
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)
