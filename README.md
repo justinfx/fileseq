@@ -209,5 +209,5 @@ hatch run docs:serve  # View at http://localhost:8000
 While there may be many custom types of sequence patterns that could be considered a valid pipeline format, this library has
 taken an opinionated stance on acceptable sequence formats. This is done to keep parsing rules manageable and to not
 over-complicate the logic. The parsing rules can and have been expanded in some ways over time, such as adding support
-for new padding format patterns like printf "%04d", houdini "$F" and "<UDIM>". But other rules remain the same, such as expecting
+for new padding format patterns like printf "%04d", houdini "$F" and "\<UDIM>". But other rules remain the same, such as expecting
 a frame number component to be found just before the file extension component.
