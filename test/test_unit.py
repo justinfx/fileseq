@@ -1967,7 +1967,7 @@ class AbstractBaseTests:
 
         def testFindSequencesOnDisk(self):
             seqs = self.FS.findSequencesOnDisk("seq", strictPadding=True)
-            self.assertEquals(len(seqs), 10)
+            self.assertEquals(len(seqs), 11)
 
             known = {
                 "seq/bar1000-1002,1004-1006#.exr",
@@ -1980,6 +1980,10 @@ class AbstractBaseTests:
                 "seq/baz_left.1-3#.exr",
                 "seq/baz_right.1-3#.exr",
                 "seq/big.999-1003#.ext",
+                # foo.0001_1.exr: underscore fixture for issue #158; DISK_RE
+                # parses it as basename="foo.0001_", frame="1", so it appears
+                # as a standalone sequence rather than contaminating foo.1-5#.exr
+                "seq/foo.0001_1@.exr",
             }
             found = set([str(s) for s in seqs])
             self.assertEqualPaths(found, known)
@@ -2210,6 +2214,17 @@ class AbstractBaseTests:
                 with self.assertRaises(FileSeqException) as cm:
                     self.FS.findSequenceOnDisk(pattern, strictPadding=False)
                 self.assertEqual(str(cm.exception), 'no sequence found on disk matching ' + pattern)
+
+        def testFindSequenceOnDiskUnderscoreFrameIgnored(self):
+            # Issue #158: findSequenceOnDisk should not match filenames whose
+            # "frame" component contains an underscore (e.g. foo.0001_1.exr).
+            # Python's int() accepts underscore digit separators (PEP 515), so
+            # "1001_1" would previously be treated as a valid frame, causing
+            # "multiple sequences found on disk" errors.
+            # seq/foo.0001_1.exr is present on disk alongside seq/foo.{0001-0005}.exr
+            for strict in (False, True):
+                seq = self.FS.findSequenceOnDisk('seq/foo.#.exr', strictPadding=strict)
+                self.assertEqual(str(seq), 'seq/foo.1-5#.exr')
 
         def testFindSequenceOnDiskSubFrames(self):
             tests = [

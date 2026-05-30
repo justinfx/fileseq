@@ -963,9 +963,11 @@ class BaseFileSequence(typing.Generic[T]):
             path: str
             for path in filter(None, map(utils.asString, paths)):
                 frame = path[head:tail]
-                try:
-                    int(frame)
-                except ValueError:
+                # Use isdigit() instead of int() to reject PEP 515 underscore
+                # digit separators: int("1001_1") succeeds in Python 3.6+ but
+                # "1001_1" is not a valid frame number.
+                _int_part = frame.partition('.')[0]
+                if not _int_part.lstrip('-').isdigit():
                     if not allow_subframes:
                         continue
                     try:
@@ -1503,6 +1505,12 @@ class BaseFileSequence(typing.Generic[T]):
                 # We have a frame number
                 frame, _, subframe = frame.partition(".")
                 if len(subframe) != decimal_places:
+                    continue
+
+                # Reject frames with non-digit characters such as PEP 515
+                # underscore separators (e.g. "1001_1") which int() accepts in
+                # Python 3.6+ but are not valid frame numbers.
+                if not frame.lstrip('-').isdigit():
                     continue
 
                 has_padded_frame = check_padded(frame)
