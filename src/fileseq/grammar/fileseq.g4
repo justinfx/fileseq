@@ -57,8 +57,12 @@ basenameChar
 
 // Reduced set for plain-file basenames: excludes EXTENSION and DOT_NUM so they
 // are left for the extension rule to consume.
+// HASH and AT are included so that filenames containing literal '#' or '@' characters
+// (e.g. "helloMyPhone#Is911.json") are accepted as plain files rather than rejected.
+// The parser still prefers sequence/patternOnly alternatives (which appear earlier in the
+// input rule) when '#' or '@' appears in a valid padding position.
 plainBasenameChar
-    : WORD | NUM | DASH | SPECIAL_CHAR | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR
+    : WORD | NUM | DASH | SPECIAL_CHAR | FRAME_RANGE | DOT_FRAME_RANGE | WS | OTHER_CHAR | HASH | AT
     ;
 
 // Directory segments can contain anything including frame-range-like patterns

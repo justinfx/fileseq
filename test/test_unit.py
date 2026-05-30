@@ -907,6 +907,11 @@ class AbstractBaseTests:
                 Case("/dir/file", "/dir/file"),
                 Case("/dir/.ext", "/dir/.ext"),
                 Case("file", "file"),
+                # Issue #159: '#' and '@' in filenames should be preserved as literal
+                # characters (treated as a plain file), not stripped as padding tokens.
+                Case("helloMyPhone#Is911.json", "helloMyPhone#Is911.json"),
+                Case("/path/to/helloMyPhone#Is911.json", "/path/to/helloMyPhone#Is911.json"),
+                Case("shot_@_v001.exr", "shot_@_v001.exr"),
             ]
 
             for case in table:
@@ -918,6 +923,35 @@ class AbstractBaseTests:
             fs._frameSet = None
             actual = str(fs)
             self.assertEqual("/dir/file..ext", actual)
+
+        def testHashAtInFilename(self):
+            """Issue #159: '#' and '@' in filenames must not raise ParseException.
+
+            These characters appear literally in filenames and should be preserved
+            in the basename.  They must NOT be treated as padding tokens.
+            """
+            FS = self.FS
+            # '#' followed by mixed text+digits — reported in issue #159
+            seq = FS(r'C:\tests\helloMyPhone#Is911.json')
+            self.assertEqual('helloMyPhone#Is911', seq.basename())
+            self.assertEqual('.json', seq.extension())
+            self.assertEqual('', seq.padding())
+            self.assertEqual('', seq.frameRange())
+            self.assertEqual(r'C:\tests\helloMyPhone#Is911.json', str(seq))
+
+            # Forward-slash variant
+            seq = FS('C:/tests/helloMyPhone#Is911.json')
+            self.assertEqual('helloMyPhone#Is911', seq.basename())
+            self.assertEqual('.json', seq.extension())
+            self.assertEqual('', seq.padding())
+            self.assertEqual('', seq.frameRange())
+
+            # '@' between underscores
+            seq = FS('shot_@_v001.exr')
+            self.assertEqual('shot_@_v001', seq.basename())
+            self.assertEqual('.exr', seq.extension())
+            self.assertEqual('', seq.padding())
+            self.assertEqual('', seq.frameRange())
 
         def testEqual(self):
             @dataclasses.dataclass
