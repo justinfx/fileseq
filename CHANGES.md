@@ -1,5 +1,9 @@
 # Fileseq Changelog
 
+## v3.2.1 (TBD)
+
+* Prevent bad matching of sequence frames on disk like "1001_1" due to PEP 515 numeric literal underscore seps (#158)
+
 ## v3.2.0 (2026-04-19)
 
 * Optimize `FrameSet` range append for overlapping step=1 ranges (#155)
