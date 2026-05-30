@@ -1486,7 +1486,8 @@ class FrameSet(BaseFrameSet):
         # Dispatch to appropriate specialized method based on frame type
         # Handle empty frames by defaulting to float method
         if frames and isinstance(frames[0], decimal.Decimal):
-            yield from FrameSet._framesToFrameRangesDecimal(frames, zfill)  # type: ignore[arg-type]
+            # noinspection PyTypeChecker
+            yield from FrameSet._framesToFrameRangesDecimal(frames, zfill)
         else:
             yield from FrameSet._framesToFrameRangesFloat(frames, zfill)  # type: ignore[arg-type]
 
