@@ -247,7 +247,7 @@ class BaseFileSequence(typing.Generic[T]):
         """
         return sequence
 
-    def _resolve_padding(self, parsed_pad: str, zfill: int, pad_style) -> str:
+    def _resolve_padding(self, parsed_pad: str, zfill: int, pad_style: constants._PadStyle) -> str:
         """
         Normalize the padding string after parsing.
 
