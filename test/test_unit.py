@@ -2891,9 +2891,8 @@ class TestFindWithKlass(TestBase):
     """Test the klass argument on filesystem find methods."""
 
     class VRayFileSequence(FileSequence):
-        """Translates VRay <frameNN> padding tokens in both directions."""
+        """Translates VRay <frameNN> padding tokens using _resolve_padding."""
         _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
-        _PRINTF_PAD_RE = re.compile(r'%0?(\d+)d')
 
         def _preprocess_sequence(self, sequence):
             def replace(m):
@@ -2901,10 +2900,17 @@ class TestFindWithKlass(TestBase):
                 return '%0{}d'.format(width) if width > 0 else '%d'
             return self._VRAY_PAD_RE.sub(replace, sequence)
 
-        def _postprocess_sequence(self, sequence):
-            def replace(m):
-                return '<frame{:02d}>'.format(int(m.group(1)))
-            return self._PRINTF_PAD_RE.sub(replace, sequence)
+        def _resolve_padding(self, parsed_pad, zfill, pad_style):
+            if zfill > 0:
+                return '<frame{:02d}>'.format(zfill)
+            return parsed_pad
+
+        @classmethod
+        def getPaddingNum(cls, chars, **kwargs):
+            m = cls._VRAY_PAD_RE.match(chars)
+            if m:
+                return int(m.group(1))
+            return super().getPaddingNum(chars, **kwargs)
 
     # --- findSequencesOnDisk ---
 
@@ -2948,7 +2954,7 @@ class TestFindWithKlass(TestBase):
 
     def testFindSequenceOnDiskKlassVRayPattern(self):
         """_preprocess_sequence translates the VRay pattern before scanning,
-        and _postprocess_sequence restores it in str() output."""
+        and _resolve_padding stores the canonical token so str() returns it directly."""
         seq = FileSequence.findSequenceOnDisk(
             'seq/foo.<frame04>.exr',
             strictPadding=True,
@@ -2956,8 +2962,88 @@ class TestFindWithKlass(TestBase):
             klass=self.VRayFileSequence,
         )
         self.assertIsInstance(seq, self.VRayFileSequence)
-        self.assertEqual('%04d', seq.padding())
+        self.assertEqual('<frame04>', seq.padding())
         self.assertEqual('seq/foo.1-5<frame04>.exr', str(seq))
+
+
+class TestResolvePadding(TestBase):
+    """Test the _resolve_padding hook for canonical padding storage."""
+
+    class VRayFileSequence(FileSequence):
+        """Three-override VRay subclass: preprocess + resolve_padding + getPaddingNum."""
+        _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+
+        def _preprocess_sequence(self, sequence):
+            def replace(m):
+                width = int(m.group(1))
+                return '%0{}d'.format(width) if width > 0 else '%d'
+            return self._VRAY_PAD_RE.sub(replace, sequence)
+
+        def _resolve_padding(self, parsed_pad, zfill, pad_style):
+            if zfill > 0:
+                return '<frame{:02d}>'.format(zfill)
+            return parsed_pad
+
+        @classmethod
+        def getPaddingNum(cls, chars, **kwargs):
+            m = cls._VRAY_PAD_RE.match(chars)
+            if m:
+                return int(m.group(1))
+            return super().getPaddingNum(chars, **kwargs)
+
+    def testPaddingReturnedAsVRayToken(self):
+        """padding() returns the VRay token, not the printf form."""
+        seq = self.VRayFileSequence('/render/beauty.1-100<frame04>.exr')
+        self.assertEqual('<frame04>', seq.padding())
+        self.assertEqual(4, seq.zfill())
+
+    def testStrUsesVRayToken(self):
+        """str() includes the VRay token without any _postprocess_sequence."""
+        seq = self.VRayFileSequence('/render/beauty.1-100<frame04>.exr')
+        self.assertEqual('/render/beauty.1-100<frame04>.exr', str(seq))
+
+    def testFrameResolvesCorrectly(self):
+        """frame() still produces the correct zero-padded path."""
+        seq = self.VRayFileSequence('/render/beauty.1-100<frame04>.exr')
+        self.assertEqual('/render/beauty.0042.exr', seq.frame(42))
+
+    def testSetPaddingWithVRayToken(self):
+        """setPadding('<frame02>') updates padding and frame() correctly."""
+        seq = self.VRayFileSequence('/render/beauty.1-100<frame04>.exr')
+        seq.setPadding('<frame02>')
+        self.assertEqual('<frame02>', seq.padding())
+        self.assertEqual(2, seq.zfill())
+        self.assertEqual('/render/beauty.42.exr', seq.frame(42))
+
+    def testSetPaddingWithPrintfStored(self):
+        """setPadding('%04d') stores '%04d' as-is — no auto-normalisation via the setter."""
+        seq = self.VRayFileSequence('/render/beauty.1-100<frame04>.exr')
+        seq.setPadding('%04d')
+        self.assertEqual('%04d', seq.padding())
+
+    def testPatternOnly(self):
+        """Pattern-only sequence: padding() returns the VRay token."""
+        seq = self.VRayFileSequence('/render/beauty.<frame04>.exr')
+        self.assertEqual('<frame04>', seq.padding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual('', seq.frameRange())
+
+    def testSubframes(self):
+        """Subframe sequence: both framePadding() and subframePadding() return VRay tokens."""
+        seq = self.VRayFileSequence(
+            '/render/beauty.1-5<frame04>.10-20<frame04>.exr',
+            allow_subframes=True,
+        )
+        self.assertEqual('<frame04>', seq.framePadding())
+        self.assertEqual('<frame04>', seq.subframePadding())
+        self.assertEqual(4, seq.zfill())
+        self.assertEqual(4, seq.decimalPlaces())
+
+    def testNoopDefault(self):
+        """Default _resolve_padding is a no-op — existing behaviour is preserved."""
+        seq = FileSequence('/render/beauty.1-100#.exr')
+        self.assertEqual('#', seq.padding())
+        self.assertEqual('#', seq._resolve_padding('#', 4, seq._pad_style))
 
 
 if __name__ == '__main__':
