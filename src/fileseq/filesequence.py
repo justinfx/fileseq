@@ -1847,6 +1847,32 @@ class BaseFileSequence(typing.Generic[T]):
             pad = cls.getPaddingChars(num, pad_style=pad_style)
         return pad
 
+    @classmethod
+    def parsePadding(cls, sequence: str) -> str:
+        """
+        Parse the padding characters out of an arbitrary sequence-like string.
+
+        Unlike constructing a full sequence instance, this does not require
+        *sequence* to represent a complete, valid sequence (e.g. no frame
+        range is required). It only reports the padding token, if any, that
+        can be identified. This is useful for answering "does this string
+        contain a padding token" for strings that may not be well-formed
+        sequences on their own, such as a single file path.
+
+        Override in a subclass alongside ``_preprocess_sequence`` to also
+        recognize a custom padding token that isn't understood on its own.
+
+        Args:
+            sequence (str): the sequence or path string to inspect
+
+        Returns:
+            str: the detected padding characters, or '' if none were found
+        """
+        try:
+            return parse_sequence_string(utils.asString(sequence)).padding
+        except ValueError:
+            return ''
+
 
 class FileSequence(BaseFileSequence[str]):
     """:class:`FileSequence` represents an ordered sequence of files as strings.
