@@ -1582,7 +1582,14 @@ class BaseFileSequence(typing.Generic[T]):
     def _globCharsToRegex(filename: str) -> str:
         """
         Translate single character elements of a shell pattern to make suitable
-        for a regular expression pattern
+        for a regular expression pattern.
+
+        Only the documented glob syntax (``?``, ``*``, and the brace-group
+        syntax ``{foo,bar}``) is treated as meaningful. Every other character
+        is escaped so it is always matched literally, even if it happens to
+        be a regex metacharacter (e.g. ``(``, ``)``, ``+``, ``|``, ``$``).
+        Without this, a caller-supplied "glob" pattern could inject live
+        regex syntax and trigger catastrophic backtracking (ReDoS).
 
         Args:
             filename (str): filename containing shell pattern to convert
@@ -1590,10 +1597,19 @@ class BaseFileSequence(typing.Generic[T]):
         Returns:
             str:
         """
-        filename = filename.replace('.', r'\.')
-        filename = filename.replace('*', '.*')
-        filename = filename.replace('?', '.')
-        return filename
+        # re.escape() prefixes every regex-special character with a single
+        # backslash, so each "\X" pair in its output maps 1:1 back to one
+        # original character. That makes it safe to replace those pairs
+        # with the glob equivalents afterward, without risk of matching
+        # across the boundary of two different original characters.
+        escaped = re.escape(filename)
+        escaped = escaped.replace(r'\*', '.*')
+        escaped = escaped.replace(r'\?', '.')
+        # Left as literal markers for the brace-group alternation
+        # post-processing (see findSequencesOnDisk).
+        escaped = escaped.replace(r'\{', '{')
+        escaped = escaped.replace(r'\}', '}')
+        return escaped
 
     class _FilterByPaddingNum(object):
         def __init__(self) -> None:
