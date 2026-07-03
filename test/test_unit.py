@@ -11,13 +11,17 @@ with warnings.catch_warnings():
 
 from decimal import Decimal
 import json
+import multiprocessing
 import operator
 import os
 import pathlib
 import pickle
 import re
+import shutil
 import string
 import sys
+import tempfile
+import time
 import unittest
 from collections import namedtuple
 
@@ -70,6 +74,24 @@ def _getCommonPathSep(path):
 
 
 # No longer need to mock _getPathSep - it now detects separators natively
+
+
+def _findSequencesOnDiskWorker(klass, pattern, queue):
+    """
+    multiprocessing target for testGlobPatternRegexInjection: runs
+    findSequencesOnDisk() in a subprocess so the test can enforce a hard
+    timeout instead of hanging if the pattern triggers catastrophic regex
+    backtracking.
+
+    :type klass: type
+    :param klass: FileSequence or FilePathSequence
+    :type pattern: str
+    :param pattern: glob-like pattern to search
+    :type queue: multiprocessing.Queue
+    :param queue: signaled once findSequencesOnDisk() returns
+    """
+    klass.findSequencesOnDisk(pattern)
+    queue.put(True)
 
 
 class TestUtils(unittest.TestCase):
@@ -952,6 +974,27 @@ class AbstractBaseTests:
             self.assertEqual('.exr', seq.extension())
             self.assertEqual('', seq.padding())
             self.assertEqual('', seq.frameRange())
+
+        def testConstructorNotVulnerableToBraceReDoS(self):
+            """Issue 161 PoC: constructor must not be vulnerable to catastrophic
+            backtracking via brace patterns.
+
+            The reported proof-of-concept claimed FileSequence(payload) hangs on
+            a crafted "{a?a?...}" brace payload. The brace-to-regex conversion
+            only exists in findSequencesOnDisk(), not in the constructor, so
+            this must return near-instantly and treat the payload as literal
+            text (see testGlobPatternRegexInjection for the actual vulnerable
+            code path).
+            """
+            FS = self.FS
+            payload = "a" * 30 + "{" + "a?" * 30 + "}"
+
+            start = time.time()
+            seq = FS(payload)
+            elapsed = time.time() - start
+
+            self.assertLess(elapsed, 1.0)
+            self.assertEqual(payload, str(seq))
 
         def testEqual(self):
             @dataclasses.dataclass
@@ -2274,6 +2317,46 @@ class AbstractBaseTests:
                 actual = self.toNormpaths([str(s) for s in actual])
                 expected = self.toNormpaths(expected)
                 self.assertEqual(expected, actual)
+
+        def testGlobPatternRegexInjection(self):
+            """Issue 161 - pattern argument must not allow regex injection / ReDoS.
+
+            Only ``? * {foo,bar}`` are documented as meaningful glob syntax; any
+            other regex metacharacter (e.g. ``( ) + $``) in the pattern must be
+            treated as a literal character, not compiled as live regex syntax.
+            """
+            tmpdir = tempfile.mkdtemp()
+            try:
+                # Filename does NOT match the crafted pattern below, forcing
+                # maximal backtracking if "(a+)+" leaks through as regex syntax.
+                fname = "a" * 30 + "X.ext"
+                with open(os.path.join(tmpdir, fname), "w"):
+                    pass
+
+                evil_pattern = os.path.join(tmpdir, "(a+)+$.ext")
+                timeout_secs = 3
+
+                queue = multiprocessing.Queue()
+                proc = multiprocessing.Process(
+                    target=_findSequencesOnDiskWorker,
+                    args=(self.FS, evil_pattern, queue))
+                proc.start()
+                proc.join(timeout_secs)
+
+                hung = proc.is_alive()
+                if hung:
+                    proc.terminate()
+                    proc.join()
+
+                self.assertFalse(
+                    hung,
+                    "findSequencesOnDisk() did not return within {}s; regex "
+                    "metacharacters in the pattern argument are not escaped "
+                    "before compilation, allowing catastrophic backtracking"
+                    .format(timeout_secs)
+                )
+            finally:
+                shutil.rmtree(tmpdir, ignore_errors=True)
 
 
     class BaseTestFindSequenceOnDisk(TestBase):
