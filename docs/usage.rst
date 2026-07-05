@@ -230,8 +230,8 @@ Three class methods locate sequences on disk.
 **Using a custom subclass with the find methods**
 
 All three find methods are classmethods, so the simplest way to get results of a
-custom subclass is to call the method directly on that subclass.  The
-``_preprocess_sequence`` and ``_postprocess_sequence`` hooks are picked up
+custom subclass is to call the method directly on that subclass.  All hooks
+(``_preprocess_sequence``, ``_resolve_padding``, ``getPaddingNum``) are picked up
 automatically:
 
 .. code-block:: python
@@ -312,7 +312,7 @@ Customizing with Subclasses
 
 Both :class:`~fileseq.FileSequence` and :class:`~fileseq.FilePathSequence` inherit from the
 abstract base :class:`~fileseq.filesequence.BaseFileSequence`.  You can subclass either to add
-custom behaviour by overriding one or both hooks described below.
+custom behavior by overriding one or both hooks described below.
 
 **_preprocess_sequence — translate custom syntax before parsing**
 
@@ -320,8 +320,9 @@ Override this method to accept sequence strings that use a non-standard notation
 receives the raw input string and must return a string in the grammar that fileseq understands.
 
 VRay uses a ``<frameNN>`` token (e.g. ``<frame04>``) to express padding width.  This token is
-not part of the fileseq grammar, but it maps cleanly to printf-style padding, so
-``_preprocess_sequence`` is the right place to translate it:
+not part of the fileseq grammar, but it maps cleanly to printf-style padding.  Using all three
+hooks together makes the subclass fully round-trippable — ``padding()`` returns the VRay token
+and individual frame paths are still correctly zero-padded:
 
 .. code-block:: python
 
@@ -329,25 +330,47 @@ not part of the fileseq grammar, but it maps cleanly to printf-style padding, so
     import fileseq
 
     class VRayFileSequence(fileseq.FileSequence):
-        """Translate VRay ``<frameNN>`` padding tokens to printf-style before parsing."""
+        """Translate VRay ``<frameNN>`` padding tokens natively."""
 
         _VRAY_PAD_RE = re.compile(r'<frame(\d+)>')
+        _used_custom_padding = False
 
         def _preprocess_sequence(self, sequence: str) -> str:
+            """Translate ``<frameNN>`` → ``%0Nd`` so the grammar accepts it."""
             def replace(m):
                 width = int(m.group(1))
+                self._used_custom_padding = True
                 return '%0{}d'.format(width) if width > 0 else '%d'
             return self._VRAY_PAD_RE.sub(replace, sequence)
 
+        def _resolve_padding(self, parsed_pad: str, zfill: int, pad_style) -> str:
+            """Translate the parsed printf form back to the canonical VRay token.
+
+            Only do this if preprocessing actually saw and translated a
+            ``<frameNN>`` token. A built-in token that happens to imply the
+            same width (e.g. ``#``) must not be reinterpreted as VRay's.
+            """
+            if zfill > 0 and self._used_custom_padding:
+                return '<frame{:02d}>'.format(zfill)
+            return parsed_pad
+
+        @classmethod
+        def getPaddingNum(cls, chars: str, **kwargs) -> int:
+            """Recognise ``<frameNN>`` tokens in addition to the built-in formats."""
+            m = cls._VRAY_PAD_RE.match(chars)
+            if m:
+                return int(m.group(1))
+            return super().getPaddingNum(chars, **kwargs)
+
     # With a frame range
     seq = VRayFileSequence('/render/beauty.1-100<frame04>.exr')
-    seq.padding()     # '%04d'
-    seq.frameRange()  # '0001-0100'
+    seq.padding()     # '<frame04>'
+    str(seq)          # '/render/beauty.1-100<frame04>.exr'
     seq.frame(42)     # '/render/beauty.0042.exr'
 
     # Pattern-only (no range embedded in the string)
     seq = VRayFileSequence('/render/beauty.<frame04>.exr')
-    seq.padding()     # '%04d'
+    seq.padding()     # '<frame04>'
     seq.frameRange()  # ''
 
     # Subframe variant — two tokens, one for frames and one for the sub-second part
@@ -357,62 +380,118 @@ not part of the fileseq grammar, but it maps cleanly to printf-style padding, so
     )
     seq.frame(1)  # '/render/beauty.0001.0000.exr'
 
+**Calling setPadding on a custom-format subclass**
+
+Passing a custom token to ``setPadding`` (e.g. ``seq.setPadding('<frame02>')``) works correctly
+as long as ``getPaddingNum`` is overridden to recognize that token — the zfill is updated and
+``padding()`` returns the new token.
+
+Passing a built-in token (e.g. ``seq.setPadding('%04d')``) stores it as-is.  The setter does
+not call ``_resolve_padding``, so the value is not converted to the custom format automatically.
+
+**_resolve_padding — canonicalize the internal padding representation**
+
+Override this method to store a custom token as the canonical padding form.  It is called
+immediately after ``_zfill`` is computed in ``_init_impl``, before anything is persisted, so
+the value it returns becomes what ``padding()``, ``framePadding()``, and ``str()`` all see.
+
+The default implementation is a no-op — it returns ``parsed_pad`` unchanged, which preserves
+existing behavior for all built-in formats.
+
+When to use it: any time ``padding()`` should return a custom token rather than the
+grammar-normalized form (e.g. ``%04d``).  The two hooks are always used together:
+``_preprocess_sequence`` translates the input so the grammar accepts it, and
+``_resolve_padding`` translates the result back to the custom canonical form before storage.
+Override ``getPaddingNum`` as well so that ``setPadding`` with a custom token is handled
+correctly.
+
+See the complete three-override example in the ``_preprocess_sequence`` section above.
+
+**parsePadding: detect a padding token in an arbitrary string**
+
+The hooks above all operate on a fully constructed sequence instance.  Sometimes you just need
+to answer "does this string contain a padding token at all" for a string that may not be a
+complete, valid sequence on its own, such as a single file path with no frame range.
+``parsePadding`` is a classmethod for exactly that:
+
+.. code-block:: python
+
+    FileSequence.parsePadding('/render/beauty.#.exr')     # '#'
+    FileSequence.parsePadding('/render/beauty.1001.exr')  # ''  (a resolved frame number, not a token)
+    FileSequence.parsePadding('/render/beauty.exr')       # ''
+
+The default implementation recognizes the built-in fileseq tokens.  Override it alongside
+``_preprocess_sequence`` to also recognize a custom token, falling back to the built-in behavior
+when no custom token is present:
+
+.. code-block:: python
+
+    class VRayFileSequence(fileseq.FileSequence):
+        # ... _preprocess_sequence, _resolve_padding, getPaddingNum as above ...
+
+        @classmethod
+        def parsePadding(cls, sequence: str) -> str:
+            padding = super().parsePadding(sequence)
+            if not padding:
+                m = cls._VRAY_PAD_RE.search(sequence)
+                if m:
+                    padding = m.group(0)
+            return padding
+
+    VRayFileSequence.parsePadding('/render/beauty.<frame04>.exr')  # '<frame04>'
+    VRayFileSequence.parsePadding('/render/beauty.#.exr')          # '#'
+    VRayFileSequence.parsePadding('/render/beauty.exr')            # ''
+
+    def has_padding(path: str) -> bool:
+        return bool(VRayFileSequence.parsePadding(path))
+
 **_postprocess_sequence — restore custom syntax on output**
 
 This is the complement to ``_preprocess_sequence``.  It is called by :meth:`~fileseq.FileSequence.__str__`
 and :meth:`~fileseq.FileSequence.format` on the fully assembled sequence string just before it
-is returned, giving subclasses the opportunity to translate internal grammar tokens back to the
-original custom format.
-
-Continuing the VRay example, adding ``_postprocess_sequence`` makes the class fully
-round-trippable — the ``<frameNN>`` token survives both directions:
+is returned, giving subclasses the opportunity to restore syntax that is not the padding token
+itself — for example, a custom frame range delimiter.
 
 .. code-block:: python
 
     import re
     import fileseq
 
-    class VRayFileSequence(fileseq.FileSequence):
-        """Translate VRay ``<frameNN>`` padding tokens in both directions."""
+    class EqualRangeFileSequence(fileseq.FileSequence):
+        """Accept ``1=100`` range syntax in addition to the standard ``1-100``."""
 
-        _VRAY_PAD_RE  = re.compile(r'<frame(\d+)>')
-        _PRINTF_PAD_RE = re.compile(r'%0?(\d+)d')
+        _EQUAL_RE = re.compile(r'(\d+)=(\d+)')
 
         def _preprocess_sequence(self, sequence: str) -> str:
-            def replace(m):
-                width = int(m.group(1))
-                return '%0{}d'.format(width) if width > 0 else '%d'
-            return self._VRAY_PAD_RE.sub(replace, sequence)
+            return self._EQUAL_RE.sub(r'\1-\2', sequence)
 
         def _postprocess_sequence(self, sequence: str) -> str:
-            def replace(m):
-                return '<frame{:02d}>'.format(int(m.group(1)))
-            return self._PRINTF_PAD_RE.sub(replace, sequence)
+            # FrameSet always emits '1-100'; restore the custom delimiter on output.
+            return sequence.replace('-', '=', 1)
 
-    seq = VRayFileSequence('/render/beauty.1-100<frame04>.exr')
-    str(seq)    # '/render/beauty.1-100<frame04>.exr'
-    seq.frame(42)  # '/render/beauty.0042.exr'  (frame paths are unaffected)
+    seq = EqualRangeFileSequence('/render/beauty.1=100#.exr')
+    str(seq)       # '/render/beauty.1=100#.exr'
+    seq.frame(42)  # '/render/beauty.0042.exr'
 
-    # format() also passes through _postprocess_sequence
-    seq.format('{dirname}{basename}{range}{padding}{extension}')
-    # '/render/beauty.0001-0100<frame04>.exr'
+.. note::
 
-Two things worth noting:
+   ``_postprocess_sequence`` can also be used to restore a custom padding token on output,
+   but ``_resolve_padding`` is the preferred approach for that — it stores the token as the
+   canonical form so that ``padding()`` and ``str()`` return it directly.
+   ``_postprocess_sequence`` is best reserved for transforming parts of the string that are
+   not the padding token (such as the frame range delimiter in the example above).
 
-- ``_postprocess_sequence`` is **not** called by :meth:`~fileseq.FileSequence.frame` or
-  iteration — only by the methods that produce a sequence pattern string.  Individual frame
-  paths use the internal grammar padding (``%04d``) to resolve frame numbers correctly, so
-  they are unaffected.
-- :meth:`~fileseq.FileSequence.__str__` omits the padding token entirely when the sequence has
-  no frame range.  For a pattern-only sequence, use :meth:`~fileseq.FileSequence.format` with
-  an explicit ``{padding}`` field to get the round-tripped token back:
+**Scope of _postprocess_sequence**
 
-  .. code-block:: python
+``_postprocess_sequence`` is only called by methods that produce a sequence pattern string
+(:meth:`~fileseq.FileSequence.__str__` and :meth:`~fileseq.FileSequence.format`).
+It is **not** called when resolving individual frame paths via
+:meth:`~fileseq.FileSequence.frame` or iteration — those use the internally stored padding
+directly, so frame paths are always correct regardless of what ``_postprocess_sequence`` does.
 
-      seq = VRayFileSequence('/render/beauty.<frame04>.exr')
-      str(seq)  # '/render/beauty..exr'  — padding omitted by str()
-      seq.format('{dirname}{basename}{padding}{extension}')
-      # '/render/beauty.<frame04>.exr'
+When the sequence has no frame range, :meth:`~fileseq.FileSequence.__str__` omits the padding
+token entirely.  Use :meth:`~fileseq.FileSequence.format` with an explicit ``{padding}`` field
+if you need the padding token in the output for a pattern-only sequence.
 
 **_create_path — control the type returned for each frame path**
 

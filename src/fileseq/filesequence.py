@@ -199,6 +199,18 @@ class BaseFileSequence(typing.Generic[T]):
         self._zfill = self.getPaddingNum(self._frame_pad, pad_style=pad_style)
         self._decimal_places = self.getPaddingNum(self._subframe_pad, pad_style=pad_style)
 
+        # Allow subclasses to canonicalize the padding representation.
+        self._frame_pad = self._resolve_padding(self._frame_pad, self._zfill, pad_style)
+        if self._subframe_pad:
+            self._subframe_pad = self._resolve_padding(
+                self._subframe_pad, self._decimal_places, pad_style
+            )
+        # Keep _pad consistent with the (possibly updated) frame/subframe components.
+        if self._subframe_pad:
+            self._pad = '.'.join([self._frame_pad, self._subframe_pad])
+        else:
+            self._pad = self._frame_pad
+
         # Round subframes to match sequence
         if self._frameSet is not None and self._frameSet.hasSubFrames():
             self._frameSet = FrameSet([
@@ -234,6 +246,30 @@ class BaseFileSequence(typing.Generic[T]):
             str: the (possibly modified) sequence string
         """
         return sequence
+
+    def _resolve_padding(self, parsed_pad: str, zfill: int, pad_style: constants._PadStyle) -> str:
+        """
+        Normalize the padding string after parsing.
+
+        Called immediately after ``_zfill`` is computed in :meth:`_init_impl`,
+        once for the frame padding and once for the subframe padding if present.
+        The default implementation returns *parsed_pad* unchanged, which
+        preserves existing behavior for all standard formats.
+
+        Override in a subclass to store a custom canonical representation.
+        For example, a VRay subclass would return ``'<frame04>'`` here
+        rather than letting ``'%04d'`` be stored as the internal padding.
+
+        Args:
+            parsed_pad: The padding string as produced by the grammar parser
+                        (or translated by ``_preprocess_sequence``).
+            zfill:      The numeric width implied by *parsed_pad*.
+            pad_style:  The active padding style for this sequence.
+
+        Returns:
+            The padding string that should be stored as the canonical form.
+        """
+        return parsed_pad
 
     def _postprocess_sequence(self, sequence: str) -> str:
         """Override to translate the assembled sequence string back to custom syntax.
@@ -1826,6 +1862,32 @@ class BaseFileSequence(typing.Generic[T]):
             num = cls.getPaddingNum(pad, pad_style=pad_style)
             pad = cls.getPaddingChars(num, pad_style=pad_style)
         return pad
+
+    @classmethod
+    def parsePadding(cls, sequence: str) -> str:
+        """
+        Parse the padding characters out of an arbitrary sequence-like string.
+
+        Unlike constructing a full sequence instance, this does not require
+        *sequence* to represent a complete, valid sequence (e.g. no frame
+        range is required). It only reports the padding token, if any, that
+        can be identified. This is useful for answering "does this string
+        contain a padding token" for strings that may not be well-formed
+        sequences on their own, such as a single file path.
+
+        Override in a subclass alongside ``_preprocess_sequence`` to also
+        recognize a custom padding token that isn't understood on its own.
+
+        Args:
+            sequence (str): the sequence or path string to inspect
+
+        Returns:
+            str: the detected padding characters, or '' if none were found
+        """
+        try:
+            return parse_sequence_string(utils.asString(sequence)).padding
+        except ValueError:
+            return ''
 
 
 class FileSequence(BaseFileSequence[str]):
