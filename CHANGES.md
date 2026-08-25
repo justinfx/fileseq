@@ -1,6 +1,14 @@
 # Fileseq Changelog
 
-## v3.2.1 (TBD)
+## v3.4.0 (TBD)
+
+* Add `FileSequence.paddedFrame(int)` to return the given frame number as a zero-padded string, using the sequence's padding (#163)
+
+## v3.3.0 (2026-07-05)
+
+* Refactor the subclass extension support for supporting custom patterns and paddings (#139)
+
+## v3.2.1 (2026-07-03)
 
 * Prevent bad matching of sequence frames on disk like "1001_1" due to PEP 515 numeric literal underscore seps (#158)
 

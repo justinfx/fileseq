@@ -749,28 +749,46 @@ class BaseFileSequence(typing.Generic[T]):
         Returns:
             str:
         """
-        zframe: object = None
+        zframe = self.paddedFrame(frame)
+        return self._create_path("".join((self._dir, self._base, zframe, self._ext)))
+
+    def paddedFrame(self, frame: int|float|decimal.Decimal|str) -> str:
+        """
+        Return the given frame number as a zero-padded string, using this
+        sequence's padding (zfill, decimalPlaces, and negative-zero style).
+
+        Examples:
+            >>> seq = FileSequence('/foo/bar.1-10#.exr')
+            >>> seq.paddedFrame(1)
+            '0001'
+
+        Args:
+            frame (int, float, decimal.Decimal or str): the desired frame number
+                or a char to pass through (ie. #)
+
+        Returns:
+            str:
+        """
         if self._zfill == 0:
             # There may have been no placeholder for frame IDs in
             # the sequence, in which case we don't want to insert
             # a frame ID
-            zframe = ""
-        else:
-            if not isinstance(frame, (int, float, decimal.Decimal)):
-                try:
-                    frame = int(frame)
-                except ValueError:
-                    try:
-                        frame = decimal.Decimal(frame)
-                    except decimal.DecimalException:
-                        zframe = frame
-            if zframe is None:
-                # Convert to Decimal('-0') if this sequence uses negative zero formatting
-                if self._has_negative_zero and frame == 0:
-                    frame = decimal.Decimal('-0')
-                zframe = utils.pad(frame, self._zfill, self._decimal_places)
+            return ""
 
-        return self._create_path("".join((self._dir, self._base, str(zframe), self._ext)))
+        if not isinstance(frame, (int, float, decimal.Decimal)):
+            try:
+                frame = int(frame)
+            except ValueError:
+                try:
+                    frame = decimal.Decimal(frame)
+                except decimal.DecimalException:
+                    return str(frame)
+
+        # Convert to Decimal('-0') if this sequence uses negative zero formatting
+        if self._has_negative_zero and frame == 0:
+            frame = decimal.Decimal('-0')
+
+        return utils.pad(frame, self._zfill, self._decimal_places)
 
     def index(self, idx: int) -> T:
         """
