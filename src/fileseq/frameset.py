@@ -716,8 +716,9 @@ class FrameSet(BaseFrameSet):
 
     def isConsecutive(self) -> bool:
         """
-        Return whether the frame range represents consecutive integers,
-        as opposed to having a stepping >= 2
+        Return whether the frame range represents consecutive frames with a
+        step of 1, as opposed to having gaps or a stepping >= 2. Frames do not
+        need to be whole numbers, as long as they are spaced exactly 1 apart.
 
         Examples:
             >>> FrameSet('1-100').isConsecutive()
@@ -726,54 +727,22 @@ class FrameSet(BaseFrameSet):
             False
             >>> FrameSet('1-50,60-100').isConsecutive()
             False
+            >>> FrameSet('101.0-102.0').isConsecutive()
+            True
 
         Returns:
             bool:
         """
-        if self.hasSubFrames():
-            return False
-        
         if not self._ranges:
             return False
-        
-        # Each range must have step=1 or step=-1 (no skipping)
-        for r in self._ranges:
-            if abs(r.step) != 1:
-                return False
 
-        # Track covered [lo, hi] as ranges are visited in order.
-        # A new range may extend lo or hi, but only if it doesn't
-        # introduce a gap and doesn't extend in both directions.
-        lo = hi = None
-        extended_lo = extended_hi = False
-
-        for r in self._ranges:
-            r_lo = int(min(r.start, r.end))
-            r_hi = int(max(r.start, r.end))
-
-            if lo is None:
-                lo, hi = r_lo, r_hi
-                continue
-
-            assert lo is not None
-            assert hi is not None
-            # Must overlap or be adjacent to current covered range
-            if r_lo > hi + 1 or r_hi < lo - 1:
-                return False
-
-            if r_lo < lo:
-                if extended_hi:
-                    return False
-                extended_lo = True
-            if r_hi > hi:
-                if extended_lo:
-                    return False
-                extended_hi = True
-
-            lo = min(lo, r_lo)  # type: ignore[type-var]
-            hi = max(hi, r_hi)  # type: ignore[type-var]
-
-        return True
+        # Matches 2.x semantics: the set has no gaps and no duplicates
+        # between its first and last frame at a step of 1. Decimal notation
+        # such as '101.0-102.0' or offsets such as '101.5-102.5' qualify.
+        first = self._ranges[0].start
+        r = self._ranges[-1]
+        last = r.start + r.step * (len(r) - 1)
+        return len(self) == abs(last - first) + 1
 
     def frameRange(self, zfill: int = 0, decimal_places: int | None = None) -> str:
         """

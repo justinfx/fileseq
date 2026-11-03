@@ -583,6 +583,57 @@ class TestFrameSet(unittest.TestCase):
             self.assertFalse(FrameSet(t).isConsecutive(),
                              "Expected %s to not be consecutive" % t)
 
+    def testIsConsecutiveMatches2x(self):
+        # Expected values recorded from fileseq 2.3.2 (issue #165)
+        table = [
+            ('1-100', True),
+            ('1-100x2', False),
+            ('1-50,60-100', False),
+            ('10', True),
+            ('-5--1', True),
+            ('10-1', True),
+            ('1,2,3,4,3,2,3,4,5,4', True),
+            ('-10-3,1-10,5-20,7-30', True),
+            ('10--10', True),
+            ('10-2,8-0,4--5', True),
+            ('10-20x2', False),
+            ('10-20x2,15-30x3', False),
+            ('-5-1,3-10', False),
+            ('-10-10x2', False),
+            ('1,2,3,4,6,7,8', False),
+            ('1,2,3,4,5,0', False),
+            ('5,4,3,2,1,6', False),
+            ('1.1,1.2', False),
+            ('101.0-102.0', True),
+            ('101.5-102.5', True),
+            ('1.0-3.0x0.5', False),
+            ('1.0', True),
+            ('1.5', True),
+            ('1.0-10.0', True),
+            ('10.0-1.0', True),
+            ('1.1,2.1', True),
+            ('1.1,2.1,3.1', True),
+            ('1.5-5.5', True),
+            ('1.5-5.5x2', False),
+            ('0.5-3.5', True),
+            ('-1.5-1.5', True),
+            ('1.0,2.0,4.0', False),
+            ('1-5,6.0-10.0', True),
+            ('1-5,5.5-10.5', False),
+            ('1.25-3.25', True),
+            ('1-3x0.25', False),
+            ('1.0-2.0x1.0', True),
+            ('1-10y3', False),
+            ('1-10:2', True),
+            ('1-5x1.0', True),
+        ]
+        for frange, expected in table:
+            self.assertEqual(FrameSet(frange).isConsecutive(), expected,
+                             "isConsecutive(%r)" % frange)
+
+        # 2.x raised IndexError here; 3.x returns False
+        self.assertFalse(FrameSet('').isConsecutive())
+
     def testSlicing(self):
         Case = namedtuple('Case', ['input', 'slice', 'expected'])
         table = [
