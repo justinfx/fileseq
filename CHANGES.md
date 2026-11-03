@@ -1,6 +1,11 @@
 # Fileseq Changelog
 
-## v3.4.0 (TBD)
+## v3.4.1 (2026-11-04)
+
+* Restore 2.x `FrameSet.isConsecutive()` behavior for decimal notation ranges like "101.0-102.0" (#165)
+* Add PyPI classifiers for Python 3.13, 3.14 and 3.15
+
+## v3.4.0 (2026-08-26)
 
 * Add `FileSequence.paddedFrame(int)` to return the given frame number as a zero-padded string, using the sequence's padding (#163)
 
