@@ -80,6 +80,8 @@ all	seq	/mnt/out/file.1-100.5@.exr	/mnt/out/	file.1-100.	5	@	.exr
 all	seq	/mnt/out/file.1-5x2#.exr	/mnt/out/	file.	1-5x2	#	.exr
 all	seq	/mnt/shot#1/file.1-10#.exr	/mnt/shot#1/	file.	1-10	#	.exr
 all	seq	/p/#.exr	/p/			#	.exr
+all	seq	/p/-10#.exr	/p/	-	10	#	.exr
+all	seq	/p/.-10#.exr	/p/	.	-10	#	.exr
 all	seq	/p/.1-100#.exr	/p/	.	1-100	#	.exr
 all	seq	/p/.hidden.1-10#.exr	/p/	.hidden.	1-10	#	.exr
 all	seq	/p/.hidden5.1-10#.7zip	/p/	.hidden5.	1-10	#	.7zip
@@ -88,14 +90,17 @@ all	seq	/p/f name.1-10#.exr	/p/	f name.	1-10	#	.exr
 all	seq	/p/f#	/p/	f		#	
 all	seq	/p/f-name.1-10#.exr	/p/	f-name.	1-10	#	.exr
 all	seq	/p/f.#	/p/	f.		#	
+all	seq	/p/f.#.-5	/p/	f.		#	.-5
 all	seq	/p/f.$F.exr	/p/	f.		$F	.exr
 all	seq	/p/f.$F4.exr	/p/	f.		$F4	.exr
 all	seq	/p/f.%(UDIM)d.exr	/p/	f.		%(UDIM)d	.exr
 all	seq	/p/f.%04d.exr	/p/	f.		%04d	.exr
 all	seq	/p/f.%d.exr	/p/	f.		%d	.exr
+all	seq	/p/f..1-10#.exr	/p/	f..	1-10	#	.exr
 all	seq	/p/f.1,3,5#.exr	/p/	f.	1,3,5	#	.exr
 all	seq	/p/f.1-10#	/p/	f.	1-10	#	
 all	seq	/p/f.1-10##.exr	/p/	f.	1-10	##	.exr
+all	seq	/p/f.1-10#.-5	/p/	f.	1-10	#	.-5
 all	seq	/p/f.1-10#.5.exr	/p/	f.	1-10	#	.5.exr
 all	seq	/p/f.1-10#@.exr	/p/	f.	1-10	#@	.exr
 all	seq	/p/f.1-10#_exr	/p/	f.	1-10	#	_exr
@@ -107,6 +112,7 @@ all	seq	/p/f.1.2#.exr	/p/	f.1.	2	#	.exr
 all	seq	/p/f.10-1x-1#.exr	/p/	f.	10-1x-1	#	.exr
 all	seq	/p/f.1001-1010<UDIM>.exr	/p/	f.	1001-1010	<UDIM>	.exr
 all	seq	/p/f.<UDIM>.exr	/p/	f.		<UDIM>	.exr
+all	seq	/p/f.a-10#.exr	/p/	f.a-	10	#	.exr
 all	seq	/p/f.a1b2#.exr	/p/	f.a1b	2	#	.exr
 all	seq	/p/f.abc123@@@	/p/	f.abc	123	@@@	
 all	seq	/p/f.name.1-10#.exr	/p/	f.name.	1-10	#	.exr
@@ -116,11 +122,17 @@ all	seq	/p/f.tmp12_#.exr	/p/	f.tmp12_		#	.exr
 all	seq	/p/f.tmp_12345@@@	/p/	f.tmp_	12345	@@@	
 all	seq	/p/f1-10#.exr	/p/	f	1-10	#	.exr
 all	seq	/p/f_1-10#.exr	/p/	f_	1-10	#	.exr
+all	seq	/p/file--10#.exr	/p/	file--	10	#	.exr
+all	seq	/p/file-1-100#.exr	/p/	file	-1-100	#	.exr
+all	seq	/p/file-10#.exr	/p/	file-	10	#	.exr
 all	seq	/p/file.#.mp4	/p/	file.		#	.mp4
+all	seq	/p/file.--10#.exr	/p/	file.--	10	#	.exr
+all	seq	/p/file.-10#.exr	/p/	file.	-10	#	.exr
 all	seq	/p/file..1-10#.exr	/p/	file..	1-10	#	.exr
 all	seq	/p/file.1-10#.mp4	/p/	file.	1-10	#	.mp4
 all	seq	/p/file.v2#.exr	/p/	file.v	2	#	.exr
 all	seq	/p/file.v2.1-10#.exr	/p/	file.v2.	1-10	#	.exr
+all	seq	/p/file_-10#.exr	/p/	file_-	10	#	.exr
 all	seq	/path with spaces/file.#.ext	/path with spaces/	file.		#	.ext
 all	seq	/path.with.dots/file.1-100#.exr	/path.with.dots/	file.	1-100	#	.exr
 all	seq	/path/.hidden.0001-0100#.ext	/path/	.hidden.	0001-0100	#	.ext
@@ -306,10 +318,15 @@ all	single	/p/.100.exr	/p/	.	100		.exr
 all	single	/p/.10000000000.123	/p/	.	10000000000		.123
 all	single	/p/.hidden.100.exr	/p/	.hidden.	100		.exr
 all	single	/p/a.1.2.3	/p/	a.1.	2		.3
+all	single	/p/f..5.exr	/p/	f..	5		.exr
 all	single	/p/f.1.2.exr	/p/	f.1.	2		.exr
+all	single	/p/f.1.b	/p/	f.	1		.b
 all	single	/p/f.1.ext1	/p/	f.	1		.ext1
+all	single	/p/f.1001.-5	/p/	f.	1001		.-5
+all	single	/p/f.1001.exr.-5	/p/	f.	1001		.exr.-5
 all	single	/p/f.1001_exr	/p/	f.	1001		_exr
 all	single	/p/file.-0.exr	/p/	file.	-0		.exr
+all	single	/p/file.-10.exr	/p/	file.	-10		.exr
 all	single	/p/file.-100.exr	/p/	file.	-100		.exr
 all	single	/p/file.0.exr	/p/	file.	0		.exr
 all	single	/p/file.100.7zip	/p/	file.	100		.7zip
@@ -364,9 +381,19 @@ all	plain	/p/.hidden.100	/p/				.hidden.100
 all	plain	/p/.hidden.exr	/p/				.hidden.exr
 all	plain	/p/1001.exr	/p/	1001			.exr
 all	plain	/p/f-1001.exr	/p/	f-1001			.exr
+all	plain	/p/f-x.exr	/p/	f-x			.exr
+all	plain	/p/f.	/p/	f.			
 all	plain	/p/f.-	/p/	f.-			
+all	plain	/p/f.-5	/p/	f			.-5
+all	plain	/p/f.-x	/p/	f.-x			
+all	plain	/p/f.-x.exr	/p/	f.-x			.exr
+all	plain	/p/f..1	/p/	f.			.1
+all	plain	/p/f..txt	/p/	f.			.txt
 all	plain	/p/f.1-	/p/	f.1-			
+all	plain	/p/f.1-10#-5	/p/	f.1-10#-5			
+all	plain	/p/f.1-10#.5-6.exr	/p/	f.1-10#.5-6			.exr
 all	plain	/p/f.1-10#.exr/	/p/f.1-10#.exr/				
+all	plain	/p/f.1-x.exr	/p/	f.1-x			.exr
 all	plain	/p/f.1001	/p/	f			.1001
 all	plain	/p/f.1x	/p/	f			.1x
 all	plain	/p/f.1x.exr	/p/	f			.1x.exr
@@ -375,8 +402,10 @@ all	plain	/p/f.ext1.ext2	/p/	f			.ext1.ext2
 all	plain	/p/f.tmp12345	/p/	f			.tmp12345
 all	plain	/p/f.tmp12345.exr	/p/	f			.tmp12345.exr
 all	plain	/p/f.x	/p/	f			.x
+all	plain	/p/f.x-1	/p/	f			.x-1
 all	plain	/p/f1001.exr	/p/	f1001			.exr
 all	plain	/p/f_1001.exr	/p/	f_1001			.exr
+all	plain	/p/file-10.exr	/p/	file-10			.exr
 all	plain	/p/file.1-10#.	/p/	file.1-10#.			
 all	plain	/p/file.1-10#..exr	/p/	file.1-10#.			.exr
 all	plain	/p/file.100	/p/	file			.100
@@ -433,6 +462,7 @@ all	error	/a/foo>bar.1-10#.exr
 all	error	/a/sh<010.1001.exr
 all	error	/a/x<y>.#.exr
 all	error	/p/f.1-10#.ab-cd
+all	error	/p/f.5..exr
 all	error	/p/f.ab-cd.exr
 all	error	/p/file.100.
 all	error	/render/beauty.<frame04>.exr
