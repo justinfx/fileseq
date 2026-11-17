@@ -52,6 +52,19 @@ LEXER_ERROR_INPUTS = [
     "/a/x<y>.#.exr",
 ]
 
+# Padding-like characters in directory segments are valid POSIX paths.
+# Padding only has meaning in the final path component.
+DIR_PADDING_INPUTS = [
+    ("/mnt/shot#1/file.1-10#.exr", "/mnt/shot#1/", "file."),
+    ("/mnt/a@b/file.1001.exr", "/mnt/a@b/", "file."),
+    ("/mnt/a@b/file.exr", "/mnt/a@b/", "file"),
+    ("/mnt/$FOO/file.1-10#.exr", "/mnt/$FOO/", "file."),
+    ("/mnt/out/100%done/file.1-10#.exr", "/mnt/out/100%done/", "file."),
+    ("/mnt/out/%04dir/file.exr", "/mnt/out/%04dir/", "file"),
+    ("/mnt/<UDIM>/tex.1001.exr", "/mnt/<UDIM>/", "tex."),
+    ("/mnt/%(UDIM)d/tex.#.exr", "/mnt/%(UDIM)d/", "tex."),
+]
+
 
 def _sll_errors(path):
     lexer = fileseqLexer(InputStream(path))
@@ -72,6 +85,21 @@ class TestSLLPrediction(unittest.TestCase):
         for path in SLL_INPUTS:
             with self.subTest(path=path):
                 self.assertEqual(_sll_errors(path), [])
+
+    def test_directory_padding_chars_parse_with_sll(self):
+        for path, _, _ in DIR_PADDING_INPUTS:
+            with self.subTest(path=path):
+                self.assertEqual(_sll_errors(path), [])
+
+
+class TestDirectoryPaddingChars(unittest.TestCase):
+
+    def test_directory_allows_padding_chars(self):
+        for path, dirname, basename in DIR_PADDING_INPUTS:
+            with self.subTest(path=path):
+                result = parse_file_sequence(path)
+                self.assertEqual(result.directory, dirname)
+                self.assertEqual(result.basename, basename)
 
 
 class TestLexerErrors(unittest.TestCase):

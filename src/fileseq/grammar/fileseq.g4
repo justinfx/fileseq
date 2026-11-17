@@ -69,8 +69,10 @@ plainBasenameChar
 // Includes EXTENSION to handle dots in directory names (e.g. path.with.dots)
 // Includes WS to preserve whitespace in directory names
 // Includes OTHER_CHAR for special characters like ! $ % ( ) etc.
+// Includes the padding tokens, since padding only has meaning in the final
+// path component (e.g. /mnt/shot#1/ or /mnt/<UDIM>/ are valid directories)
 dirSegment
-    : basenameChar+
+    : (basenameChar | HASH | AT | UDIM_ANGLE | UDIM_PAREN | PRINTF_PAD | HOUDINI_PAD)+
     ;
 
 // Basename for sequence, patternOnly, and singleFrame rules.
