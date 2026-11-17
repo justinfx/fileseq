@@ -65,6 +65,15 @@ DIR_PADDING_INPUTS = [
     ("/mnt/%(UDIM)d/tex.#.exr", "/mnt/%(UDIM)d/", "tex."),
 ]
 
+# A dot-number after a frame range without a step is the frame number, with
+# the range text kept in the basename, as in v2. Only a decimal step value
+# (1-5x0.25) may carry a decimal suffix.
+RANGE_DOT_NUM_INPUTS = [
+    ("/mnt/out/file.1-100.5#.exr", "file.1-100.", "5", "#"),
+    ("/mnt/out/file.1-100.5@.exr", "file.1-100.", "5", "@"),
+    ("/mnt/out/file.1,2,3.10#.exr", "file.1,2,3.", "10", "#"),
+]
+
 
 def _sll_errors(path):
     lexer = fileseqLexer(InputStream(path))
@@ -100,6 +109,21 @@ class TestDirectoryPaddingChars(unittest.TestCase):
                 result = parse_file_sequence(path)
                 self.assertEqual(result.directory, dirname)
                 self.assertEqual(result.basename, basename)
+
+
+class TestRangeFollowedByDotNum(unittest.TestCase):
+
+    def test_range_followed_by_dot_num(self):
+        for path, basename, frame, pad in RANGE_DOT_NUM_INPUTS:
+            with self.subTest(path=path):
+                result = parse_file_sequence(path)
+                self.assertEqual(
+                    (result.basename, result.frame_range, result.padding, result.extension),
+                    (basename, frame, pad, ".exr"))
+
+    def test_decimal_step_keeps_suffix(self):
+        result = parse_file_sequence("/mnt/out/file.1-5x0.25#.exr")
+        self.assertEqual((result.basename, result.frame_range), ("file.", "1-5x0.25"))
 
 
 class TestLexerErrors(unittest.TestCase):

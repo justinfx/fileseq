@@ -154,13 +154,15 @@ EXTENSION: '.' ([a-zA-Z_] | [0-9]* [a-zA-Z] [a-zA-Z0-9_]*);
 
 // Frame range with leading dot (must have comma, colon, or dash after first number)
 // Matches: .1-100, .-10-100, .1,2,3, .1-10x2, .1,2,3,5-10,20-30
-// Optional decimal suffix for decimal step values: .1-5x0.25
-DOT_FRAME_RANGE: '.' '-'? [0-9]+ [,:-] [0-9xy:,-]* ('.' [0-9]+)?;
+// Optional decimal step value, only after x or y: .1-5x0.25
+// Without a step, a trailing .N is a separate frame number (v2 behavior)
+DOT_FRAME_RANGE: '.' '-'? [0-9]+ [,:-] [0-9xy:,-]* ([xy] [0-9]+ '.' [0-9]+)?;
 
 // Frame range without leading dot (must have comma, colon, or dash after first number)
 // Matches: 1-100, -10-100, 1,2,3, 1-10x2
-// Optional decimal suffix for decimal step values: 1-5x0.25
-FRAME_RANGE: '-'? [0-9]+ [,:-] [0-9xy:,-]* ('.' [0-9]+)?;
+// Optional decimal step value, only after x or y: 1-5x0.25
+// Without a step, a trailing .N is a separate frame number (v2 behavior)
+FRAME_RANGE: '-'? [0-9]+ [,:-] [0-9xy:,-]* ([xy] [0-9]+ '.' [0-9]+)?;
 
 // Frame number with dot: .100 or .-10 (single frame, no range delimiter)
 DOT_NUM: '.' '-'? [0-9]+;

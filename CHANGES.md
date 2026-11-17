@@ -6,6 +6,8 @@
   falling back to full LL. Parsing a range sequence is about 10x faster.
 * Fix parser silently dropping invalid characters like `<` and `>` instead of raising an error
 * grammar: Allow padding characters (`#` `@` `<UDIM>` `%04d` `$F`) in directory names, such as `/mnt/shot#1/file.1-10#.exr`
+* grammar: Fix regression from v2 where a frame number after a frame range (`file.1-100.5#.exr`) was absorbed into
+  the frame range. The decimal suffix is now only accepted on a step value (`1-5x0.25`)
 
 ## v3.4.1 (2026-11-04)
 
