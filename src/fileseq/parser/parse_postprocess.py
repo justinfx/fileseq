@@ -1,5 +1,5 @@
 """
-Post-processing for 3 special cases that can't be handled by grammar alone.
+Post-processing for special cases that are not handled by the grammar alone.
 """
 import re
 from .parse_result import ParseResult
@@ -7,9 +7,8 @@ from .parse_result import ParseResult
 
 def post_process(result: ParseResult) -> ParseResult:
     """
-    Apply post-processing fixes for 3 special cases.
+    Apply post-processing fixes for special cases.
 
-    1. Multiple DOT_NUM tokens (e.g., .10000000000.123)
     2. Extension tokens with trailing digits (e.g., .tmp12345@@@@@)
     3. Leading dot in frame range tokens (e.g., .1-100)
 
@@ -19,47 +18,8 @@ def post_process(result: ParseResult) -> ParseResult:
     Returns:
         Modified ParseResult with fixes applied
     """
-    result = _fix_multiple_dot_num(result)
     result = _fix_extension_trailing_digits(result)
     result = _fix_leading_dot_in_frame_range(result)
-    return result
-
-
-def _fix_multiple_dot_num(result: ParseResult) -> ParseResult:
-    """
-    Special case 1: Handle basename ending with .digits when no extension.
-
-    Example: /path/.10000000000.123
-    - Parser sees: basename=".10000000000", extension=""
-    - Grammar ambiguity: Both could be DOT_NUM tokens
-
-    Fix: If basename ends with DOT_NUM pattern and extension is empty,
-         swap them so frame number is extracted correctly.
-
-    Result: basename=".10000000000", frame="(extracted)", extension=".123"
-    """
-    # Only applies to single frame files with no extension
-    if not result.is_single_frame:
-        return result
-
-    if result.extension:
-        return result  # Has extension, no fix needed
-
-    # Check if basename ends with .digits pattern
-    if not result.basename:
-        return result
-
-    # Pattern: ends with dot followed by digits
-    match = re.search(r'(\.\d+)$', result.basename)
-    if not match:
-        return result
-
-    # Split: everything before the .digits becomes basename,
-    # .digits becomes extension
-    dot_digits = match.group(1)
-    result.basename = result.basename[:-len(dot_digits)]
-    result.extension = dot_digits
-
     return result
 
 
