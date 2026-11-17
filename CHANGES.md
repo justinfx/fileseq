@@ -1,5 +1,10 @@
 # Fileseq Changelog
 
+## v3.5.0 (unreleased)
+
+* grammar: Split the shared basename rule per input alternative so range sequences parse with SLL prediction instead of
+  falling back to full LL. Parsing a range sequence is about 10x faster.
+
 ## v3.4.1 (2026-11-04)
 
 * Restore 2.x `FrameSet.isConsecutive()` behavior for decimal notation ranges like "101.0-102.0" (#165)

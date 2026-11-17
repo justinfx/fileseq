@@ -86,7 +86,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         """
         result = ParseResult(is_sequence=True)
         result.directory = ctx.directory().getText()
-        if bn := ctx.basename():
+        if bn := ctx.patBasename():
             result.basename = bn.getText()
 
         paddings = self._collect_indexed(ctx, "padding")
@@ -113,7 +113,7 @@ class FileSeqVisitorImpl(ParseTreeVisitor):
         """
         result = ParseResult(is_single_frame=True)
         result.directory = ctx.directory().getText()
-        if bn := ctx.basename():
+        if bn := ctx.frameBasename():
             result.basename = bn.getText()
 
         # Extract frame number from DOT_NUM or NUM token

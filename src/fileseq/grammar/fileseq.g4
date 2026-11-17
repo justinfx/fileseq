@@ -27,7 +27,7 @@ sequence
 // Python-specific: Supports optional subframe padding: /path/file.#.#.ext
 //   Go/C++ ignore the second padding until subframe support is implemented
 patternOnly
-    : directory basename? padding (SPECIAL_CHAR padding)? extension*
+    : directory patBasename? padding (SPECIAL_CHAR padding)? extension*
     ;
 
 // Single frame: /path/file.100.exr (extension required after frame number)
@@ -35,7 +35,7 @@ patternOnly
 // Python semantic rule: a dot-number is only treated as a frame if there's an extension after it
 // Basename is optional to handle cases like .10000000000.123 where both are DOT_NUM tokens
 singleFrame
-    : directory basename? frameNum extension+
+    : directory frameBasename? frameNum extension+
     ;
 
 // Plain file: /path/file.txt or /path/file or /path/.hidden (no frame pattern)
@@ -76,7 +76,19 @@ dirSegment
 // Basename for sequence, patternOnly, and singleFrame rules.
 // Includes EXTENSION (for hidden files like .hidden) and DOT_NUM.
 // Also includes FRAME_RANGE tokens for date-like patterns (e.g., "name_2025-05-13_")
+// The three rules are identical on purpose. Each is referenced from exactly one
+// alternative of 'input', so SLL prediction never merges their follow contexts.
+// Sharing one rule made every range sequence fail SLL and reparse with full LL,
+// which was about 30x slower. TestValidInputsParseWithSLL guards this.
 basename
+    : basenameChar+
+    ;
+
+patBasename
+    : basenameChar+
+    ;
+
+frameBasename
     : basenameChar+
     ;
 
