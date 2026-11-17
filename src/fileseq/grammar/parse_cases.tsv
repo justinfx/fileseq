@@ -1,0 +1,482 @@
+# Shared parser test corpus for fileseq (Python), gofileseq (Go) and gofileseq/cpp.
+# Keep this file identical in every repository, alongside fileseq.g4.
+#
+# Each line is tab-separated:
+#   ports kind input directory basename frame_range padding extension
+# ports is "all", or a comma-separated list of go, cpp and py.
+# kind is seq, single, plain or error. An error line has only ports, kind and input.
+# Lines starting with '#' and blank lines are ignored.
+all	seq	#.exr				#	.exr
+all	seq	../f.1-10#.exr	../	f.	1-10	#	.exr
+all	seq	./f.1-10#.exr	./	f.	1-10	#	.exr
+all	seq	.hidden.1-10#.exr		.hidden.	1-10	#	.exr
+all	seq	//rama/dev/fileseq_test/fileseq_test.1-100####.exr	//rama/dev/fileseq_test/	fileseq_test.	1-100	####	.exr
+all	seq	//server/share/file.####.exr	//server/share/	file.		####	.exr
+all	seq	//server/share/file.1-50@@@@.exr	//server/share/	file.	1-50	@@@@	.exr
+all	seq	/a/file.5.1-10#	/a/	file.5.	1-10	#	
+all	seq	/a/path/to/the/file_foo.1-10,50,70-100x5#.ext	/a/path/to/the/	file_foo.	1-10,50,70-100x5	#	.ext
+all	seq	/a/v.12.1-100x2@@	/a/	v.12.	1-100x2	@@	
+all	seq	/cheech/0-9x1/chong.1-10#.exr	/cheech/0-9x1/	chong.	1-10	#	.exr
+all	seq	/cheech/chong.0030#.exr	/cheech/	chong.	0030	#	.exr
+all	seq	/cheech/chong.1,3,5#.exr	/cheech/	chong.	1,3,5	#	.exr
+all	seq	/cheech/chong.1-10,30,40#.exr	/cheech/	chong.	1-10,30,40	#	.exr
+all	seq	/dir.v1/dir.v2/file.1-100#.exr	/dir.v1/dir.v2/	file.	1-100	#	.exr
+all	seq	/dir/.hidden5.1-10#.7zip	/dir/	.hidden5.	1-10	#	.7zip
+all	seq	/dir/100@.1.ext	/dir/		100	@	.1.ext
+all	seq	/dir/complex_extension.1-10,50,60-90x2#.tar.gz	/dir/	complex_extension.	1-10,50,60-90x2	#	.tar.gz
+all	seq	/dir/f.-1-100#.jpeg	/dir/	f.	-1-100	#	.jpeg
+all	seq	/dir/f.-1-100$F04.jpeg	/dir/	f.	-1-100	$F04	.jpeg
+all	seq	/dir/f.-1-100%(UDIM)d.jpeg	/dir/	f.	-1-100	%(UDIM)d	.jpeg
+all	seq	/dir/f.-1-100%04d.jpeg	/dir/	f.	-1-100	%04d	.jpeg
+all	seq	/dir/f.-1-100<UDIM>.jpeg	/dir/	f.	-1-100	<UDIM>	.jpeg
+all	seq	/dir/f.1-10##.tar.gz	/dir/	f.	1-10	##	.tar.gz
+all	seq	/dir/f.1-10,50,60-90x2##.exr	/dir/	f.	1-10,50,60-90x2	##	.exr
+all	seq	/dir/f.1-10,50,60-90x2##.mp4	/dir/	f.	1-10,50,60-90x2	##	.mp4
+all	seq	/dir/f.1-10,50,60-90x2##.tar.gz	/dir/	f.	1-10,50,60-90x2	##	.tar.gz
+all	seq	/dir/f.1-100#.jpeg	/dir/	f.	1-100	#	.jpeg
+all	seq	/dir/f.1-100#.tar.gz-1	/dir/	f.	1-100	#	.tar.gz-1
+all	seq	/dir/f.1-100$F03.f	/dir/	f.	1-100	$F03	.f
+all	seq	/dir/f.1-100$F04.jpeg	/dir/	f.	1-100	$F04	.jpeg
+all	seq	/dir/f.1-100%(UDIM)d.f	/dir/	f.	1-100	%(UDIM)d	.f
+all	seq	/dir/f.1-100%(UDIM)d.jpeg	/dir/	f.	1-100	%(UDIM)d	.jpeg
+all	seq	/dir/f.1-100%03d.f	/dir/	f.	1-100	%03d	.f
+all	seq	/dir/f.1-100%04d.jpeg	/dir/	f.	1-100	%04d	.jpeg
+all	seq	/dir/f.1-100<UDIM>.f	/dir/	f.	1-100	<UDIM>	.f
+all	seq	/dir/f.1-100<UDIM>.jpeg	/dir/	f.	1-100	<UDIM>	.jpeg
+all	seq	/dir/f.1-100@@@.f	/dir/	f.	1-100	@@@	.f
+all	seq	/dir/f.50##.exr	/dir/	f.	50	##	.exr
+all	seq	/dir/f.50##.tar.gz	/dir/	f.	50	##	.tar.gz
+all	seq	/dir/f.60-90x2##.exr	/dir/	f.	60-90x2	##	.exr
+all	seq	/dir/f.60-90x2##.tar.gz	/dir/	f.	60-90x2	##	.tar.gz
+all	seq	/dir/f.@@.ext	/dir/	f.		@@	.ext
+all	seq	/dir/f.@@.tar.gz	/dir/	f.		@@	.tar.gz
+all	seq	/dir/f.tmp12345@@@@@	/dir/	f.tmp	12345	@@@@@	
+all	seq	/dir/f10_20.v123.1-10,50,60-90x2##.tar.gz	/dir/	f10_20.v123.	1-10,50,60-90x2	##	.tar.gz
+all	seq	/dir/f10_20.v123.1-100#.jpeg	/dir/	f10_20.v123.	1-100	#	.jpeg
+all	seq	/dir/f10_20.v123.@@.tar.gz	/dir/	f10_20.v123.		@@	.tar.gz
+all	seq	/dir/f10_30.v123.100#.tar.gz	/dir/	f10_30.v123.	100	#	.tar.gz
+all	seq	/dir/file.1,2,3,4,5#.ext	/dir/	file.	1,2,3,4,5	#	.ext
+all	seq	/dir/file.1,2,3,5,6-8#.ext	/dir/	file.	1,2,3,5,6-8	#	.ext
+all	seq	/dir/file.1-3,5-8#.ext	/dir/	file.	1-3,5-8	#	.ext
+all	seq	/dir/file.1-4,6#.ext	/dir/	file.	1-4,6	#	.ext
+all	seq	/dir/file.1-5@@@@.ext	/dir/	file.	1-5	@@@@	.ext
+all	seq	/dir/many_numbers8_30.v123.1-10,50,60-90x2#.tar.gz	/dir/	many_numbers8_30.v123.	1-10,50,60-90x2	#	.tar.gz
+all	seq	/file.####.exr	/	file.		####	.exr
+all	seq	/file.1,2,3,5-10,20-30#.exr	/	file.	1,2,3,5-10,20-30	#	.exr
+all	seq	/file.1-100#.exr	/	file.	1-100	#	.exr
+all	seq	/file_path.-005#.exr	/	file_path.	-005	#	.exr
+all	seq	/file_path.100@@@.exr	/	file_path.	100	@@@	.exr
+all	seq	/foo/bar/bing.#.exr	/foo/bar/	bing.		#	.exr
+all	seq	/foo/bar/bing.%04d.exr	/foo/bar/	bing.		%04d	.exr
+all	seq	/foo/boo.1-5$F.exr	/foo/	boo.	1-5	$F	.exr
+all	seq	/foo/boo.1-5%(UDIM)d.exr	/foo/	boo.	1-5	%(UDIM)d	.exr
+all	seq	/mnt/$FOO/file.1-10#.exr	/mnt/$FOO/	file.	1-10	#	.exr
+all	seq	/mnt/%(UDIM)d/tex.#.exr	/mnt/%(UDIM)d/	tex.		#	.exr
+all	seq	/mnt/Shows\mixed/file.#.exr	/mnt/Shows\mixed/	file.		#	.exr
+all	seq	/mnt/out/100%done/file.1-10#.exr	/mnt/out/100%done/	file.	1-10	#	.exr
+all	seq	/mnt/out/file.1,2,3.10#.exr	/mnt/out/	file.1,2,3.	10	#	.exr
+all	seq	/mnt/out/file.1-100.5#.exr	/mnt/out/	file.1-100.	5	#	.exr
+all	seq	/mnt/out/file.1-100.5@.exr	/mnt/out/	file.1-100.	5	@	.exr
+all	seq	/mnt/out/file.1-5x2#.exr	/mnt/out/	file.	1-5x2	#	.exr
+all	seq	/mnt/shot#1/file.1-10#.exr	/mnt/shot#1/	file.	1-10	#	.exr
+all	seq	/p/#.exr	/p/			#	.exr
+all	seq	/p/.1-100#.exr	/p/	.	1-100	#	.exr
+all	seq	/p/.hidden.1-10#.exr	/p/	.hidden.	1-10	#	.exr
+all	seq	/p/.hidden5.1-10#.7zip	/p/	.hidden5.	1-10	#	.7zip
+all	seq	/p/1-10#.exr	/p/		1-10	#	.exr
+all	seq	/p/f name.1-10#.exr	/p/	f name.	1-10	#	.exr
+all	seq	/p/f#	/p/	f		#	
+all	seq	/p/f-name.1-10#.exr	/p/	f-name.	1-10	#	.exr
+all	seq	/p/f.#	/p/	f.		#	
+all	seq	/p/f.$F.exr	/p/	f.		$F	.exr
+all	seq	/p/f.$F4.exr	/p/	f.		$F4	.exr
+all	seq	/p/f.%(UDIM)d.exr	/p/	f.		%(UDIM)d	.exr
+all	seq	/p/f.%04d.exr	/p/	f.		%04d	.exr
+all	seq	/p/f.%d.exr	/p/	f.		%d	.exr
+all	seq	/p/f.1,3,5#.exr	/p/	f.	1,3,5	#	.exr
+all	seq	/p/f.1-10#	/p/	f.	1-10	#	
+all	seq	/p/f.1-10##.exr	/p/	f.	1-10	##	.exr
+all	seq	/p/f.1-10#.5.exr	/p/	f.	1-10	#	.5.exr
+all	seq	/p/f.1-10#@.exr	/p/	f.	1-10	#@	.exr
+all	seq	/p/f.1-10#_exr	/p/	f.	1-10	#	_exr
+all	seq	/p/f.1-10:2#.exr	/p/	f.	1-10:2	#	.exr
+all	seq	/p/f.1-10@@@@.exr	/p/	f.	1-10	@@@@	.exr
+all	seq	/p/f.1-10x2#.exr	/p/	f.	1-10x2	#	.exr
+all	seq	/p/f.1-10y2#.exr	/p/	f.	1-10y2	#	.exr
+all	seq	/p/f.1.2#.exr	/p/	f.1.	2	#	.exr
+all	seq	/p/f.10-1x-1#.exr	/p/	f.	10-1x-1	#	.exr
+all	seq	/p/f.1001-1010<UDIM>.exr	/p/	f.	1001-1010	<UDIM>	.exr
+all	seq	/p/f.<UDIM>.exr	/p/	f.		<UDIM>	.exr
+all	seq	/p/f.a1b2#.exr	/p/	f.a1b	2	#	.exr
+all	seq	/p/f.abc123@@@	/p/	f.abc	123	@@@	
+all	seq	/p/f.name.1-10#.exr	/p/	f.name.	1-10	#	.exr
+all	seq	/p/f.tmp12345#.exr	/p/	f.tmp	12345	#	.exr
+all	seq	/p/f.tmp12345@@@@@	/p/	f.tmp	12345	@@@@@	
+all	seq	/p/f.tmp12_#.exr	/p/	f.tmp12_		#	.exr
+all	seq	/p/f.tmp_12345@@@	/p/	f.tmp_	12345	@@@	
+all	seq	/p/f1-10#.exr	/p/	f	1-10	#	.exr
+all	seq	/p/f_1-10#.exr	/p/	f_	1-10	#	.exr
+all	seq	/p/file.#.mp4	/p/	file.		#	.mp4
+all	seq	/p/file..1-10#.exr	/p/	file..	1-10	#	.exr
+all	seq	/p/file.1-10#.mp4	/p/	file.	1-10	#	.mp4
+all	seq	/p/file.v2#.exr	/p/	file.v	2	#	.exr
+all	seq	/p/file.v2.1-10#.exr	/p/	file.v2.	1-10	#	.exr
+all	seq	/path with spaces/file.#.ext	/path with spaces/	file.		#	.ext
+all	seq	/path.with.dots/file.1-100#.exr	/path.with.dots/	file.	1-100	#	.exr
+all	seq	/path/.hidden.0001-0100#.ext	/path/	.hidden.	0001-0100	#	.ext
+all	seq	/path/file.%04d.exr	/path/	file.		%04d	.exr
+all	seq	/path/file.-100--1#.exr	/path/	file.	-100--1	#	.exr
+all	seq	/path/file.1,2,3,5-10,20-30#.exr	/path/	file.	1,2,3,5-10,20-30	#	.exr
+all	seq	/path/file.1-10#.bgeo.sc	/path/	file.	1-10	#	.bgeo.sc
+all	seq	/path/file.1-10#.tar.gz.bak	/path/	file.	1-10	#	.tar.gz.bak
+all	seq	/path/file.1-100#.exr	/path/	file.	1-100	#	.exr
+all	seq	/path/file.1-100$F4.exr	/path/	file.	1-100	$F4	.exr
+all	seq	/path/file.1-100%04d.tif	/path/	file.	1-100	%04d	.tif
+all	seq	/path/file.1-100<UDIM>.tif	/path/	file.	1-100	<UDIM>	.tif
+all	seq	/path/file.1-5,10-20%04d.exr	/path/	file.	1-5,10-20	%04d	.exr
+all	seq	/path/file.1920x1080.0001-0100#.exr	/path/	file.1920x1080.	0001-0100	#	.exr
+all	seq	/path/file1-100#.exr	/path/	file	1-100	#	.exr
+all	seq	/path/name_2025-05-13_1809-3@@@.ext	/path/	name_2025-05-13_	1809-3	@@@	.ext
+all	seq	/path/name_2025-05-13_1809.1-100#.exr	/path/	name_2025-05-13_1809.	1-100	#	.exr
+all	seq	/path/something_1-10#_exr	/path/	something_	1-10	#	_exr
+all	seq	/path/to/1-5#.exr	/path/to/		1-5	#	.exr
+all	seq	/path/to/1-5$F4.exr	/path/to/		1-5	$F4	.exr
+all	seq	/path/to/1-5%04d.exr	/path/to/		1-5	%04d	.exr
+all	seq	/path/to/1-5<UDIM>.exr	/path/to/		1-5	<UDIM>	.exr
+all	seq	/path/to/a/bar.20-40x10@@@.ext	/path/to/a/	bar.	20-40x10	@@@	.ext
+all	seq	/path/to/bar.20-40x10@@@.ext	/path/to/	bar.	20-40x10	@@@	.ext
+all	seq	/path/to/complex_name_15-14-560@@@.ext	/path/to/	complex_name_	15-14-560	@@@	.ext
+all	seq	/path/to/file,.-10--1x2##.exr	/path/to/	file,.	-10--1x2	##	.exr
+all	seq	/path/to/file,.-10--1x2##.tar.gz	/path/to/	file,.	-10--1x2	##	.tar.gz
+all	seq	/path/to/file,1,2,3,5-10,20-30#.exr	/path/to/	file,	1,2,3,5-10,20-30	#	.exr
+all	seq	/path/to/file,1,2,3,5-10,20-30#.tar.gz	/path/to/	file,	1,2,3,5-10,20-30	#	.tar.gz
+all	seq	/path/to/file,1-1x1#.exr	/path/to/	file,	1-1x1	#	.exr
+all	seq	/path/to/file,1-1x1#.tar.gz	/path/to/	file,	1-1x1	#	.tar.gz
+all	seq	/path/to/file,_1-100x10$F.exr	/path/to/	file,_	1-100x10	$F	.exr
+all	seq	/path/to/file,_1-100x10$F2.exr	/path/to/	file,_	1-100x10	$F2	.exr
+all	seq	/path/to/file,_1-100x10%(UDIM)d.exr	/path/to/	file,_	1-100x10	%(UDIM)d	.exr
+all	seq	/path/to/file,_1-100x10%02d.exr	/path/to/	file,_	1-100x10	%02d	.exr
+all	seq	/path/to/file,_1-100x10<UDIM>.exr	/path/to/	file,_	1-100x10	<UDIM>	.exr
+all	seq	/path/to/file,_1-100x10@@.exr	/path/to/	file,_	1-100x10	@@	.exr
+all	seq	/path/to/file,_1-100x10@@.tar.gz	/path/to/	file,_	1-100x10	@@	.tar.gz
+all	seq	/path/to/file.1,503#.ext	/path/to/	file.	1,503	#	.ext
+all	seq	/path/to/file.1-100#.exr	/path/to/	file.	1-100	#	.exr
+all	seq	/path/to/file.1-100$F3.exr	/path/to/	file.	1-100	$F3	.exr
+all	seq	/path/to/file.1-100%04d.exr	/path/to/	file.	1-100	%04d	.exr
+all	seq	/path/to/file.1-100x2%04d.exr	/path/to/	file.	1-100x2	%04d	.exr
+all	seq	/path/to/file.1920x1038.1001,1005,1076#.exr	/path/to/	file.1920x1038.	1001,1005,1076	#	.exr
+all	seq	/path/to/file.1920x1038.1001-1076#.exr	/path/to/	file.1920x1038.	1001-1076	#	.exr
+all	seq	/path/to/file:.-10--1x2##.exr	/path/to/	file:.	-10--1x2	##	.exr
+all	seq	/path/to/file:.-10--1x2##.tar.gz	/path/to/	file:.	-10--1x2	##	.tar.gz
+all	seq	/path/to/file:1,2,3,5-10,20-30#.exr	/path/to/	file:	1,2,3,5-10,20-30	#	.exr
+all	seq	/path/to/file:1,2,3,5-10,20-30#.tar.gz	/path/to/	file:	1,2,3,5-10,20-30	#	.tar.gz
+all	seq	/path/to/file:1-1x1#.exr	/path/to/	file:	1-1x1	#	.exr
+all	seq	/path/to/file:1-1x1#.tar.gz	/path/to/	file:	1-1x1	#	.tar.gz
+all	seq	/path/to/file:_1-100x10$F.exr	/path/to/	file:_	1-100x10	$F	.exr
+all	seq	/path/to/file:_1-100x10$F2.exr	/path/to/	file:_	1-100x10	$F2	.exr
+all	seq	/path/to/file:_1-100x10%(UDIM)d.exr	/path/to/	file:_	1-100x10	%(UDIM)d	.exr
+all	seq	/path/to/file:_1-100x10%02d.exr	/path/to/	file:_	1-100x10	%02d	.exr
+all	seq	/path/to/file:_1-100x10<UDIM>.exr	/path/to/	file:_	1-100x10	<UDIM>	.exr
+all	seq	/path/to/file:_1-100x10@@.exr	/path/to/	file:_	1-100x10	@@	.exr
+all	seq	/path/to/file:_1-100x10@@.tar.gz	/path/to/	file:_	1-100x10	@@	.tar.gz
+all	seq	/path/to/filex.-10--1x2##.exr	/path/to/	filex.	-10--1x2	##	.exr
+all	seq	/path/to/filex.-10--1x2##.tar.gz	/path/to/	filex.	-10--1x2	##	.tar.gz
+all	seq	/path/to/filex1,2,3,5-10,20-30#.exr	/path/to/	filex	1,2,3,5-10,20-30	#	.exr
+all	seq	/path/to/filex1,2,3,5-10,20-30#.tar.gz	/path/to/	filex	1,2,3,5-10,20-30	#	.tar.gz
+all	seq	/path/to/filex1-1x1#.exr	/path/to/	filex	1-1x1	#	.exr
+all	seq	/path/to/filex1-1x1#.tar.gz	/path/to/	filex	1-1x1	#	.tar.gz
+all	seq	/path/to/filex_1-100x10$F.exr	/path/to/	filex_	1-100x10	$F	.exr
+all	seq	/path/to/filex_1-100x10$F2.exr	/path/to/	filex_	1-100x10	$F2	.exr
+all	seq	/path/to/filex_1-100x10%(UDIM)d.exr	/path/to/	filex_	1-100x10	%(UDIM)d	.exr
+all	seq	/path/to/filex_1-100x10%02d.exr	/path/to/	filex_	1-100x10	%02d	.exr
+all	seq	/path/to/filex_1-100x10<UDIM>.exr	/path/to/	filex_	1-100x10	<UDIM>	.exr
+all	seq	/path/to/filex_1-100x10@@.exr	/path/to/	filex_	1-100x10	@@	.exr
+all	seq	/path/to/filex_1-100x10@@.tar.gz	/path/to/	filex_	1-100x10	@@	.tar.gz
+all	seq	/path/to/filexy:,1-1x1#.exr	/path/to/	filexy:,	1-1x1	#	.exr
+all	seq	/path/to/single/123@@@.ext	/path/to/single/		123	@@@	.ext
+all	seq	/path/to/single/file1#.ext	/path/to/single/	file	1	#	.ext
+all	seq	/path/to/something_1-10#_exr	/path/to/	something_	1-10	#	_exr
+all	seq	/path/to/something_1-10%04d_exr	/path/to/	something_	1-10	%04d	_exr
+all	seq	/path/with!char/file.#.exr	/path/with!char/	file.		#	.exr
+all	seq	/render/beauty.#.exr	/render/	beauty.		#	.exr
+all	seq	C:\p\f.1-10#.exr	C:\p\	f.	1-10	#	.exr
+all	seq	C:\path.with.dots\file.1-100#.exr	C:\path.with.dots\	file.	1-100	#	.exr
+all	seq	Z:\Shows\test.1-100#.exr	Z:\Shows\	test.	1-100	#	.exr
+all	seq	\\server\share\f.1-10#.exr	\\server\share\	f.	1-10	#	.exr
+all	seq	bar#.exr		bar		#	.exr
+all	seq	bar#@.exr		bar		#@	.exr
+all	seq	bar@@@@.exr		bar		@@@@	.exr
+all	seq	baz_{left,right}.#.exr		baz_{left,right}.		#	.exr
+all	seq	baz_{left,right}.#@.exr		baz_{left,right}.		#@	.exr
+all	seq	baz_{left,right}.@@@@.exr		baz_{left,right}.		@@@@	.exr
+all	seq	complex_ext/#.a.jpg	complex_ext/			#	.a.jpg
+all	seq	complex_ext/@.a.jpg	complex_ext/			@	.a.jpg
+all	seq	complex_ext/file.@.a.ext	complex_ext/	file.		@	.a.ext
+all	seq	f.1-10#.exr		f.	1-10	#	.exr
+all	seq	f.1-3,10-16x2@@.x		f.	1-3,10-16x2	@@	.x
+all	seq	f.1-3@.x		f.	1-3	@	.x
+all	seq	f.1@.x		f.	1	@	.x
+all	seq	f.3,10@@.x		f.	3,10	@@	.x
+all	seq	file with spaces.1-100#.exr		file with spaces.	1-100	#	.exr
+all	seq	file!name.1-10#.exr		file!name.	1-10	#	.exr
+all	seq	file.-0000#.exr		file.	-0000	#	.exr
+all	seq	file.-10-30@@@.exr		file.	-10-30	@@@	.exr
+all	seq	file.-5-25x6#.ext		file.	-5-25x6	#	.ext
+all	seq	file.1,3-12x3,20-24x2,28,32##.exr		file.	1,3-12x3,20-24x2,28,32	##	.exr
+all	seq	file.1-100#.exr		file.	1-100	#	.exr
+all	seq	file.1-100$F04.exr		file.	1-100	$F04	.exr
+all	seq	file.1-100%(UDIM)d.exr		file.	1-100	%(UDIM)d	.exr
+all	seq	file.1-100%04d.exr		file.	1-100	%04d	.exr
+all	seq	file.1-100<UDIM>.exr		file.	1-100	<UDIM>	.exr
+all	seq	file.1-5#		file.	1-5	#	
+all	seq	file.5-9x2#.ext		file.	5-9x2	#	.ext
+all	seq	foo.#.exr		foo.		#	.exr
+all	seq	foo.%04d.exr		foo.		%04d	.exr
+all	seq	foo.1###@.exr		foo.	1	###@	.exr
+all	seq	foo.1#.exr		foo.	1	#	.exr
+all	seq	foo.1@.exr		foo.	1	@	.exr
+all	seq	foo.debug.#.exr		foo.debug.		#	.exr
+all	seq	foo/bar\baz.#.exr	foo/bar\	baz.		#	.exr
+all	seq	foo_#.exr		foo_		#	.exr
+all	seq	foo_#@.exr		foo_		#@	.exr
+all	seq	foo_#_extra.exr		foo_		#	_extra.exr
+all	seq	foo_@.exr		foo_		@	.exr
+all	seq	foo_@@_extra.exr		foo_		@@	_extra.exr
+all	seq	mixed_case/sub/file_foo_#.ext	mixed_case/sub/	file_foo_		#	.ext
+all	seq	multi_range/file_#.0001.exr	multi_range/	file_		#	.0001.exr
+all	seq	multi_range/file_@@.0001.exr	multi_range/	file_		@@	.0001.exr
+all	seq	seq/#.exr	seq/			#	.exr
+all	seq	seq/bar#.exr	seq/	bar		#	.exr
+all	seq	seq/bar#@.exr	seq/	bar		#@	.exr
+all	seq	seq/bar$F.exr	seq/	bar		$F	.exr
+all	seq	seq/bar$F3.exr	seq/	bar		$F3	.exr
+all	seq	seq/bar%03d.exr	seq/	bar		%03d	.exr
+all	seq	seq/bar@@@@.exr	seq/	bar		@@@@	.exr
+all	seq	seq/big.#@.ext	seq/	big.		#@	.ext
+all	seq	seq/big.$F.ext	seq/	big.		$F	.ext
+all	seq	seq/file_@@.0001.exr	seq/	file_		@@	.0001.exr
+all	seq	seq/foo.debug.#.exr	seq/	foo.debug.		#	.exr
+all	seq	seq/foo_#.exr	seq/	foo_		#	.exr
+all	seq	seq/foo_#_extra.exr	seq/	foo_		#	_extra.exr
+all	seq	seq/foo_@.exr	seq/	foo_		@	.exr
+all	seq	subframe_seq/baz.#.0000.exr	subframe_seq/	baz.		#	.0000.exr
+all	seq	subframe_seq/baz.#.exr	subframe_seq/	baz.		#	.exr
+all	seq	subframe_seq/baz.0001.#.exr	subframe_seq/	baz.0001.		#	.exr
+all	seq	testdata/2frame/foo.#.ext	testdata/2frame/	foo.		#	.ext
+all	seq	testdata/2frame/foo.1,2#.ext	testdata/2frame/	foo.	1,2	#	.ext
+all	seq	testdata/aFile0@.ext	testdata/	aFile	0	@	.ext
+all	seq	testdata/complex.#.tar.gz	testdata/	complex.		#	.tar.gz
+all	seq	testdata/complex.5-7#.tar.gz	testdata/	complex.	5-7	#	.tar.gz
+all	seq	testdata/complex.@@@@.tar.gz	testdata/	complex.		@@@@	.tar.gz
+all	seq	testdata/complex_ext/1-3@.a.jpg	testdata/complex_ext/		1-3	@	.a.jpg
+all	seq	testdata/complex_ext/100-102@@@.1.ext	testdata/complex_ext/		100-102	@@@	.1.ext
+all	seq	testdata/complex_ext/@.a.jpg	testdata/complex_ext/			@	.a.jpg
+all	seq	testdata/complex_ext/@@@.1.ext	testdata/complex_ext/			@@@	.1.ext
+all	seq	testdata/mixed/seq.#.ext	testdata/mixed/	seq.		#	.ext
+all	seq	testdata/mixed/seq.-1-5#.ext	testdata/mixed/	seq.	-1-5	#	.ext
+all	seq	testdata/mixed/seq.-1-5,1001@@@@@.ext	testdata/mixed/	seq.	-1-5,1001	@@@@@	.ext
+all	seq	testdata/mixed/seq.-1-5@@.ext	testdata/mixed/	seq.	-1-5	@@	.ext
+all	seq	testdata/mixed/seq.@@.ext	testdata/mixed/	seq.		@@	.ext
+all	seq	testdata/seqA.####.exr	testdata/	seqA.		####	.exr
+all	seq	testdata/seqA.%(UDIM)d.exr	testdata/	seqA.		%(UDIM)d	.exr
+all	seq	testdata/seqA.1,3-6,8-10#.exr	testdata/	seqA.	1,3-6,8-10	#	.exr
+all	seq	testdata/seqA.<UDIM>.exr	testdata/	seqA.		<UDIM>	.exr
+all	seq	testdata/seqA.@@@@.exr	testdata/	seqA.		@@@@	.exr
+all	seq	testdata/seqB.16-18####.jpg	testdata/	seqB.	16-18	####	.jpg
+all	seq	testdata/seqB.5-14,16-18,20#.jpg	testdata/	seqB.	5-14,16-18,20	#	.jpg
+all	seq	testdata/seqC.$F02.tif	testdata/	seqC.		$F02	.tif
+all	seq	testdata/seqC.%02d.tif	testdata/	seqC.		%02d	.tif
+all	seq	testdata/seqC.-5-2,4-10,20-21,27-30@@.tif	testdata/	seqC.	-5-2,4-10,20-21,27-30	@@	.tif
+all	seq	testdata/seqD.2-10@.gif	testdata/	seqD.	2-10	@	.gif
+all	seq	testdata/single_files/123@@@.ext	testdata/single_files/		123	@@@	.ext
+all	seq	testdata/single_files/file01_2025-05-13_0@@@@@@@.ext	testdata/single_files/	file01_2025-05-13_	0	@@@@@@@	.ext
+all	seq	testdata/single_files/file01_2025-05-13_18090@@@.ext	testdata/single_files/	file01_2025-05-13_	18090	@@@	.ext
+all	seq	testdata/versions/seq.1-10#.ext	testdata/versions/	seq.	1-10	#	.ext
+all	single	.10000000000.123		.	10000000000		.123
+all	single	//server/share/file.0001.exr	//server/share/	file.	0001		.exr
+all	single	/dir/.hidden.100.ext	/dir/	.hidden.	100		.ext
+all	single	/dir/100.1.ext	/dir/	100.	1		.ext
+all	single	/dir/f10_20.v123.456.exr	/dir/	f10_20.v123.	456		.exr
+all	single	/file.0001.exr	/	file.	0001		.exr
+all	single	/file_path.-005.exr	/	file_path.	-005		.exr
+all	single	/file_path.100.exr	/	file_path.	100		.exr
+all	single	/mnt/<UDIM>/tex.1001.exr	/mnt/<UDIM>/	tex.	1001		.exr
+all	single	/mnt/a@b/file.1001.exr	/mnt/a@b/	file.	1001		.exr
+all	single	/p/.100.exr	/p/	.	100		.exr
+all	single	/p/.10000000000.123	/p/	.	10000000000		.123
+all	single	/p/.hidden.100.exr	/p/	.hidden.	100		.exr
+all	single	/p/a.1.2.3	/p/	a.1.	2		.3
+all	single	/p/f.1.2.exr	/p/	f.1.	2		.exr
+all	single	/p/f.1.ext1	/p/	f.	1		.ext1
+all	single	/p/f.1001_exr	/p/	f.	1001		_exr
+all	single	/p/file.-0.exr	/p/	file.	-0		.exr
+all	single	/p/file.-100.exr	/p/	file.	-100		.exr
+all	single	/p/file.0.exr	/p/	file.	0		.exr
+all	single	/p/file.100.7zip	/p/	file.	100		.7zip
+all	single	/p/file.1001.bgeo.sc	/p/	file.	1001		.bgeo.sc
+all	single	/p/file.1001.h264	/p/	file.	1001		.h264
+all	single	/p/file.1001.mp4	/p/	file.	1001		.mp4
+all	single	/p/file.1001.r3d	/p/	file.	1001		.r3d
+all	single	/p/file.1001.tar.gz	/p/	file.	1001		.tar.gz
+all	single	/p/file.1001.tar.gz2	/p/	file.	1001		.tar.gz2
+all	single	/p/file.v2.1001.exr	/p/	file.v2.	1001		.exr
+all	single	/p/foo.5.100	/p/	foo.	5		.100
+all	single	/path/file name.100.exr	/path/	file name.	100		.exr
+all	single	/path/file.100.exr	/path/	file.	100		.exr
+all	single	/path/to/file.0.0005.exr	/path/to/	file.0.	0005		.exr
+all	single	/path/to/file.100.exr	/path/to/	file.	100		.exr
+all	single	C:/p/f.1001.exr	C:/p/	f.	1001		.exr
+all	single	complex.0006.tar.gz		complex.	0006		.tar.gz
+all	single	file$(var).100.exr		file$(var).	100		.exr
+all	single	file.100.exr		file.	100		.exr
+all	single	file_カ_Z.01.txt		file_カ_Z.	01		.txt
+all	single	seqC.-4.tif		seqC.	-4		.tif
+all	single	subframe_seq/baz.0001.0000.exr	subframe_seq/	baz.0001.	0000		.exr
+all	single	subframe_seq/baz.1000.exr	subframe_seq/	baz.	1000		.exr
+all	single	testdata/2frame/foo.0001.ext	testdata/2frame/	foo.	0001		.ext
+all	single	testdata/_MISSING_.0010.tif	testdata/	_MISSING_.	0010		.tif
+all	single	testdata/seqC.0010.tif	testdata/	seqC.	0010		.tif
+all	plain	(a+)+$.ext		(a+)+$			.ext
+all	plain	.		.			
+all	plain	..		..			
+all	plain	.10000000000					.10000000000
+all	plain	/dir/.hidden	/dir/				.hidden
+all	plain	/dir/.hidden.100	/dir/				.hidden.100
+all	plain	/dir/100.a.ext	/dir/	100			.a.ext
+all	plain	/dir/f.100	/dir/	f			.100
+all	plain	/dir/f.exr	/dir/	f			.exr
+all	plain	/dir/f.tar.gz	/dir/	f			.tar.gz
+all	plain	/dir/f100.ext	/dir/	f100			.ext
+all	plain	/dir/f100.tar.gz	/dir/	f100			.tar.gz
+all	plain	/dir/f_100.ext	/dir/	f_100			.ext
+all	plain	/dir/f_100.tar.gz	/dir/	f_100			.tar.gz
+all	plain	/dir/file	/dir/	file			
+all	plain	/dir/file.tar.gz.bak	/dir/	file			.tar.gz.bak
+all	plain	/dir/name_2025-05-13_1809-00.ext	/dir/	name_2025-05-13_1809-00			.ext
+all	plain	/dir/no_file_extension	/dir/	no_file_extension			
+all	plain	/dir/no_frames.ext	/dir/	no_frames			.ext
+all	plain	/dir/no_frames.tar.gz	/dir/	no_frames			.tar.gz
+all	plain	/mnt/a@b/file.exr	/mnt/a@b/	file			.exr
+all	plain	/mnt/out/%04dir/file.exr	/mnt/out/%04dir/	file			.exr
+all	plain	/p/	/p/				
+all	plain	/p/.hidden	/p/				.hidden
+all	plain	/p/.hidden.100	/p/				.hidden.100
+all	plain	/p/.hidden.exr	/p/				.hidden.exr
+all	plain	/p/1001.exr	/p/	1001			.exr
+all	plain	/p/f-1001.exr	/p/	f-1001			.exr
+all	plain	/p/f.-	/p/	f.-			
+all	plain	/p/f.1-	/p/	f.1-			
+all	plain	/p/f.1-10#.exr/	/p/f.1-10#.exr/				
+all	plain	/p/f.1001	/p/	f			.1001
+all	plain	/p/f.1x	/p/	f			.1x
+all	plain	/p/f.1x.exr	/p/	f			.1x.exr
+all	plain	/p/f.a1b2.exr	/p/	f			.a1b2.exr
+all	plain	/p/f.ext1.ext2	/p/	f			.ext1.ext2
+all	plain	/p/f.tmp12345	/p/	f			.tmp12345
+all	plain	/p/f.tmp12345.exr	/p/	f			.tmp12345.exr
+all	plain	/p/f.x	/p/	f			.x
+all	plain	/p/f1001.exr	/p/	f1001			.exr
+all	plain	/p/f_1001.exr	/p/	f_1001			.exr
+all	plain	/p/file.1-10#.	/p/	file.1-10#.			
+all	plain	/p/file.1-10#..exr	/p/	file.1-10#.			.exr
+all	plain	/p/file.100	/p/	file			.100
+all	plain	/p/file.7zip	/p/	file			.7zip
+all	plain	/p/file.h264	/p/	file			.h264
+all	plain	/p/file.mp4	/p/	file			.mp4
+all	plain	/p/file.r3d	/p/	file			.r3d
+all	plain	/p/file.tar.gz	/p/	file			.tar.gz
+all	plain	/p/file.v2.exr	/p/	file			.v2.exr
+all	plain	/p/file_v2.mp4	/p/	file_v2			.mp4
+all	plain	/path/file.txt	/path/	file			.txt
+all	plain	/path/to/	/path/to/				
+all	plain	/path/to/bar.ext	/path/to/	bar			.ext
+all	plain	/path/to/complex_name_15-14-56-00.ext	/path/to/	complex_name_15-14-56-00			.ext
+all	plain	/path/to/file	/path/to/	file			
+all	plain	/path/to/file_v2.exr	/path/to/	file_v2			.exr
+all	plain	/path/to/helloMyPhone#Is911.json	/path/to/	helloMyPhone#Is911			.json
+all	plain	/path/to/single/.another.ext	/path/to/single/				.another.ext
+all	plain	/path/to/single/123	/path/to/single/	123			
+all	plain	/path/to/single/file.ext	/path/to/single/	file			.ext
+all	plain	/path/to/single/file.ext12345	/path/to/single/	file			.ext12345
+all	plain	/path/to/single/file.ext12345z	/path/to/single/	file			.ext12345z
+all	plain	/proj/kenny/filé	/proj/kenny/	filé			
+all	plain	/render/beauty.xyz.exr	/render/	beauty			.xyz.exr
+all	plain	/tests/helloMyPhone#Is911.json	/tests/	helloMyPhone#Is911			.json
+all	plain	123		123			
+all	plain	123.ext		123			.ext
+all	plain	C:/tests/helloMyPhone#Is911.json	C:/tests/	helloMyPhone#Is911			.json
+all	plain	C:\tests\helloMyPhone#Is911.json	C:\tests\	helloMyPhone#Is911			.json
+all	plain	aFile.ext		aFile			.ext
+all	plain	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa{a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?}		aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa{a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?}			
+all	plain	f		f			
+all	plain	file		file			
+all	plain	file.7zip		file			.7zip
+all	plain	file.ext12345		file			.ext12345
+all	plain	file.ext12345z		file			.ext12345z
+all	plain	file01_2025-05-13_1809-00.ext		file01_2025-05-13_1809-00			.ext
+all	plain	file_*_*.ext		file_*_*			.ext
+all	plain	file_foo_*.ext		file_foo_*			.ext
+all	plain	file_without_ext		file_without_ext			
+all	plain	helloMyPhone#Is911.json		helloMyPhone#Is911			.json
+all	plain	seq/bar1001.exr	seq/	bar1001			.exr
+all	plain	seq/foo_0001.exr	seq/	foo_0001			.exr
+all	plain	shot_@_v001.exr		shot_@_v001			.exr
+all	plain	testdata/aFile.ext	testdata/	aFile			.ext
+all	plain	testdata/file_without_ext	testdata/	file_without_ext			
+all	plain	testdata/single_files/123	testdata/single_files/	123			
+all	plain	testdata/single_files/123.ext	testdata/single_files/	123			.ext
+all	plain	testdata/single_files/file.ext12345	testdata/single_files/	file			.ext12345
+all	plain	testdata/single_files/file.ext12345z	testdata/single_files/	file			.ext12345z
+all	plain	testdata/single_files/file01_2025-05-13_1809-00.ext	testdata/single_files/	file01_2025-05-13_1809-00			.ext
+all	error	/a/foo<bar.exr
+all	error	/a/foo>bar.1-10#.exr
+all	error	/a/sh<010.1001.exr
+all	error	/a/x<y>.#.exr
+all	error	/p/f.1-10#.ab-cd
+all	error	/p/f.ab-cd.exr
+all	error	/p/file.100.
+all	error	/render/beauty.<frame04>.exr
+go,cpp	seq	/mnt/out/file.-1-5x0.25#.exr	/mnt/out/	file.-1-5x0.	25	#	.exr
+go,cpp	seq	/mnt/out/file.1-10x2,20-30x0.5#.exr	/mnt/out/	file.1-10x2,20-30x0.	5	#	.exr
+go,cpp	seq	/mnt/out/file.1-5x0.25#	/mnt/out/	file.1-5x0.	25	#	
+go,cpp	seq	/mnt/out/file.1-5x0.25#.exr	/mnt/out/	file.1-5x0.	25	#	.exr
+go,cpp	seq	/mnt/out/file.1-5y0.25@@.exr	/mnt/out/	file.1-5y0.	25	@@	.exr
+go,cpp	seq	/mnt/out/file1-5x0.25#.exr	/mnt/out/	file1-5x0.	25	#	.exr
+go,cpp	seq	/p/f.1-10x2.5#.exr	/p/	f.1-10x2.	5	#	.exr
+go,cpp	error	/p/f.1-10#.<UDIM>.exr
+go,cpp	error	/path/file.#.@@.exr
+go,cpp	error	/path/file.%04d.%04d.exr
+go,cpp	error	/path/file.1-5#.10-20@@.exr
+go,cpp	error	/path/file.1-5%04d.10-20%04d.exr
+go,cpp	error	/path/file.1-5@.#.exr
+go,cpp	error	/path/to/file.1-100x0.25#.@@.exr
+go,cpp	error	/path/to/file.1920x1038.1001-1002x0.25@.#.exr
+go,cpp	error	baz_{left,right}.#.#.exr
+go,cpp	error	foo.#.#.jpg
+go,cpp	error	foo.1-5x0.25###@.#.exr
+go,cpp	error	foo.1-5x0.25#.####.exr
+go,cpp	error	foo.@@@@.@@@@.exr
+go,cpp	error	foz.@@@@.#.exr
+go,cpp	error	foz.debug.#.#.exr
+go,cpp	error	subframe_seq/baz.#.#.exr
+py	seq	/mnt/out/file.-1-5x0.25#.exr	/mnt/out/	file.	-1-5x0.25	#	.exr
+py	seq	/mnt/out/file.1-10x2,20-30x0.5#.exr	/mnt/out/	file.	1-10x2,20-30x0.5	#	.exr
+py	seq	/mnt/out/file.1-5x0.25#	/mnt/out/	file.	1-5x0.25	#	
+py	seq	/mnt/out/file.1-5x0.25#.exr	/mnt/out/	file.	1-5x0.25	#	.exr
+py	seq	/mnt/out/file.1-5y0.25@@.exr	/mnt/out/	file.	1-5y0.25	@@	.exr
+py	seq	/mnt/out/file1-5x0.25#.exr	/mnt/out/	file	1-5x0.25	#	.exr
+py	seq	/p/f.1-10#.<UDIM>.exr	/p/	f.	1-10	#.<UDIM>	.exr
+py	seq	/p/f.1-10x2.5#.exr	/p/	f.	1-10x2.5	#	.exr
+py	seq	/path/file.#.@@.exr	/path/	file.		#.@@	.exr
+py	seq	/path/file.%04d.%04d.exr	/path/	file.		%04d.%04d	.exr
+py	seq	/path/file.1-5@.#.exr	/path/	file.	1-5	@.#	.exr
+py	seq	/path/to/file.1-100x0.25#.@@.exr	/path/to/	file.	1-100x0.25	#.@@	.exr
+py	seq	/path/to/file.1920x1038.1001-1002x0.25@.#.exr	/path/to/	file.1920x1038.	1001-1002x0.25	@.#	.exr
+py	seq	baz_{left,right}.#.#.exr		baz_{left,right}.		#.#	.exr
+py	seq	foo.#.#.jpg		foo.		#.#	.jpg
+py	seq	foo.1-5x0.25###@.#.exr		foo.	1-5x0.25	###@.#	.exr
+py	seq	foo.1-5x0.25#.####.exr		foo.	1-5x0.25	#.####	.exr
+py	seq	foo.@@@@.@@@@.exr		foo.		@@@@.@@@@	.exr
+py	seq	foz.@@@@.#.exr		foz.		@@@@.#	.exr
+py	seq	foz.debug.#.#.exr		foz.debug.		#.#	.exr
+py	seq	subframe_seq/baz.#.#.exr	subframe_seq/	baz.		#.#	.exr

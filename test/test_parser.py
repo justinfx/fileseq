@@ -1,4 +1,5 @@
 """Tests for the ANTLR parser layer."""
+import os
 import unittest
 
 from fileseq._vendor.antlr4 import InputStream, CommonTokenStream  # type: ignore[attr-defined]
@@ -133,6 +134,51 @@ class TestLexerErrors(unittest.TestCase):
             with self.subTest(path=path):
                 with self.assertRaises(ValueError):
                     parse_file_sequence(path)
+
+
+# Shared with gofileseq and gofileseq/cpp. Keep it identical there, alongside
+# fileseq.g4.
+CORPUS_FILE = os.path.join(
+    os.path.dirname(__file__), os.pardir, "src", "fileseq", "grammar", "parse_cases.tsv")
+
+
+def load_corpus(port="py"):
+    cases = []
+    with open(CORPUS_FILE, encoding="utf-8") as f:
+        for n, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            cols = line.split("\t")
+            if len(cols) not in (3, 8):
+                raise ValueError(f"{CORPUS_FILE}:{n}: want 3 or 8 columns, got {len(cols)}")
+            if cols[0] != "all" and port not in cols[0].split(","):
+                continue
+            cases.append((n, cols[1], cols[2], tuple(cols[3:])))
+    return cases
+
+
+class TestParseCorpus(unittest.TestCase):
+
+    def test_corpus(self):
+        for n, kind, path, want in load_corpus():
+            with self.subTest(line=n, path=path):
+                if kind == "error":
+                    with self.assertRaises(ValueError):
+                        parse_file_sequence(path)
+                    continue
+                r = parse_file_sequence(path)
+                got_kind = "seq" if r.is_sequence else "single" if r.is_single_frame else "plain"
+                self.assertEqual(
+                    (got_kind, r.directory, r.basename, r.frame_range, r.padding, r.extension),
+                    (kind,) + want)
+
+    def test_corpus_parses_with_sll(self):
+        for n, kind, path, _ in load_corpus():
+            if kind == "error":
+                continue
+            with self.subTest(line=n, path=path):
+                self.assertEqual(_sll_errors(path), [])
 
 
 if __name__ == '__main__':
