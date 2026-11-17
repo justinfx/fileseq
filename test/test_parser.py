@@ -6,7 +6,7 @@ from fileseq._vendor.antlr4.atn.PredictionMode import PredictionMode  # type: ig
 
 from fileseq.parser.fileseqLexer import fileseqLexer
 from fileseq.parser.fileseqParser import fileseqParser
-from fileseq.parser.parse import FileSeqErrorListener
+from fileseq.parser.parse import FileSeqErrorListener, parse_file_sequence
 
 # Valid inputs that must parse with SLL prediction alone. A grammar change that
 # makes any of these fall back to full LL prediction is a large performance
@@ -43,6 +43,15 @@ SLL_INPUTS = [
     "file.1-10#.exr",
 ]
 
+# Inputs containing characters the lexer cannot tokenize. These must be
+# rejected, not accepted with the bad characters silently dropped.
+LEXER_ERROR_INPUTS = [
+    "/a/foo<bar.exr",
+    "/a/foo>bar.1-10#.exr",
+    "/a/sh<010.1001.exr",
+    "/a/x<y>.#.exr",
+]
+
 
 def _sll_errors(path):
     lexer = fileseqLexer(InputStream(path))
@@ -63,6 +72,15 @@ class TestSLLPrediction(unittest.TestCase):
         for path in SLL_INPUTS:
             with self.subTest(path=path):
                 self.assertEqual(_sll_errors(path), [])
+
+
+class TestLexerErrors(unittest.TestCase):
+
+    def test_lexer_errors_are_rejected(self):
+        for path in LEXER_ERROR_INPUTS:
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError):
+                    parse_file_sequence(path)
 
 
 if __name__ == '__main__':

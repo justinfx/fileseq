@@ -4,6 +4,7 @@
 
 * grammar: Split the shared basename rule per input alternative so range sequences parse with SLL prediction instead of
   falling back to full LL. Parsing a range sequence is about 10x faster.
+* Fix parser silently dropping invalid characters like `<` and `>` instead of raising an error
 
 ## v3.4.1 (2026-11-04)
 
