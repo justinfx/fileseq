@@ -41,6 +41,10 @@ class FileSeqErrorListener(ErrorListener):  # type: ignore[misc]
         })
 
 
+def _join_errors(listener: FileSeqErrorListener) -> str:
+    return "; ".join(e['message'] for e in listener.errors)
+
+
 def parse_file_sequence(path: str) -> Optional[ParseResult]:
     """
     Parse a file sequence path using ANTLR4 grammar.
@@ -48,6 +52,8 @@ def parse_file_sequence(path: str) -> Optional[ParseResult]:
     Uses two-tier prediction mode strategy for performance:
     1. Try SLL mode first (fast, handles most cases)
     2. Fall back to LL mode if SLL fails (slower, more thorough)
+
+    Lexer errors are rejected immediately, since LL cannot repair them.
 
     Args:
         path: File path to parse (e.g., "/path/file.1-100#.exr")
@@ -91,12 +97,17 @@ def parse_file_sequence(path: str) -> Optional[ParseResult]:
     try:
         tree = parser.input_()
 
-        # Check if SLL mode had errors
-        if lexer_error_listener.errors or parser_error_listener.errors:
-            # Retry with LL mode for better error handling
+        # LL prediction cannot repair a lexer error, so reject without retrying
+        if lexer_error_listener.errors:
+            raise ValueError(f"Failed to parse '{path}': " + _join_errors(lexer_error_listener))
+
+        # SLL can fail on valid input that needs full context; retry with LL
+        if parser_error_listener.errors:
             input_stream.seek(0)
             lexer = fileseqLexer(input_stream)
             lexer.removeErrorListeners()
+            lexer_error_listener = FileSeqErrorListener()
+            lexer.addErrorListener(lexer_error_listener)
 
             token_stream = CommonTokenStream(lexer)
             parser = fileseqParser(token_stream)
@@ -104,16 +115,12 @@ def parse_file_sequence(path: str) -> Optional[ParseResult]:
             parser_error_listener = FileSeqErrorListener()
             parser.addErrorListener(parser_error_listener)
 
-            # Use LL mode (slower but more thorough)
             parser._interp.predictionMode = PredictionMode.LL  # type: ignore[attr-defined]
             tree = parser.input_()
 
-            # Check for errors again
-            if parser_error_listener.errors:
-                error_msgs = [e['message'] for e in parser_error_listener.errors]
-                raise ValueError(
-                    f"Failed to parse '{path}': " + "; ".join(error_msgs)
-                )
+            for listener in (lexer_error_listener, parser_error_listener):
+                if listener.errors:
+                    raise ValueError(f"Failed to parse '{path}': " + _join_errors(listener))
 
     except ValueError:
         raise

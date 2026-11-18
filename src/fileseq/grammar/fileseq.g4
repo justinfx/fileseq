@@ -27,7 +27,7 @@ sequence
 // Python-specific: Supports optional subframe padding: /path/file.#.#.ext
 //   Go/C++ ignore the second padding until subframe support is implemented
 patternOnly
-    : directory basename? padding (SPECIAL_CHAR padding)? extension*
+    : directory patBasename? padding (SPECIAL_CHAR padding)? extension*
     ;
 
 // Single frame: /path/file.100.exr (extension required after frame number)
@@ -35,7 +35,7 @@ patternOnly
 // Python semantic rule: a dot-number is only treated as a frame if there's an extension after it
 // Basename is optional to handle cases like .10000000000.123 where both are DOT_NUM tokens
 singleFrame
-    : directory basename? frameNum extension+
+    : directory frameBasename? frameNum extension+
     ;
 
 // Plain file: /path/file.txt or /path/file or /path/.hidden (no frame pattern)
@@ -69,14 +69,28 @@ plainBasenameChar
 // Includes EXTENSION to handle dots in directory names (e.g. path.with.dots)
 // Includes WS to preserve whitespace in directory names
 // Includes OTHER_CHAR for special characters like ! $ % ( ) etc.
+// Includes the padding tokens, since padding only has meaning in the final
+// path component (e.g. /mnt/shot#1/ or /mnt/<UDIM>/ are valid directories)
 dirSegment
-    : basenameChar+
+    : (basenameChar | HASH | AT | UDIM_ANGLE | UDIM_PAREN | PRINTF_PAD | HOUDINI_PAD)+
     ;
 
 // Basename for sequence, patternOnly, and singleFrame rules.
 // Includes EXTENSION (for hidden files like .hidden) and DOT_NUM.
 // Also includes FRAME_RANGE tokens for date-like patterns (e.g., "name_2025-05-13_")
+// The three rules are identical on purpose. Each is referenced from exactly one
+// alternative of 'input', so SLL prediction never merges their follow contexts.
+// Sharing one rule made every range sequence fail SLL and reparse with full LL,
+// which was about 30x slower. TestValidInputsParseWithSLL guards this.
 basename
+    : basenameChar+
+    ;
+
+patBasename
+    : basenameChar+
+    ;
+
+frameBasename
     : basenameChar+
     ;
 
@@ -140,13 +154,15 @@ EXTENSION: '.' ([a-zA-Z_] | [0-9]* [a-zA-Z] [a-zA-Z0-9_]*);
 
 // Frame range with leading dot (must have comma, colon, or dash after first number)
 // Matches: .1-100, .-10-100, .1,2,3, .1-10x2, .1,2,3,5-10,20-30
-// Optional decimal suffix for decimal step values: .1-5x0.25
-DOT_FRAME_RANGE: '.' '-'? [0-9]+ [,:-] [0-9xy:,-]* ('.' [0-9]+)?;
+// Optional decimal step value, only after x or y: .1-5x0.25
+// Without a step, a trailing .N is a separate frame number (v2 behavior)
+DOT_FRAME_RANGE: '.' '-'? [0-9]+ [,:-] [0-9xy:,-]* ([xy] [0-9]+ '.' [0-9]+)?;
 
 // Frame range without leading dot (must have comma, colon, or dash after first number)
 // Matches: 1-100, -10-100, 1,2,3, 1-10x2
-// Optional decimal suffix for decimal step values: 1-5x0.25
-FRAME_RANGE: '-'? [0-9]+ [,:-] [0-9xy:,-]* ('.' [0-9]+)?;
+// Optional decimal step value, only after x or y: 1-5x0.25
+// Without a step, a trailing .N is a separate frame number (v2 behavior)
+FRAME_RANGE: '-'? [0-9]+ [,:-] [0-9xy:,-]* ([xy] [0-9]+ '.' [0-9]+)?;
 
 // Frame number with dot: .100 or .-10 (single frame, no range delimiter)
 DOT_NUM: '.' '-'? [0-9]+;

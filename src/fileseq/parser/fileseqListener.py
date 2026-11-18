@@ -98,6 +98,24 @@ class fileseqListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by fileseqParser#patBasename.
+    def enterPatBasename(self, ctx:fileseqParser.PatBasenameContext):
+        pass
+
+    # Exit a parse tree produced by fileseqParser#patBasename.
+    def exitPatBasename(self, ctx:fileseqParser.PatBasenameContext):
+        pass
+
+
+    # Enter a parse tree produced by fileseqParser#frameBasename.
+    def enterFrameBasename(self, ctx:fileseqParser.FrameBasenameContext):
+        pass
+
+    # Exit a parse tree produced by fileseqParser#frameBasename.
+    def exitFrameBasename(self, ctx:fileseqParser.FrameBasenameContext):
+        pass
+
+
     # Enter a parse tree produced by fileseqParser#plainBasename.
     def enterPlainBasename(self, ctx:fileseqParser.PlainBasenameContext):
         pass

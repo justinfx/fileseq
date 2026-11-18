@@ -59,6 +59,16 @@ class fileseqVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by fileseqParser#patBasename.
+    def visitPatBasename(self, ctx:fileseqParser.PatBasenameContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by fileseqParser#frameBasename.
+    def visitFrameBasename(self, ctx:fileseqParser.FrameBasenameContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by fileseqParser#plainBasename.
     def visitPlainBasename(self, ctx:fileseqParser.PlainBasenameContext):
         return self.visitChildren(ctx)
