@@ -1,6 +1,6 @@
 # Fileseq Changelog
 
-## v3.5.0 (unreleased)
+## v3.5.0 (2026-11-18)
 
 * grammar: Split the shared basename rule per input alternative so range sequences parse with SLL prediction instead of
   falling back to full LL. Parsing a range sequence is about 10x faster.
